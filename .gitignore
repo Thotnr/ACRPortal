@@ -25,6 +25,19 @@ bld/
 
 # .NET Core
 project.lock.json
+# Visual Studio / IDE
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet packages folder (classic .NET Framework often uses it)
+packages/
+
+# IIS Express (optional)
+.vscode/
+
 project.fragment.lock.json
 artifacts/
 
