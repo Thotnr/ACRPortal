@@ -4,21 +4,57 @@
 <head>
     <title>ACR Portal | Secure Login</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
     <style>
-        body {
-            background: #e9ecef;
+
+        /* body {
+            margin: 0;
             height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        } */
+        body {
+            margin: 0;
+            height: 100vh;
+            background-image: url('/assets/image/haryana_power.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        /* Header */
+
+        .header {
+            background: white;
+            height: 70px;
             display: flex;
             align-items: center;
+            padding: 0 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
+        .logo {
+            height: 40px;
+        }
+
+        /* Center Container */
+
+        .main-container {
+            height: calc(100vh - 70px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Login Card */
+
         .auth-container {
-            max-width: 400px;
-            margin: auto;
+            width: 400px;
             background: white;
-            padding: 30px;
+            padding: 35px;
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .hidden {
@@ -28,67 +64,260 @@
         .btn-custom {
             background-color: #004a99;
             color: white;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            border: none;
         }
+
+        .btn-custom:hover {
+            background-color: #0056b3;
+            color: white;
+            box-shadow: 0 6px 15px rgba(0, 74, 153, 0.4);
+        }
+
+        .btn-custom:active {
+            background-color: #003d85;
+            color: white;
+        }
+
+        .forgot-link {
+            font-size: 13px;
+            cursor: pointer;
+            color: #007bff;
+        }
+
+            .forgot-link:hover {
+                text-decoration: underline;
+            }
     </style>
 </head>
+
 <body>
-    <div class="auth-container">
-        <h4 class="text-center mb-4" id="headerTitle">Portal Login</h4>
 
-        <div id="authStep1">
-            <div class="form-group">
-                <input type="text" id="loginId" class="form-control" placeholder="Login ID" value="rahul_99">
-            </div>
-            <div class="form-group">
-                <input type="password" id="pwd" class="form-control" placeholder="Password" value="welcome@123">
-            </div>
-            <button class="btn btn-custom btn-block" onclick="doStep1()">Get OTP</button>
-        </div>
+    <!-- HEADER -->
 
-        <div id="authStep2" class="hidden">
-            <p class="text-muted small">Enter the 5-digit code sent to you.</p>
-            <div class="form-group">
-                <input type="text" id="otpCode" class="form-control" placeholder="OTP (12345)">
-            </div>
-            <button class="btn btn-success btn-block" onclick="doStep2()">Verify & Login</button>
-        </div>
-
-        <div id="authSuccess" class="hidden text-center">
-            <div class="display-4 text-success">✔</div>
-            <h5>Login Successful!</h5>
-            <hr>
-            <p class="small text-left">Your Session Token:</p>
-            <textarea id="tokenOut" class="form-control mb-3" rows="4" readonly></textarea>
-            <button class="btn btn-secondary btn-sm" onclick="location.reload()">Back to Login</button>
-        </div>
-
-        <div id="errMsg" class="text-danger small mt-3 text-center"></div>
+    <div class="header">
+        <img src="~/assets/image/dhbvn_logo.png" class="logo">
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        function doStep1() {
-            const payload = { LoginId: $("#loginId").val(), Password: $("#pwd").val() };
-            $.post("/api/user/login/step1", payload, function(res) {
-                if(res.Success) {
-                    $("#authStep1").addClass("hidden");
-                    $("#authStep2").removeClass("hidden");
-                    $("#headerTitle").text("OTP Verification");
-                } else { $("#errMsg").text(res.Message); }
-            }).fail(err => $("#errMsg").text("Step 1 failed. Check API connection."));
-        }
 
-        function doStep2() {
-            const payload = { LoginId: $("#loginId").val(), Otp: $("#otpCode").val() };
-            $.post("/api/user/login/step2", payload, function(res) {
-                if(res.Success) {
-                    $("#authStep2").addClass("hidden");
-                    $("#authSuccess").removeClass("hidden");
-                    $("#headerTitle").text("Dashboard Access");
-                    $("#tokenOut").val(res.Data.Token);
-                } else { $("#errMsg").text(res.Message); }
-            }).fail(err => $("#errMsg").text("Step 2 failed. Check SQL Column size (VARCHAR(MAX))."));
-        }
+    <!-- MAIN LOGIN AREA -->
+
+    <div class="main-container">
+
+        <div class="auth-container">
+
+            <h4 class="text-center mb-4" id="headerTitle">Login</h4>
+
+
+            <!-- STEP 1 -->
+
+            <div id="authStep1">
+
+                <div class="form-group">
+                    <input type="text" id="loginId" class="form-control" placeholder="Enter Login ID" value="rahul_99">
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="pwd" class="form-control" placeholder="Enter Password" value="welcome@123">
+                </div>
+
+                <div class="text-right mb-3">
+                    <span class="forgot-link" onclick="showForgot()">Forgot Password?</span>
+                </div>
+
+                <button class="btn btn-custom btn-block" onclick="doStep1()">Get OTP</button>
+
+            </div>
+
+
+            <!-- STEP 2 -->
+
+            <div id="authStep2" class="hidden">
+
+                <p class="text-muted small">Enter the 5-digit OTP sent to your registered mobile/email.</p>
+
+                <div class="form-group">
+                    <input type="text" id="otpCode" class="form-control" placeholder="Enter OTP">
+                </div>
+
+                <button class="btn btn-success btn-block" onclick="doStep2()">Verify & Login</button>
+
+            </div>
+
+
+            <!-- SUCCESS -->
+
+            <div id="authSuccess" class="hidden text-center">
+
+                <div class="display-4 text-success">✔</div>
+
+                <h5>Login Successful!</h5>
+
+                <hr>
+
+                <p class="small text-left">Your Session Token:</p>
+
+<textarea id="tokenOut" class="form-control mb-3" rows="4" readonly></textarea>
+
+                <button class="btn btn-secondary btn-sm" onclick="location.reload()">Back to Login</button>
+
+            </div>
+
+
+            <!-- FORGOT PASSWORD -->
+
+            <div id="forgotSection" class="hidden">
+
+                <p class="small text-muted">Enter your Login ID to reset password.</p>
+
+                <div class="form-group">
+                    <input type="text" id="forgotUser" class="form-control" placeholder="Enter Login ID">
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="sendReset()">Send Reset Link</button>
+
+                <button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
+
+            </div>
+
+
+            <div id="errMsg" class="text-danger small mt-3 text-center"></div>
+
+        </div>
+
+    </div>
+
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+
+var apiBaseUrl = '@Url.Content("~/api/")';
+
+
+function showError(msg){
+$("#errMsg").text(msg || "");
+}
+
+
+/* ---------------------------
+   LOGIN STEP 1 (UNCHANGED)
+--------------------------- */
+
+function doStep1(){
+
+showError("");
+
+const payload={
+LoginId:$("#loginId").val(),
+Password:$("#pwd").val()
+};
+
+$.ajax({
+url:apiBaseUrl+"user/login/step1",
+method:"POST",
+contentType:"application/json; charset=utf-8",
+data:JSON.stringify(payload),
+
+success:function(res){
+
+if(res && res.Success){
+
+$("#authStep1").addClass("hidden");
+$("#authStep2").removeClass("hidden");
+$("#headerTitle").text("OTP Verification");
+
+}else{
+
+showError((res && res.Message)?res.Message:"Step 1 failed.");
+
+}
+
+},
+
+error:function(){
+showError("Step 1 failed. Check API base URL / IIS virtual directory.");
+}
+
+});
+
+}
+
+
+/* ---------------------------
+   LOGIN STEP 2 (UNCHANGED)
+--------------------------- */
+
+function doStep2(){
+
+showError("");
+
+const payload={
+LoginId:$("#loginId").val(),
+Otp:$("#otpCode").val()
+};
+
+$.ajax({
+url:apiBaseUrl+"user/login/step2",
+method:"POST",
+contentType:"application/json; charset=utf-8",
+data:JSON.stringify(payload),
+
+success:function(res){
+
+if(res && res.Success){
+
+$("#authStep2").addClass("hidden");
+$("#authSuccess").removeClass("hidden");
+$("#headerTitle").text("Dashboard Access");
+
+$("#tokenOut").val(res.Data && res.Data.Token ? res.Data.Token : "");
+
+}else{
+
+showError((res && res.Message)?res.Message:"Step 2 failed.");
+
+}
+
+},
+
+error:function(){
+showError("Step 2 failed. Check API base URL / backend logs.");
+}
+
+});
+
+}
+
+
+/* ---------------------------
+   FORGOT PASSWORD UI
+--------------------------- */
+
+function showForgot(){
+
+$("#authStep1").addClass("hidden");
+$("#forgotSection").removeClass("hidden");
+$("#headerTitle").text("Reset Password");
+
+}
+
+function backToLogin(){
+
+$("#forgotSection").addClass("hidden");
+$("#authStep1").removeClass("hidden");
+$("#headerTitle").text("Secure Portal Login");
+
+}
+
+function sendReset(){
+
+alert("Password reset link sent (demo)");
+
+}
+
     </script>
+
 </body>
 </html>
