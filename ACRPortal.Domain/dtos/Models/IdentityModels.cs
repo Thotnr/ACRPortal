@@ -9,6 +9,7 @@ namespace ACRPortal.Domain.DTOs.Models
         public string LoginId { get; set; }
         public string PasswordHash { get; set; } // SHA-256 Hashed
         public string DisplayName { get; set; }
+        public string SystemRole { get; set; }
         public bool IsActive { get; set; }
     }
 

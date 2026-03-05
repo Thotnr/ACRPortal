@@ -81,7 +81,7 @@ namespace ACRPortal.Domain.Security
 
         /* ==================== JWT (Token Generation) ==================== */
 
-        public string EncodeJwtToken(string userId, string sessionId, DateTime issuedAt, DateTime expiresAt)
+        public string EncodeJwtToken(string userId, string sessionId, string systemRole, DateTime issuedAt, DateTime expiresAt)
         {
             var securityKey = new InMemorySymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSecret));
             var credentials = new SigningCredentials(securityKey, "http://www.w3.org/2001/04/xmldsig-more#hmac-sha256", "http://www.w3.org/2001/04/xmlenc#sha256");
@@ -95,7 +95,8 @@ namespace ACRPortal.Domain.Security
                     Subject = new ClaimsIdentity(new[]
                     {
                 new Claim(ClaimTypes.NameIdentifier, encryptedUserId), // sub
-                new Claim("sid", encryptedSessionId)                   // session id
+                new Claim("sid", encryptedSessionId),                   // session id
+                new Claim(ClaimTypes.Role, systemRole ?? "EMPLOYEE")
             }),
                 TokenIssuerName = "ACRPortalAuth",
                 Lifetime = new Lifetime(issuedAt, expiresAt),

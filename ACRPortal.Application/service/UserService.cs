@@ -115,7 +115,7 @@ namespace ACRPortal.Application.service
                 string uidStr = user.UserId.ToString();
                 string sidStr = session.SessionId.ToString();
 
-                string token = _security.EncodeJwtToken(uidStr, sidStr, DateTime.UtcNow, DateTime.UtcNow.AddHours(2));
+                string token = _security.EncodeJwtToken(uidStr, sidStr, user.DisplayName, DateTime.UtcNow, DateTime.UtcNow.AddHours(2));
 
                 System.Diagnostics.Debug.WriteLine("Step 6: Attaching Token to Session...");
                 _repo.AttachSessionToken(session.SessionId, token);

@@ -77,7 +77,7 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             using (SqlConnection conn = new SqlConnection(_connStr))
             {
-                string sql = "SELECT user_id, login_id, password_hash, display_name, user_status FROM users WHERE login_id = @login";
+                string sql = "SELECT user_id, login_id, password_hash, display_name, user_status, system_role  FROM users WHERE login_id = @login";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.Add("@login", SqlDbType.VarChar).Value = loginId;
@@ -91,7 +91,8 @@ namespace ACRPortal.Infrastructure.Adapter
                             LoginId = dr.GetString(1),
                             PasswordHash = dr.GetString(2),
                             DisplayName = dr.IsDBNull(3) ? null : dr.GetString(3),
-                            IsActive = dr.GetString(4) == "ACTIVE"
+                            IsActive = dr.GetString(4) == "ACTIVE",
+                            SystemRole = dr.GetString(5)
                         };
                     }
                 }
