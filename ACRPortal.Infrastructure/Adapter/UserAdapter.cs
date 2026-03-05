@@ -153,7 +153,7 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             using (SqlConnection conn = new SqlConnection(_connStr))
             {
-                string sql = "SELECT otp_id, expires_at FROM otp_challenges WHERE identity_value = @val AND otp_hash = @hash AND status = 'ISSUED'";
+                string sql = "SELECT otp_id, expires_at FROM otp_challenges WHERE identity_value = @val AND otp_hash = @hash AND status = 'ISSUED' AND expires_at > GETDATE()";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.Add("@val", SqlDbType.VarChar).Value = identityHash;
