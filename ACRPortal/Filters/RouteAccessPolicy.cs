@@ -16,13 +16,21 @@ namespace ACRPortal.Filters
     {
         public static bool IsAllowed(string systemRole, string requestPath)
         {
-            // Normalise so comparisons are case-insensitive
             string path = requestPath.ToLowerInvariant();
+
+            // Login page is always open — safety net against redirect loops
+            if (path.StartsWith("/login"))
+                return true;
+
+            // Dashboard is shared — all authenticated roles can access it
+            if (path.StartsWith("/dashboard"))
+                return true;
 
             switch (systemRole?.ToUpper())
             {
                 case "ADMIN":
                     return path.StartsWith("/api/admin")
+                        || path.StartsWith("/api/user/createuser")
                         || path.StartsWith("/admin");
 
                 case "CCA":
@@ -31,9 +39,7 @@ namespace ACRPortal.Filters
 
                 case "EMPLOYEE":
                     return path.StartsWith("/api/acr")
-                        || path.StartsWith("/api/dashboard")
-                        || path.StartsWith("/acr")
-                        || path.StartsWith("/dashboard");
+                        || path.StartsWith("/acr");
 
                 default:
                     return false;
