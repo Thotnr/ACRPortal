@@ -1,228 +1,377 @@
-﻿@{ Layout = null; }
+@{ Layout = null; }
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ACR Portal | Login</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            background: #e9ecef;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-        }
+<title>ACR Portal | Login</title>
 
-        .auth-container {
-            max-width: 420px;
-            width: 100%;
-            margin: auto;
-            background: white;
-            padding: 36px 32px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-        }
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 
-        .portal-title {
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: #6c757d;
-            margin-bottom: 4px;
-        }
+<style>
 
-        .portal-heading {
-            font-size: 22px;
-            font-weight: 700;
-            color: #004a99;
-            margin-bottom: 28px;
-        }
+body{
+margin:0;
+height:100vh;
+background-image:url('/assets/image/haryana_power.jpg');
+background-size:cover;
+background-position:center;
+background-repeat:no-repeat;
+}
 
-        .btn-primary-custom {
-            background-color: #004a99;
-            border: none;
-            width: 100%;
-            padding: 10px;
-            font-size: 15px;
-            border-radius: 6px;
-            color: white;
-        }
+/* HEADER */
 
-            .btn-primary-custom:hover {
-                background-color: #003a7a;
-            }
+.header{
+background:white;
+height:70px;
+display:flex;
+align-items:center;
+padding:0 30px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
 
-        .hidden {
-            display: none;
-        }
+.logo{
+height:40px;
+}
 
-        #errMsg {
-            min-height: 20px;
-        }
-    </style>
+/* MAIN */
+
+.main-container{
+height:calc(100vh - 70px);
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+/* LOGIN CARD */
+
+.auth-container{
+width:400px;
+background:white;
+padding:35px;
+border-radius:15px;
+box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+.hidden{
+display:none;
+}
+
+#errMsg{
+min-height:20px;
+}
+
+.forgot-link{
+font-size:13px;
+cursor:pointer;
+color:#007bff;
+}
+
+.forgot-link:hover{
+text-decoration:underline;
+}
+
+.btn-custom{
+background:#004a99;
+color:white;
+border:none;
+}
+
+.btn-custom:hover{
+background:#0056b3;
+}
+
+</style>
 </head>
+
 <body>
-    <div class="auth-container">
 
-        <p class="portal-title">DHBVN</p>
-        <p class="portal-heading">ACR Portal</p>
+<!-- HEADER -->
 
-        <!-- Step 1: Credentials -->
-        <div id="authStep1">
-            <div class="form-group">
-                <label class="small font-weight-bold">Login ID</label>
-                <input type="text" id="loginId" class="form-control" placeholder="Enter your login ID">
-            </div>
-            <div class="form-group">
-                <label class="small font-weight-bold">Password</label>
-                <input type="password" id="pwd" class="form-control" placeholder="Enter your password">
-            </div>
-            <button class="btn btn-primary-custom mt-1" onclick="doStep1()">Get OTP</button>
-        </div>
+<div class="header">
+<img src="~/assets/image/dhbvn_logo.png" class="logo">
+</div>
 
-        <!-- Step 2: OTP -->
-        <div id="authStep2" class="hidden">
-            <p class="text-muted small mb-3">A 5-digit OTP has been sent. Enter it below.</p>
-            <div class="form-group">
-                <label class="small font-weight-bold">One-Time Password</label>
-                <input type="text" id="otpCode" class="form-control" placeholder="Enter OTP"
-                       maxlength="6" autocomplete="one-time-code">
-            </div>
-            <button class="btn btn-primary-custom mt-1" onclick="doStep2()">Verify & Login</button>
-            <button class="btn btn-link btn-block mt-2 small" onclick="resetToStep1()">
-                &larr; Back
-            </button>
-        </div>
+<!-- MAIN LOGIN -->
 
-        <!-- Loading indicator -->
-        <div id="loadingMsg" class="hidden text-center mt-3">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            <span class="ml-2 small">Please wait...</span>
-        </div>
+<div class="main-container">
 
-        <!-- Error message -->
-        <div id="errMsg" class="text-danger small mt-3 text-center"></div>
+<div class="auth-container">
 
-    </div>
+<h4 class="text-center mb-4" id="headerTitle">Login</h4>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
+<!-- STEP 1 -->
 
-        function setLoading(on) {
-            if (on) {
-                $("#loadingMsg").removeClass("hidden");
-                $("button").prop("disabled", true);
-            } else {
-                $("#loadingMsg").addClass("hidden");
-                $("button").prop("disabled", false);
-            }
-        }
+<div id="authStep1">
 
-        function showError(msg) {
-            $("#errMsg").text(msg);
-        }
+<div class="form-group">
+<input type="text" id="loginId" class="form-control" placeholder="Enter Login ID">
+</div>
 
-        function clearError() {
-            $("#errMsg").text("");
-        }
+<div class="form-group">
+<input type="password" id="pwd" class="form-control" placeholder="Enter Password">
+</div>
 
-        function resetToStep1() {
-            $("#authStep2").addClass("hidden");
-            $("#authStep1").removeClass("hidden");
-            clearError();
-        }
+<div class="text-right mb-3">
+<span class="forgot-link" onclick="showForgot()">Forgot Password?</span>
+</div>
 
-        // Safely parse JSON from xhr.responseText — returns null if malformed
-        function tryParseJson(text) {
-            try { return JSON.parse(text); } catch (e) { return null; }
-        }
+<button class="btn btn-custom btn-block" onclick="doStep1()">Get OTP</button>
 
-        // ── Step 1: submit credentials, trigger OTP ────────────────────────────
-        function doStep1() {
-            clearError();
-            var loginId = $.trim($("#loginId").val());
-            var password = $("#pwd").val();
+</div>
 
-            if (!loginId || !password) {
-                showError("Please enter your Login ID and Password.");
-                return;
-            }
+<!-- STEP 2 -->
 
-            setLoading(true);
+<div id="authStep2" class="hidden">
 
-            $.ajax({
-                url: "/api/user/login/step1",
-                method: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({ LoginId: loginId, Password: password }),
-                complete: function (xhr) {
-                    setLoading(false);
-                    var res = tryParseJson(xhr.responseText);
-                    if (res && res.Success) {
-                        $("#authStep1").addClass("hidden");
-                        $("#authStep2").removeClass("hidden");
-                        $("#otpCode").focus();
-                    } else if (res && res.Message) {
-                        showError(res.Message);
-                    } else {
-                        showError("Could not reach the server. Please try again.");
-                    }
-                }
-            });
-        }
+<p class="text-muted small">Enter the OTP sent to your registered mobile/email.</p>
 
-        // ── Step 2: verify OTP, receive token, redirect by role ───────────────
-        function doStep2() {
-            clearError();
-            var loginId = $.trim($("#loginId").val());
-            var otp = $.trim($("#otpCode").val());
+<div class="form-group">
+<input type="text" id="otpCode" class="form-control" placeholder="Enter OTP" maxlength="6">
+</div>
 
-            if (!otp) {
-                showError("Please enter the OTP.");
-                return;
-            }
+<button class="btn btn-success btn-block" onclick="doStep2()">Verify & Login</button>
 
-            setLoading(true);
+<button class="btn btn-link btn-block" onclick="resetToStep1()">Back</button>
 
-            $.ajax({
-                url: "/api/user/login/step2",
-                method: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({ LoginId: loginId, Otp: otp }),
-                complete: function (xhr) {
-                    setLoading(false);
-                    var res = tryParseJson(xhr.responseText);
-                    if (res && res.Success) {
-                        document.cookie = "jwt_token=" + res.Data.Token
-                            + "; path=/; SameSite=Strict";
+</div>
 
-                        var role = res.Data.SystemRole;
-                        if (role === "ADMIN") {
-                            window.location.href = "/Dashboard/Index";
-                        } else if (role === "CCA") {
-                            window.location.href = "/Dashboard/Index";
-                        } else {
-                            window.location.href = "/Dashboard/Index";
-                        }
-                    } else if (res && res.Message) {
-                        showError(res.Message);
-                    } else {
-                        showError("Could not reach the server. Please try again.");
-                    }
-                }
-            });
-        }
+<!-- FORGOT PASSWORD -->
 
-        // Allow pressing Enter on OTP field
-        $("#otpCode").on("keypress", function (e) {
-            if (e.which === 13) doStep2();
-        });
+<div id="forgotSection" class="hidden">
 
-        // Allow pressing Enter on password field
-        $("#pwd").on("keypress", function (e) {
-            if (e.which === 13) doStep1();
-        });
+<p class="small text-muted">Enter your Login ID to reset password.</p>
 
-    </script>
+<div class="form-group">
+<input type="text" id="forgotUser" class="form-control" placeholder="Enter Login ID">
+</div>
+
+<button class="btn btn-primary btn-block" onclick="sendReset()">Send Reset Link</button>
+
+<button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
+
+</div>
+
+<!-- LOADING -->
+
+<div id="loadingMsg" class="hidden text-center mt-3">
+<div class="spinner-border spinner-border-sm text-primary"></div>
+<span class="ml-2 small">Please wait...</span>
+</div>
+
+<div id="errMsg" class="text-danger small mt-3 text-center"></div>
+
+</div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+
+/* TOASTR */
+
+toastr.options={
+positionClass:"toast-top-right",
+timeOut:"5000",
+progressBar:true
+};
+
+var apiBaseUrl='@Url.Content("~/api/")';
+
+/* LOADING */
+
+function setLoading(on){
+
+if(on){
+$("#loadingMsg").removeClass("hidden");
+$("button").prop("disabled",true);
+}
+else{
+$("#loadingMsg").addClass("hidden");
+$("button").prop("disabled",false);
+}
+
+}
+
+/* ERROR */
+
+function showError(msg){
+$("#errMsg").text(msg||"");
+}
+
+/* SAFE JSON PARSER */
+
+function tryParseJson(text){
+try{ return JSON.parse(text);}
+catch(e){ return null;}
+}
+
+/* RESET */
+
+function resetToStep1(){
+
+$("#authStep2").addClass("hidden");
+$("#authStep1").removeClass("hidden");
+
+}
+
+/* LOGIN STEP 1 */
+
+function doStep1(){
+
+showError("");
+
+var loginId=$.trim($("#loginId").val());
+var password=$("#pwd").val();
+
+if(!loginId || !password){
+
+showError("Please enter Login ID and Password.");
+toastr.error("Please enter Login ID and Password");
+return;
+
+}
+
+setLoading(true);
+
+$.ajax({
+
+url:apiBaseUrl+"user/login/step1",
+method:"POST",
+contentType:"application/json",
+data:JSON.stringify({LoginId:loginId,Password:password}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res=tryParseJson(xhr.responseText);
+
+if(res && res.Success){
+
+toastr.success("OTP sent successfully");
+
+$("#authStep1").addClass("hidden");
+$("#authStep2").removeClass("hidden");
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
+
+}
+
+}
+
+});
+
+}
+
+/* LOGIN STEP 2 */
+
+function doStep2(){
+
+showError("");
+
+var loginId=$.trim($("#loginId").val());
+var otp=$.trim($("#otpCode").val());
+
+if(!otp){
+
+showError("Enter OTP");
+return;
+
+}
+
+setLoading(true);
+
+$.ajax({
+
+url:apiBaseUrl+"user/login/step2",
+method:"POST",
+contentType:"application/json",
+data:JSON.stringify({LoginId:loginId,Otp:otp}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res=tryParseJson(xhr.responseText);
+
+if(res && res.Success){
+
+document.cookie="jwt_token="+res.Data.Token+"; path=/; SameSite=Strict";
+
+toastr.success("Login successful");
+
+setTimeout(function(){
+
+window.location.href="/Dashboard/Index";
+
+},1000);
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
+
+}
+
+}
+
+});
+
+}
+
+/* ENTER KEY */
+
+$("#pwd").keypress(function(e){
+if(e.which==13) doStep1();
+});
+
+$("#otpCode").keypress(function(e){
+if(e.which==13) doStep2();
+});
+
+/* FORGOT PASSWORD UI */
+
+function showForgot(){
+
+$("#authStep1").addClass("hidden");
+$("#forgotSection").removeClass("hidden");
+$("#headerTitle").text("Reset Password");
+
+}
+
+function backToLogin(){
+
+$("#forgotSection").addClass("hidden");
+$("#authStep1").removeClass("hidden");
+$("#headerTitle").text("Login");
+
+}
+
+function sendReset(){
+
+alert("Reset link sent (demo)");
+
+}
+
+</script>
+
 </body>
 </html>
