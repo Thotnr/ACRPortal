@@ -14,7 +14,7 @@ namespace ACRPortal.Controllers
 
             ViewBag.Role = role;
 
-            return View("~/Views/Dashboard/Index.cshtml");
+            return View("~/Views/Home/Dashboard");
         }
     }
 }

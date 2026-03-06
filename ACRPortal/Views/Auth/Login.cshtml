@@ -1,4 +1,4 @@
-@{ Layout = null; }
+﻿@{ Layout = null; }
 <!DOCTYPE html>
 <html>
 <head>
@@ -176,7 +176,7 @@ timeOut:"5000",
 progressBar:true
 };
 
-var apiBaseUrl='@Url.Content("~/api/")';
+var apiBaseUrl='@Url.Content("~/api/user/")';
 
 /* LOADING */
 
@@ -236,7 +236,7 @@ setLoading(true);
 
 $.ajax({
 
-url:apiBaseUrl+"user/login/step1",
+url:apiBaseUrl+"login/step1",
 method:"POST",
 contentType:"application/json",
 data:JSON.stringify({LoginId:loginId,Password:password}),
@@ -277,7 +277,7 @@ toastr.error("Server error");
 /* LOGIN STEP 2 */
 
 function doStep2(){
-
+debugger;
 showError("");
 
 var loginId=$.trim($("#loginId").val());
@@ -294,7 +294,7 @@ setLoading(true);
 
 $.ajax({
 
-url:apiBaseUrl+"user/login/step2",
+url:apiBaseUrl+"login/step2",
 method:"POST",
 contentType:"application/json",
 data:JSON.stringify({LoginId:loginId,Otp:otp}),
@@ -307,13 +307,20 @@ var res=tryParseJson(xhr.responseText);
 
 if(res && res.Success){
 
-document.cookie="jwt_token="+res.Data.Token+"; path=/; SameSite=Strict";
+var token = res.Data.Token;
+debugger;
+localStorage.setItem("token", token);
+localStorage.setItem("displayName", res.Data.DisplayName);
+localStorage.setItem("role", res.Data.SystemRole);
+localStorage.setItem("tokenExpiry", res.Data.ExpiresAt);
 
+window.location.href="/Home/Dashboard";
+document.cookie="jwt_token="+token+"; path=/; SameSite=Strict";
 toastr.success("Login successful");
 
 setTimeout(function(){
 
-window.location.href="/Dashboard/Index";
+window.location.href="/Home/Dashboard";
 
 },1000);
 
@@ -366,8 +373,44 @@ $("#headerTitle").text("Login");
 }
 
 function sendReset(){
+var loginId = $("#forgotUser").val();
 
-alert("Reset link sent (demo)");
+if(!loginId){
+alert("Enter Login ID");
+return;
+}
+
+$.ajax({
+
+url: apiBaseUrl + "forgot-password",
+method: "POST",
+contentType: "application/json",
+
+data: JSON.stringify({
+LoginId: loginId
+}),
+
+success:function(res){
+
+if(res.Success){
+
+alert(res.Message);
+
+}
+else{
+
+alert(res.Message);
+
+}
+
+},
+
+error:function(){
+alert("Request failed");
+}
+
+});
+// alert("Reset link sent (demo)");
 
 }
 
