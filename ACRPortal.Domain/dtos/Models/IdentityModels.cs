@@ -7,10 +7,11 @@ namespace ACRPortal.Domain.DTOs.Models
     {
         public Guid UserId { get; set; }
         public string LoginId { get; set; }
-        public string PasswordHash { get; set; } // SHA-256 Hashed
+        public string PasswordHash { get; set; }
         public string DisplayName { get; set; }
         public string SystemRole { get; set; }
-        public bool IsActive { get; set; }
+        public string UserStatus { get; set; }  // raw value: PENDING / ACTIVE / INACTIVE
+        public bool IsActive => UserStatus == "ACTIVE";
     }
 
     // 2. Encrypted Identity (Phone/Email)
@@ -18,8 +19,8 @@ namespace ACRPortal.Domain.DTOs.Models
     {
         public Guid IdentityId { get; set; }
         public Guid UserId { get; set; }
-        public string IdentityType { get; set; } // PHONE or EMAIL
-        public string IdentityValueHash { get; set; } // AES Encrypted
+        public string IdentityType { get; set; }
+        public string IdentityValueHash { get; set; }
         public bool IsVerified { get; set; }
     }
 
@@ -27,8 +28,8 @@ namespace ACRPortal.Domain.DTOs.Models
     public class OtpChallenge
     {
         public Guid OtpId { get; set; }
-        public string IdentityHash { get; set; } // AES Encrypted LoginId
-        public string OtpHashed { get; set; }    // SHA-256 Hashed OTP
+        public string IdentityHash { get; set; }
+        public string OtpHashed { get; set; }
         public string IpAddress { get; set; }
         public string UserAgent { get; set; }
         public DateTime ExpiresAt { get; set; }
@@ -40,10 +41,11 @@ namespace ACRPortal.Domain.DTOs.Models
     {
         public Guid SessionId { get; set; }
         public Guid UserId { get; set; }
-        public string SessionToken { get; set; } // JWT Token
+        public string SessionToken { get; set; }
         public string IpAddress { get; set; }
         public string UserAgent { get; set; }
         public bool IsActive { get; set; }
+        public DateTime ExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

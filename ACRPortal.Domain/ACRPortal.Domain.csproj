@@ -49,7 +49,7 @@
     <Compile Include="Class1.cs" />
     <Compile Include="dtos\Models\IdentityModels.cs" />
     <Compile Include="dtos\WebToApp\ApiResponse.cs" />
-    <Compile Include="dtos\WebToApp\LoginResponse.cs" />
+    <Compile Include="dtos\WebToApp\AuthDTOs.cs" />
     <Compile Include="dtos\WebToApp\LoginStep1Request.cs" />
     <Compile Include="dtos\WebToApp\SignupRequest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

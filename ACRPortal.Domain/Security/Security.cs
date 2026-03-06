@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Protocols.WSTrust; // Lifetime ke liye
-using System.IdentityModel.Tokens;           // JWT handlers ke liye
+using System.IdentityModel.Protocols.WSTrust;
+using System.IdentityModel.Tokens;
 using System.IO;
-using System.Security.Claims;                // ClaimsIdentity ke liye
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -11,16 +10,18 @@ namespace ACRPortal.Domain.Security
 {
     public class Security
     {
-        // Hardcoded Keys (Values match your reference)
-        //Nikhil put this in web config for security resaon
+        // TODO: Move these three values to Web.config <appSettings> before production
         private static readonly byte[] AesKey = Encoding.UTF8.GetBytes("9db821f1e56b4f78890234a123456789");
         private static readonly byte[] HmacKey = Encoding.UTF8.GetBytes("a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6");
         private const string JwtSecret = "super_secret_key_for_acr_portal_2026";
 
-        /* ==================== AES (Encryption/Decryption) ==================== */
+        private const string JwtIssuer = "ACRPortalAuth";
+        // Audience validation skipped — single internal portal, issuer + signature is sufficient
+
+        /* ==================== AES (Encryption / Decryption) ==================== */
+
         public string EncryptWithAes(string plainText)
         {
-            // Fix: Null ya empty check
             if (string.IsNullOrEmpty(plainText)) return null;
 
             using (Aes aes = Aes.Create())
@@ -55,9 +56,8 @@ namespace ACRPortal.Domain.Security
             }
         }
 
-        /* ==================== HASHING (Search & OTP) ==================== */
+        /* ==================== Hashing ==================== */
 
-        // HMAC-SHA256: LoginId/Phone searchable rakhne ke liye
         public string HashWithHmacSha256(string plainText)
         {
             using (var hmac = new HMACSHA256(HmacKey))
@@ -68,7 +68,6 @@ namespace ACRPortal.Domain.Security
             }
         }
 
-        // SHA-256: OTP aur short-lived verification ke liye
         public string HashWithSha256(string plainText)
         {
             using (var sha256 = SHA256.Create())
@@ -79,33 +78,35 @@ namespace ACRPortal.Domain.Security
             }
         }
 
-        /* ==================== JWT (Token Generation) ==================== */
+        /* ==================== JWT ==================== */
 
-        public string EncodeJwtToken(string userId, string sessionId, string systemRole, DateTime issuedAt, DateTime expiresAt)
+        public string EncodeJwtToken(string userId, string sessionId, string systemRole,
+            DateTime issuedAt, DateTime expiresAt)
         {
             var securityKey = new InMemorySymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSecret));
-            var credentials = new SigningCredentials(securityKey, "http://www.w3.org/2001/04/xmldsig-more#hmac-sha256", "http://www.w3.org/2001/04/xmlenc#sha256");
+            var credentials = new SigningCredentials(
+                securityKey,
+                "http://www.w3.org/2001/04/xmldsig-more#hmac-sha256",
+                "http://www.w3.org/2001/04/xmlenc#sha256");
 
-            // Java logic: userId aur sessionId ko AES encrypt karke token mein daalna
             string encryptedUserId = EncryptWithAes(userId);
             string encryptedSessionId = EncryptWithAes(sessionId);
 
             var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
                 {
-                    Subject = new ClaimsIdentity(new[]
-                    {
-                new Claim(ClaimTypes.NameIdentifier, encryptedUserId), // sub
-                new Claim("sid", encryptedSessionId),                   // session id
-                new Claim(ClaimTypes.Role, systemRole ?? "EMPLOYEE")
-            }),
-                TokenIssuerName = "ACRPortalAuth",
+                    new Claim(ClaimTypes.NameIdentifier, encryptedUserId),
+                    new Claim("sid", encryptedSessionId),
+                    new Claim(ClaimTypes.Role, systemRole ?? "EMPLOYEE")
+                }),
+                TokenIssuerName = JwtIssuer,
                 Lifetime = new Lifetime(issuedAt, expiresAt),
                 SigningCredentials = credentials
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
         }
 
         public ClaimsPrincipal DecodeJwtToken(string token)
@@ -113,9 +114,10 @@ namespace ACRPortal.Domain.Security
             var tokenHandler = new JwtSecurityTokenHandler();
             var validationParameters = new TokenValidationParameters
             {
-                ValidIssuer = "ACRPortalAuth",
-                ValidAudience = "ACRPortal",
-                IssuerSigningKey = new InMemorySymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSecret)),
+                ValidIssuer = JwtIssuer,
+                ValidateAudience = false,
+                IssuerSigningKey = new InMemorySymmetricSecurityKey(
+                                       Encoding.UTF8.GetBytes(JwtSecret)),
                 ValidateLifetime = true
             };
 
