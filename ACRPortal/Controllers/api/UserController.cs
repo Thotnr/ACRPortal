@@ -20,7 +20,6 @@ namespace ACRPortal.Controllers
         }
 
         // Protected — only ADMIN can create users (enforced by RouteAccessPolicy)
-        [NoAuth]
         [HttpPost]
         [Route("createuser")]
         public HttpResponseMessage CreateUser([FromBody] SignupRequest request)

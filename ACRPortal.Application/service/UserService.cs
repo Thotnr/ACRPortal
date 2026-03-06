@@ -96,6 +96,7 @@ namespace ACRPortal.Application.service
                 System.Diagnostics.Debug.WriteLine("Step 2: Checking OTP in Repo...");
                 var otpEntry = _repo.GetOtp(identityHash, otpHashed, ip, userAgent);
                 if (otpEntry == null) return ApiResponse<LoginResponse>.Fail("Invalid OTP or Expired", "OTP_NOT_FOUND");
+                _repo.MarkOtpAsVerified(otpEntry.OtpId);
 
                 System.Diagnostics.Debug.WriteLine("Step 3: Fetching User...");
                 var user = _repo.GetUserByLoginId(loginId);
