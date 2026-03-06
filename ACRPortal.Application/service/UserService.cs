@@ -121,7 +121,7 @@ namespace ACRPortal.Application.service
                 _repo.AttachSessionToken(session.SessionId, token);
 
                 System.Diagnostics.Debug.WriteLine("--- LOGIN STEP 2 SUCCESS ---");
-                return ApiResponse<LoginResponse>.Ok(new LoginResponse { Token = token }, "Welcome");
+                return ApiResponse<LoginResponse>.Ok(new LoginResponse { Token = token, SystemRole = user.SystemRole }, "Welcome");
             }
             catch (Exception ex)
             {

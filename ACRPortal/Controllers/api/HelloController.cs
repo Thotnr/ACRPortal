@@ -3,7 +3,7 @@ using System.Web.Http;
 using ACRPortal.Application.UseCases;
 using ACRPortal.Application.Services;
 
-namespace ACRPortal.Controllers.Api
+namespace ACRPortal.Controllers
 {
     public class HelloController : ApiController
     {

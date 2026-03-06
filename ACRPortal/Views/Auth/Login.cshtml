@@ -2,93 +2,227 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ACR Portal | Secure Login</title>
+    <title>ACR Portal | Login</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {
             background: #e9ecef;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
         }
 
         .auth-container {
-            max-width: 400px;
+            max-width: 420px;
+            width: 100%;
             margin: auto;
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            padding: 36px 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
         }
+
+        .portal-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #6c757d;
+            margin-bottom: 4px;
+        }
+
+        .portal-heading {
+            font-size: 22px;
+            font-weight: 700;
+            color: #004a99;
+            margin-bottom: 28px;
+        }
+
+        .btn-primary-custom {
+            background-color: #004a99;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            font-size: 15px;
+            border-radius: 6px;
+            color: white;
+        }
+
+            .btn-primary-custom:hover {
+                background-color: #003a7a;
+            }
 
         .hidden {
             display: none;
         }
 
-        .btn-custom {
-            background-color: #004a99;
-            color: white;
+        #errMsg {
+            min-height: 20px;
         }
     </style>
 </head>
 <body>
     <div class="auth-container">
-        <h4 class="text-center mb-4" id="headerTitle">Portal Login</h4>
 
+        <p class="portal-title">DHBVN</p>
+        <p class="portal-heading">ACR Portal</p>
+
+        <!-- Step 1: Credentials -->
         <div id="authStep1">
             <div class="form-group">
-                <input type="text" id="loginId" class="form-control" placeholder="Login ID" value="rahul_99">
+                <label class="small font-weight-bold">Login ID</label>
+                <input type="text" id="loginId" class="form-control" placeholder="Enter your login ID">
             </div>
             <div class="form-group">
-                <input type="password" id="pwd" class="form-control" placeholder="Password" value="welcome@123">
+                <label class="small font-weight-bold">Password</label>
+                <input type="password" id="pwd" class="form-control" placeholder="Enter your password">
             </div>
-            <button class="btn btn-custom btn-block" onclick="doStep1()">Get OTP</button>
+            <button class="btn btn-primary-custom mt-1" onclick="doStep1()">Get OTP</button>
         </div>
 
+        <!-- Step 2: OTP -->
         <div id="authStep2" class="hidden">
-            <p class="text-muted small">Enter the 5-digit code sent to you.</p>
+            <p class="text-muted small mb-3">A 5-digit OTP has been sent. Enter it below.</p>
             <div class="form-group">
-                <input type="text" id="otpCode" class="form-control" placeholder="OTP (12345)">
+                <label class="small font-weight-bold">One-Time Password</label>
+                <input type="text" id="otpCode" class="form-control" placeholder="Enter OTP"
+                       maxlength="6" autocomplete="one-time-code">
             </div>
-            <button class="btn btn-success btn-block" onclick="doStep2()">Verify & Login</button>
+            <button class="btn btn-primary-custom mt-1" onclick="doStep2()">Verify & Login</button>
+            <button class="btn btn-link btn-block mt-2 small" onclick="resetToStep1()">
+                &larr; Back
+            </button>
         </div>
 
-        <div id="authSuccess" class="hidden text-center">
-            <div class="display-4 text-success">✔</div>
-            <h5>Login Successful!</h5>
-            <hr>
-            <p class="small text-left">Your Session Token:</p>
-            <textarea id="tokenOut" class="form-control mb-3" rows="4" readonly></textarea>
-            <button class="btn btn-secondary btn-sm" onclick="location.reload()">Back to Login</button>
+        <!-- Loading indicator -->
+        <div id="loadingMsg" class="hidden text-center mt-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span class="ml-2 small">Please wait...</span>
         </div>
 
+        <!-- Error message -->
         <div id="errMsg" class="text-danger small mt-3 text-center"></div>
+
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        function doStep1() {
-            const payload = { LoginId: $("#loginId").val(), Password: $("#pwd").val() };
-            $.post("/api/user/login/step1", payload, function(res) {
-                if(res.Success) {
-                    $("#authStep1").addClass("hidden");
-                    $("#authStep2").removeClass("hidden");
-                    $("#headerTitle").text("OTP Verification");
-                } else { $("#errMsg").text(res.Message); }
-            }).fail(err => $("#errMsg").text("Step 1 failed. Check API connection."));
+
+        function setLoading(on) {
+            if (on) {
+                $("#loadingMsg").removeClass("hidden");
+                $("button").prop("disabled", true);
+            } else {
+                $("#loadingMsg").addClass("hidden");
+                $("button").prop("disabled", false);
+            }
         }
 
-        function doStep2() {
-            const payload = { LoginId: $("#loginId").val(), Otp: $("#otpCode").val() };
-            $.post("/api/user/login/step2", payload, function(res) {
-                if(res.Success) {
-                    $("#authStep2").addClass("hidden");
-                    $("#authSuccess").removeClass("hidden");
-                    $("#headerTitle").text("Dashboard Access");
-                    $("#tokenOut").val(res.Data.Token);
-                } else { $("#errMsg").text(res.Message); }
-            }).fail(err => $("#errMsg").text("Step 2 failed. Check SQL Column size (VARCHAR(MAX))."));
+        function showError(msg) {
+            $("#errMsg").text(msg);
         }
+
+        function clearError() {
+            $("#errMsg").text("");
+        }
+
+        function resetToStep1() {
+            $("#authStep2").addClass("hidden");
+            $("#authStep1").removeClass("hidden");
+            clearError();
+        }
+
+        // Safely parse JSON from xhr.responseText — returns null if malformed
+        function tryParseJson(text) {
+            try { return JSON.parse(text); } catch (e) { return null; }
+        }
+
+        // ── Step 1: submit credentials, trigger OTP ────────────────────────────
+        function doStep1() {
+            clearError();
+            var loginId = $.trim($("#loginId").val());
+            var password = $("#pwd").val();
+
+            if (!loginId || !password) {
+                showError("Please enter your Login ID and Password.");
+                return;
+            }
+
+            setLoading(true);
+
+            $.ajax({
+                url: "/api/user/login/step1",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ LoginId: loginId, Password: password }),
+                complete: function (xhr) {
+                    setLoading(false);
+                    var res = tryParseJson(xhr.responseText);
+                    if (res && res.Success) {
+                        $("#authStep1").addClass("hidden");
+                        $("#authStep2").removeClass("hidden");
+                        $("#otpCode").focus();
+                    } else if (res && res.Message) {
+                        showError(res.Message);
+                    } else {
+                        showError("Could not reach the server. Please try again.");
+                    }
+                }
+            });
+        }
+
+        // ── Step 2: verify OTP, receive token, redirect by role ───────────────
+        function doStep2() {
+            clearError();
+            var loginId = $.trim($("#loginId").val());
+            var otp = $.trim($("#otpCode").val());
+
+            if (!otp) {
+                showError("Please enter the OTP.");
+                return;
+            }
+
+            setLoading(true);
+
+            $.ajax({
+                url: "/api/user/login/step2",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ LoginId: loginId, Otp: otp }),
+                complete: function (xhr) {
+                    setLoading(false);
+                    var res = tryParseJson(xhr.responseText);
+                    if (res && res.Success) {
+                        document.cookie = "jwt_token=" + res.Data.Token
+                            + "; path=/; SameSite=Strict";
+
+                        var role = res.Data.SystemRole;
+                        if (role === "ADMIN") {
+                            window.location.href = "/Admin/Dashboard";
+                        } else if (role === "CCA") {
+                            window.location.href = "/CCA/Dashboard";
+                        } else {
+                            window.location.href = "/Dashboard/Index";
+                        }
+                    } else if (res && res.Message) {
+                        showError(res.Message);
+                    } else {
+                        showError("Could not reach the server. Please try again.");
+                    }
+                }
+            });
+        }
+
+        // Allow pressing Enter on OTP field
+        $("#otpCode").on("keypress", function (e) {
+            if (e.which === 13) doStep2();
+        });
+
+        // Allow pressing Enter on password field
+        $("#pwd").on("keypress", function (e) {
+            if (e.which === 13) doStep1();
+        });
+
     </script>
 </body>
 </html>

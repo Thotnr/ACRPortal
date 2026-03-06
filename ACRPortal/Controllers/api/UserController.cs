@@ -5,8 +5,9 @@ using System.Web;
 using System.Web.Http;
 using ACRPortal.Application.usecase;
 using ACRPortal.Domain.DTOs.WebToApp;
+using ACRPortal.Filters;
 
-namespace ACRPortal.Web.Controllers
+namespace ACRPortal.Controllers
 {
     [RoutePrefix("api/user")]
     public class UserController : ApiController
@@ -18,6 +19,7 @@ namespace ACRPortal.Web.Controllers
             _userUseCase = userUseCase;
         }
 
+        // Protected — only ADMIN can create users (enforced by RouteAccessPolicy)
         [HttpPost]
         [Route("createuser")]
         public HttpResponseMessage CreateUser([FromBody] SignupRequest request)
@@ -36,7 +38,8 @@ namespace ACRPortal.Web.Controllers
                     request.Phone
                 );
 
-                return Request.CreateResponse(result.Success ? HttpStatusCode.Created : HttpStatusCode.BadRequest, result);
+                return Request.CreateResponse(
+                    result.Success ? HttpStatusCode.Created : HttpStatusCode.BadRequest, result);
             }
             catch (Exception ex)
             {
@@ -45,59 +48,65 @@ namespace ACRPortal.Web.Controllers
             }
         }
 
-        // STEP 1: Login & OTP Trigger
+        // Public — no token needed to reach the login step
+        [NoAuth]
         [HttpPost]
         [Route("login/step1")]
         public HttpResponseMessage LoginStep1([FromBody] LoginStep1Request request)
         {
             try
             {
-                if (request == null) return Request.CreateResponse(HttpStatusCode.BadRequest, "Invalid Request");
+                if (request == null)
+                    return Request.CreateResponse(HttpStatusCode.BadRequest,
+                        ApiResponse<EmptyResponse>.Fail("Invalid request", "BAD_REQUEST"));
 
                 string ip = GetClientIp();
-                string ua = Request.Headers.UserAgent.ToString();
+                string ua = Request.Headers.UserAgent?.ToString();
 
                 var result = _userUseCase.LoginStep1(request.LoginId, request.Password, ip, ua);
 
-                return Request.CreateResponse(result.Success ? HttpStatusCode.OK : HttpStatusCode.Unauthorized, result);
+                return Request.CreateResponse(
+                    result.Success ? HttpStatusCode.OK : HttpStatusCode.Unauthorized, result);
             }
             catch (Exception ex)
             {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, ApiResponse<EmptyResponse>.Fail(ex.Message, "ERROR"));
+                return Request.CreateResponse(HttpStatusCode.InternalServerError,
+                    ApiResponse<EmptyResponse>.Fail(ex.Message, "INTERNAL_ERROR"));
             }
         }
 
-        // STEP 2: Verify OTP & Get Token
+        // Public — no token needed to verify OTP and receive the token
+        [NoAuth]
         [HttpPost]
         [Route("login/step2")]
         public HttpResponseMessage LoginStep2([FromBody] LoginStep2Request request)
         {
             try
             {
-                if (request == null) return Request.CreateResponse(HttpStatusCode.BadRequest, "Invalid Request");
+                if (request == null)
+                    return Request.CreateResponse(HttpStatusCode.BadRequest,
+                        ApiResponse<EmptyResponse>.Fail("Invalid request", "BAD_REQUEST"));
 
                 string ip = GetClientIp();
-                string ua = Request.Headers.UserAgent.ToString();
-
-                // Yahan log dalo ki kya mila
-                System.Diagnostics.Debug.WriteLine($"Controller Log: LoginId={request.LoginId}, Otp={request.Otp}");
+                string ua = Request.Headers.UserAgent?.ToString();
 
                 var result = _userUseCase.LoginStep2(request.LoginId, request.Otp, ip, ua);
 
-                return Request.CreateResponse(result.Success ? HttpStatusCode.OK : HttpStatusCode.Unauthorized, result);
+                return Request.CreateResponse(
+                    result.Success ? HttpStatusCode.OK : HttpStatusCode.Unauthorized, result);
             }
             catch (Exception ex)
             {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, ApiResponse<LoginResponse>.Fail(ex.Message, "ERROR"));
+                return Request.CreateResponse(HttpStatusCode.InternalServerError,
+                    ApiResponse<LoginResponse>.Fail(ex.Message, "INTERNAL_ERROR"));
             }
         }
 
-        // Helper to get IP Address
         private string GetClientIp()
         {
-            var request = HttpContext.Current.Request;
-            string ip = request.ServerVariables["HTTP_X_FORWARDED_FOR"];
-            if (string.IsNullOrEmpty(ip)) ip = request.ServerVariables["REMOTE_ADDR"];
+            var req = HttpContext.Current.Request;
+            string ip = req.ServerVariables["HTTP_X_FORWARDED_FOR"];
+            if (string.IsNullOrEmpty(ip)) ip = req.ServerVariables["REMOTE_ADDR"];
             return ip;
         }
     }
