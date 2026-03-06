@@ -4,17 +4,10 @@
 <head>
     <title>ACR Portal | Secure Login</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Toastr CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 
     <style>
-
-        /* body {
-            margin: 0;
-            height: 100vh;
-            background-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        } */
         body {
             margin: 0;
             height: 100vh;
@@ -190,8 +183,20 @@
 
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
+    // Configure Toastr options
+    toastr.options = {
+        "positionClass": "toast-top-right",
+        "timeOut": "5000",
+        "progressBar": true,
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
 
 var apiBaseUrl = '@Url.Content("~/api/")';
 
@@ -202,7 +207,7 @@ $("#errMsg").text(msg || "");
 
 
 /* ---------------------------
-   LOGIN STEP 1 (UNCHANGED)
+   LOGIN STEP 1 (UPDATED)
 --------------------------- */
 
 function doStep1(){
@@ -224,20 +229,33 @@ success:function(res){
 
 if(res && res.Success){
 
+// Show success notification
+toastr.success("OTP sent successfully!", "Success");
+
 $("#authStep1").addClass("hidden");
 $("#authStep2").removeClass("hidden");
 $("#headerTitle").text("OTP Verification");
 
 }else{
 
+// Show red error notification
+toastr.error((res && res.Message)?res.Message:"Step 1 failed.", "Error");
 showError((res && res.Message)?res.Message:"Step 1 failed.");
 
 }
 
 },
 
-error:function(){
-showError("Step 1 failed. Check API base URL / IIS virtual directory.");
+error:function(xhr){
+// Show red error notification
+let msg = "Step 1 failed.";
+
+if(xhr.responseJSON && xhr.responseJSON.Message){
+    msg = xhr.responseJSON.Message;
+}
+
+toastr.error(msg, "Error");
+showError(msg);
 }
 
 });
@@ -246,7 +264,7 @@ showError("Step 1 failed. Check API base URL / IIS virtual directory.");
 
 
 /* ---------------------------
-   LOGIN STEP 2 (UNCHANGED)
+   LOGIN STEP 2 (UPDATED)
 --------------------------- */
 
 function doStep2(){
@@ -268,22 +286,39 @@ success:function(res){
 
 if(res && res.Success){
 
-$("#authStep2").addClass("hidden");
-$("#authSuccess").removeClass("hidden");
-$("#headerTitle").text("Dashboard Access");
+// Show green success notification
+toastr.success(res.Message || "Login successful!", "Success");
 
-$("#tokenOut").val(res.Data && res.Data.Token ? res.Data.Token : "");
+// Store token if needed
+if(res.Data && res.Data.Token){
+sessionStorage.setItem('authToken', res.Data.Token);
+}
+
+// Navigate to Dashboard.aspx after a brief delay
+setTimeout(function(){
+window.location.href = '/Home/Dashboard';
+}, 1500);
 
 }else{
 
+// Show red error notification
+toastr.error((res && res.Message)?res.Message:"Step 2 failed.", "Error");
 showError((res && res.Message)?res.Message:"Step 2 failed.");
 
 }
 
 },
 
-error:function(){
-showError("Step 2 failed. Check API base URL / backend logs.");
+error:function(xhr){
+// Show red error notification
+let msg = "Step 2 failed.";
+
+if(xhr.responseJSON && xhr.responseJSON.Message){
+    msg = xhr.responseJSON.Message;
+}
+
+toastr.error(msg, "Error");
+showError(msg);
 }
 
 });
