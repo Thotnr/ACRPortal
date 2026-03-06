@@ -124,7 +124,7 @@ namespace ACRPortal.Infrastructure.Adapter
                             LoginId = dr.GetString(1),
                             PasswordHash = dr.GetString(2),
                             DisplayName = dr.IsDBNull(3) ? null : dr.GetString(3),
-                            IsActive = dr.GetString(4) == "ACTIVE",
+                            UserStatus = dr.GetString(4),
                             SystemRole = dr.GetString(5)
                         };
                     }
@@ -236,7 +236,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     cmd.Parameters.Add("@ua", SqlDbType.VarChar).Value = (object)agent ?? DBNull.Value;
                     conn.Open();
                     cmd.ExecuteNonQuery();
-                    return new Session { SessionId = sid, UserId = userId, IsActive = true };
+                    return new Session { SessionId = sid, UserId = userId };
                 }
             }
         }

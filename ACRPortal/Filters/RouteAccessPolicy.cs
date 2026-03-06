@@ -18,8 +18,19 @@ namespace ACRPortal.Filters
         {
             string path = requestPath.ToLowerInvariant();
 
-            // Login page is always open — safety net against redirect loops
+            // Login page — safety net against redirect loops ([NoAuth] handles primary)
             if (path.StartsWith("/login"))
+                return true;
+
+            // Public auth endpoints — [NoAuth] handles these but policy must not block them
+            // in case a token IS present (e.g. user hits step1 while already logged in)
+            if (path.StartsWith("/api/auth/login")
+             || path.StartsWith("/api/auth/forgot-password")
+             || path.StartsWith("/api/auth/reset-password"))
+                return true;
+
+            // Authenticated auth endpoints — any valid role can call logout / me / change-password
+            if (path.StartsWith("/api/auth"))
                 return true;
 
             // Dashboard is shared — all authenticated roles can access it

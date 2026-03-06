@@ -1,17 +1,12 @@
-﻿using System;
-using ACRPortal.Domain.DTOs.WebToApp; // Is line se error chala jayega
+﻿using ACRPortal.Domain.DTOs.WebToApp;
 
 namespace ACRPortal.Application.usecase
 {
+    // Handles user management operations (admin actions)
+    // Auth operations (login, logout, me, password) live in IAuthUseCase
     public interface IUserUseCase
     {
-        ApiResponse<EmptyResponse> Signup(string displayName, string loginId, string password, string email, string phone);
-
-        ApiResponse<EmptyResponse> LoginStep1(string loginId, string password, string ip, string userAgent);
-
-        // Ab LoginResponse red nahi dikhayega
-        ApiResponse<LoginResponse> LoginStep2(string loginId, string otp, string ip, string userAgent);
-
-       // ApiResponse<EmptyResponse> Logout(Guid sessionId);
+        ApiResponse<EmptyResponse> Signup(string displayName, string loginId,
+            string password, string email, string phone);
     }
 }
