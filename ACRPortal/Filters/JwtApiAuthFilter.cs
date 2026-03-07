@@ -109,13 +109,17 @@ namespace ACRPortal.Filters
             }
 
             // Step 7 — rebuild principal with plain (decrypted) userId so controllers
-            //           can read it directly via User.FindFirst(ClaimTypes.NameIdentifier)
+            //           can read it directly via User.FindFirst(ClaimTypes.NameIdentifier).
+            //           sid is carried through encrypted — AuthController.Logout decrypts it.
+            var sidClaim = principal.FindFirst("sid");
+
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, plainUserId),
-                new Claim(ClaimTypes.Role, systemRole)
+                new Claim(ClaimTypes.Role, systemRole),
+                new Claim("sid", sidClaim != null ? sidClaim.Value : string.Empty)
             };
-            var identity  = new ClaimsIdentity(claims, "JWT");
+            var identity = new ClaimsIdentity(claims, "JWT");
             var cleanPrincipal = new ClaimsPrincipal(identity);
 
             // Set on both the context and the thread
@@ -141,7 +145,7 @@ namespace ACRPortal.Filters
         private static bool HasNoAuthAttribute(HttpActionContext actionContext)
         {
             // Check the action first, then the controller
-            bool onAction     = actionContext.ActionDescriptor
+            bool onAction = actionContext.ActionDescriptor
                                     .GetCustomAttributes<NoAuthAttribute>().Any();
             bool onController = actionContext.ActionDescriptor.ControllerDescriptor
                                     .GetCustomAttributes<NoAuthAttribute>().Any();
@@ -170,7 +174,7 @@ namespace ACRPortal.Filters
         public AddChallengeOnUnauthorizedResult(string scheme, IHttpActionResult inner)
         {
             _scheme = scheme;
-            _inner  = inner;
+            _inner = inner;
         }
 
         public async Task<HttpResponseMessage> ExecuteAsync(CancellationToken cancellationToken)
@@ -195,9 +199,9 @@ namespace ACRPortal.Filters
         public ErrorMessageResult(HttpRequestMessage request, HttpStatusCode statusCode,
             ApiResponse<EmptyResponse> body)
         {
-            _request    = request;
+            _request = request;
             _statusCode = statusCode;
-            _body       = body;
+            _body = body;
         }
 
         public Task<HttpResponseMessage> ExecuteAsync(CancellationToken cancellationToken)

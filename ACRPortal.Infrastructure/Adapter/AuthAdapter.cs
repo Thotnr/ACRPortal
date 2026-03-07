@@ -50,19 +50,21 @@ namespace ACRPortal.Infrastructure.Adapter
             ExecNonQuery(sql, "@val", SqlDbType.VarChar, identityHash);
         }
 
-        public int CountRecentOtpAttempts(string identityHash, DateTime since)
+        public int CountRecentOtpAttempts(string identityHash, int withinSeconds)
         {
+            // Entire window comparison done in SQL with GETDATE() — no C# DateTime involved.
+            // This avoids UTC vs IST mismatch between C# (DateTime.UtcNow) and SQL (GETDATE()=local).
             const string sql = @"
                 SELECT COUNT(1)
                 FROM   dbo.otp_challenges
                 WHERE  identity_value = @val
-                  AND  created_at    > @since";
+                  AND  created_at    > DATEADD(SECOND, -@seconds, GETDATE())";
 
             using (var conn = new SqlConnection(_connStr))
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add("@val", SqlDbType.VarChar).Value = identityHash;
-                cmd.Parameters.Add("@since", SqlDbType.DateTime).Value = since;
+                cmd.Parameters.Add("@seconds", SqlDbType.Int).Value = withinSeconds;
                 conn.Open();
                 return (int)cmd.ExecuteScalar();
             }
@@ -173,17 +175,18 @@ namespace ACRPortal.Infrastructure.Adapter
 
         public void AttachSessionToken(Guid sessionId, string token, DateTime expiresAt)
         {
+            // expiresAt is kept in the interface for the LoginResponse, but we recalculate
+            // expiry in SQL using GETDATE() to avoid UTC vs local time mismatch.
             const string sql = @"
                 UPDATE dbo.sessions
                 SET    session_token_hash = @tk,
-                       expires_at        = @exp
+                       expires_at        = DATEADD(HOUR, 2, GETDATE())
                 WHERE  session_id = @sid";
 
             using (var conn = new SqlConnection(_connStr))
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add("@tk", SqlDbType.VarChar).Value = token;
-                cmd.Parameters.Add("@exp", SqlDbType.DateTime).Value = expiresAt;
                 cmd.Parameters.Add("@sid", SqlDbType.UniqueIdentifier).Value = sessionId;
                 conn.Open();
                 cmd.ExecuteNonQuery();
@@ -204,6 +207,26 @@ namespace ACRPortal.Infrastructure.Adapter
 
             if (!Guid.TryParse(plainSessionId, out Guid sid)) return;
             ExecNonQuery(sql, "@sid", SqlDbType.UniqueIdentifier, sid);
+        }
+
+        public bool IsSessionActive(string plainSessionId)
+        {
+            if (!Guid.TryParse(plainSessionId, out Guid sid)) return false;
+
+            const string sql = @"
+                SELECT COUNT(1)
+                FROM   dbo.sessions
+                WHERE  session_id = @sid
+                  AND  status     = 'ACTIVE'
+                  AND  expires_at > GETDATE()";
+
+            using (var conn = new SqlConnection(_connStr))
+            using (var cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.Add("@sid", SqlDbType.UniqueIdentifier).Value = sid;
+                conn.Open();
+                return (int)cmd.ExecuteScalar() > 0;
+            }
         }
 
         // ------------------------------------------------------------------ //
@@ -257,12 +280,14 @@ namespace ACRPortal.Infrastructure.Adapter
         //  Forgot Password                                                     //
         // ------------------------------------------------------------------ //
 
-        public void SaveResetToken(string loginId, string resetTokenHash, DateTime expiry)
+        public void SaveResetToken(string loginId, string resetTokenHash)
         {
+            // Expiry is 30 minutes from now, computed in SQL so timezone is consistent with
+            // the GETDATE() comparison in GetUserByResetToken.
             const string sql = @"
                 UPDATE dbo.users
                 SET    reset_token        = @token,
-                       reset_token_expiry = @expiry,
+                       reset_token_expiry = DATEADD(MINUTE, 30, GETDATE()),
                        updated_at        = GETDATE()
                 WHERE  login_id = @login";
 
@@ -270,7 +295,6 @@ namespace ACRPortal.Infrastructure.Adapter
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add("@token", SqlDbType.VarChar).Value = resetTokenHash;
-                cmd.Parameters.Add("@expiry", SqlDbType.DateTime).Value = expiry;
                 cmd.Parameters.Add("@login", SqlDbType.VarChar).Value = loginId;
                 conn.Open();
                 cmd.ExecuteNonQuery();
