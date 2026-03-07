@@ -1,20 +1,14 @@
-﻿@{ Layout = null; }
+@{ Layout = null; }
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ACR Portal | Secure Login</title>
+    <title>ACR Portal | Login</title>
+
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
     <style>
 
-        /* body {
-            margin: 0;
-            height: 100vh;
-            background-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        } */
         body {
             margin: 0;
             height: 100vh;
@@ -23,6 +17,7 @@
             background-position: center;
             background-repeat: no-repeat;
         }
+
         /* Header */
 
         .header {
@@ -38,7 +33,7 @@
             height: 40px;
         }
 
-        /* Center Container */
+        /* Main container */
 
         .main-container {
             height: calc(100vh - 70px);
@@ -61,23 +56,8 @@
             display: none;
         }
 
-        .btn-custom {
-            background-color: #004a99;
-            color: white;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            border: none;
-        }
-
-        .btn-custom:hover {
-            background-color: #0056b3;
-            color: white;
-            box-shadow: 0 6px 15px rgba(0, 74, 153, 0.4);
-        }
-
-        .btn-custom:active {
-            background-color: #003d85;
-            color: white;
+        #errMsg {
+            min-height: 20px;
         }
 
         .forgot-link {
@@ -86,9 +66,10 @@
             color: #007bff;
         }
 
-            .forgot-link:hover {
-                text-decoration: underline;
-            }
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
     </style>
 </head>
 
@@ -100,8 +81,7 @@
         <img src="~/assets/image/dhbvn_logo.png" class="logo">
     </div>
 
-
-    <!-- MAIN LOGIN AREA -->
+    <!-- LOGIN AREA -->
 
     <div class="main-container">
 
@@ -109,39 +89,42 @@
 
             <h4 class="text-center mb-4" id="headerTitle">Login</h4>
 
-
-            <!-- STEP 1 -->
+            <!-- STEP 1 LOGIN -->
 
             <div id="authStep1">
 
                 <div class="form-group">
-                    <input type="text" id="loginId" class="form-control" placeholder="Enter Login ID" value="rahul_99">
+                    <input type="text" id="loginId" class="form-control" placeholder="Enter Login ID">
                 </div>
 
                 <div class="form-group">
-                    <input type="password" id="pwd" class="form-control" placeholder="Enter Password" value="welcome@123">
+                    <input type="password" id="pwd" class="form-control" placeholder="Enter Password">
                 </div>
 
                 <div class="text-right mb-3">
                     <span class="forgot-link" onclick="showForgot()">Forgot Password?</span>
                 </div>
 
-                <button class="btn btn-custom btn-block" onclick="doStep1()">Get OTP</button>
+                <button class="btn btn-primary btn-block" onclick="doStep1()">Get OTP</button>
 
             </div>
 
 
-            <!-- STEP 2 -->
+            <!-- STEP 2 OTP -->
 
             <div id="authStep2" class="hidden">
 
-                <p class="text-muted small">Enter the 5-digit OTP sent to your registered mobile/email.</p>
+                <p class="text-muted small">
+                    Enter the OTP sent to your registered mobile/email.
+                </p>
 
                 <div class="form-group">
                     <input type="text" id="otpCode" class="form-control" placeholder="Enter OTP">
                 </div>
 
-                <button class="btn btn-success btn-block" onclick="doStep2()">Verify & Login</button>
+                <button class="btn btn-success btn-block" onclick="doStep2()">
+                    Verify & Login
+                </button>
 
             </div>
 
@@ -156,11 +139,17 @@
 
                 <hr>
 
-                <p class="small text-left">Your Session Token:</p>
+                <p class="small text-left">Session Token:</p>
 
-<textarea id="tokenOut" class="form-control mb-3" rows="4" readonly></textarea>
+                <textarea id="tokenOut"
+                          class="form-control mb-3"
+                          rows="4"
+                          readonly></textarea>
 
-                <button class="btn btn-secondary btn-sm" onclick="location.reload()">Back to Login</button>
+                <button class="btn btn-secondary btn-sm"
+                        onclick="location.reload()">
+                    Back to Login
+                </button>
 
             </div>
 
@@ -169,153 +158,252 @@
 
             <div id="forgotSection" class="hidden">
 
-                <p class="small text-muted">Enter your Login ID to reset password.</p>
+                <p class="small text-muted">
+                    Enter your Login ID to reset password.
+                </p>
 
                 <div class="form-group">
-                    <input type="text" id="forgotUser" class="form-control" placeholder="Enter Login ID">
+                    <input type="text"
+                           id="forgotUser"
+                           class="form-control"
+                           placeholder="Enter Login ID">
                 </div>
 
-                <button class="btn btn-primary btn-block" onclick="sendReset()">Send Reset Link</button>
+                <button class="btn btn-primary btn-block"
+                        onclick="sendReset()">
+                    Send Reset Link
+                </button>
 
-                <button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
+                <button class="btn btn-link btn-block"
+                        onclick="backToLogin()">
+                    Back to Login
+                </button>
 
             </div>
 
 
-            <div id="errMsg" class="text-danger small mt-3 text-center"></div>
+            <!-- LOADING -->
+
+            <div id="loadingMsg"
+                 class="hidden text-center mt-3">
+
+                <div class="spinner-border spinner-border-sm text-primary"></div>
+
+                <span class="ml-2 small">
+                    Please wait...
+                </span>
+
+            </div>
+
+
+            <!-- ERROR -->
+
+            <div id="errMsg"
+                 class="text-danger small mt-3 text-center">
+            </div>
 
         </div>
 
     </div>
 
 
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
 
-var apiBaseUrl = '@Url.Content("~/api/")';
+        var apiBaseUrl = '@Url.Content("~/api/")';
 
 
-function showError(msg){
-$("#errMsg").text(msg || "");
-}
+        function setLoading(on) {
+
+            if (on) {
+                $("#loadingMsg").removeClass("hidden");
+                $("button").prop("disabled", true);
+            }
+            else {
+                $("#loadingMsg").addClass("hidden");
+                $("button").prop("disabled", false);
+            }
+
+        }
 
 
-/* ---------------------------
-   LOGIN STEP 1 (UNCHANGED)
---------------------------- */
-
-function doStep1(){
-
-showError("");
-
-const payload={
-LoginId:$("#loginId").val(),
-Password:$("#pwd").val()
-};
-
-$.ajax({
-url:apiBaseUrl+"user/login/step1",
-method:"POST",
-contentType:"application/json; charset=utf-8",
-data:JSON.stringify(payload),
-
-success:function(res){
-
-if(res && res.Success){
-
-$("#authStep1").addClass("hidden");
-$("#authStep2").removeClass("hidden");
-$("#headerTitle").text("OTP Verification");
-
-}else{
-
-showError((res && res.Message)?res.Message:"Step 1 failed.");
-
-}
-
-},
-
-error:function(){
-showError("Step 1 failed. Check API base URL / IIS virtual directory.");
-}
-
-});
-
-}
+        function showError(msg) {
+            $("#errMsg").text(msg || "");
+        }
 
 
-/* ---------------------------
-   LOGIN STEP 2 (UNCHANGED)
---------------------------- */
-
-function doStep2(){
-
-showError("");
-
-const payload={
-LoginId:$("#loginId").val(),
-Otp:$("#otpCode").val()
-};
-
-$.ajax({
-url:apiBaseUrl+"user/login/step2",
-method:"POST",
-contentType:"application/json; charset=utf-8",
-data:JSON.stringify(payload),
-
-success:function(res){
-
-if(res && res.Success){
-
-$("#authStep2").addClass("hidden");
-$("#authSuccess").removeClass("hidden");
-$("#headerTitle").text("Dashboard Access");
-
-$("#tokenOut").val(res.Data && res.Data.Token ? res.Data.Token : "");
-
-}else{
-
-showError((res && res.Message)?res.Message:"Step 2 failed.");
-
-}
-
-},
-
-error:function(){
-showError("Step 2 failed. Check API base URL / backend logs.");
-}
-
-});
-
-}
+        function clearError() {
+            $("#errMsg").text("");
+        }
 
 
-/* ---------------------------
-   FORGOT PASSWORD UI
---------------------------- */
+        function tryParseJson(text) {
+            try { return JSON.parse(text); }
+            catch (e) { return null; }
+        }
 
-function showForgot(){
 
-$("#authStep1").addClass("hidden");
-$("#forgotSection").removeClass("hidden");
-$("#headerTitle").text("Reset Password");
 
-}
+        /* LOGIN STEP 1 */
 
-function backToLogin(){
+        function doStep1() {
 
-$("#forgotSection").addClass("hidden");
-$("#authStep1").removeClass("hidden");
-$("#headerTitle").text("Secure Portal Login");
+            clearError();
 
-}
+            var loginId = $.trim($("#loginId").val());
+            var password = $("#pwd").val();
 
-function sendReset(){
+            if (!loginId || !password) {
+                showError("Please enter Login ID and Password.");
+                return;
+            }
 
-alert("Password reset link sent (demo)");
+            setLoading(true);
 
-}
+            $.ajax({
+
+                url: apiBaseUrl + "user/login/step1",
+                method: "POST",
+                contentType: "application/json",
+
+                data: JSON.stringify({
+                    LoginId: loginId,
+                    Password: password
+                }),
+
+                complete: function (xhr) {
+
+                    setLoading(false);
+
+                    var res = tryParseJson(xhr.responseText);
+
+                    if (res && res.Success) {
+
+                        $("#authStep1").addClass("hidden");
+                        $("#authStep2").removeClass("hidden");
+
+                        $("#headerTitle").text("OTP Verification");
+
+                        $("#otpCode").focus();
+                    }
+                    else {
+
+                        showError(res && res.Message
+                            ? res.Message
+                            : "Login failed.");
+
+                    }
+
+                }
+
+            });
+
+        }
+
+
+
+        /* LOGIN STEP 2 */
+
+        function doStep2() {
+
+            clearError();
+
+            var loginId = $.trim($("#loginId").val());
+            var otp = $.trim($("#otpCode").val());
+
+            if (!otp) {
+                showError("Please enter the OTP.");
+                return;
+            }
+
+            setLoading(true);
+
+            $.ajax({
+
+                url: apiBaseUrl + "user/login/step2",
+                method: "POST",
+                contentType: "application/json",
+
+                data: JSON.stringify({
+                    LoginId: loginId,
+                    Otp: otp
+                }),
+
+                complete: function (xhr) {
+
+                    setLoading(false);
+
+                    var res = tryParseJson(xhr.responseText);
+
+                    if (res && res.Success) {
+
+                        document.cookie =
+                            "jwt_token=" + res.Data.Token +
+                            "; path=/; SameSite=Strict";
+
+                        $("#authStep2").addClass("hidden");
+                        $("#authSuccess").removeClass("hidden");
+
+                        $("#tokenOut").val(res.Data.Token);
+
+                    }
+                    else {
+
+                        showError(res && res.Message
+                            ? res.Message
+                            : "OTP verification failed.");
+
+                    }
+
+                }
+
+            });
+
+        }
+
+
+
+        /* FORGOT PASSWORD UI */
+
+        function showForgot() {
+
+            $("#authStep1").addClass("hidden");
+            $("#forgotSection").removeClass("hidden");
+
+            $("#headerTitle").text("Reset Password");
+
+        }
+
+
+        function backToLogin() {
+
+            $("#forgotSection").addClass("hidden");
+            $("#authStep1").removeClass("hidden");
+
+            $("#headerTitle").text("Login");
+
+        }
+
+
+        function sendReset() {
+
+            alert("Password reset link sent (demo)");
+
+        }
+
+
+
+        /* ENTER KEY SUPPORT */
+
+        $("#pwd").keypress(function (e) {
+            if (e.which === 13) doStep1();
+        });
+
+        $("#otpCode").keypress(function (e) {
+            if (e.which === 13) doStep2();
+        });
 
     </script>
 

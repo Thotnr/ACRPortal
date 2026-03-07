@@ -1,14 +1,14 @@
-﻿using System;
-using System.Web.Mvc;
+﻿using System.Web.Mvc;
+using ACRPortal.Filters;
 
-namespace ACRPortal.Web.Controllers.web
+namespace ACRPortal.Controllers
 {
+    [NoAuth] // Entire controller is public — no token needed to reach the login page
     public class LoginController : Controller
     {
         // Route: /Login/UserAuth
         public ActionResult UserAuth()
         {
-            // Ye check karta hai ki file sahi jagah hai ya nahi
             return View("~/Views/Auth/Login.cshtml");
         }
     }

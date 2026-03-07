@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web.Http;
+﻿using System.Web.Http;
+using ACRPortal.Filters;
 
 namespace ACRPortal
 {
@@ -9,7 +7,9 @@ namespace ACRPortal
     {
         public static void Register(HttpConfiguration config)
         {
-            // Web API configuration and services
+            // Global JWT authentication filter — applies to every ApiController.
+            // Individual public endpoints opt out using [NoAuth].
+            config.Filters.Add(new JwtApiAuthFilter());
 
             // Web API routes
             config.MapHttpAttributeRoutes();
