@@ -34,7 +34,9 @@ namespace ACRPortal.Filters
                 return true;
 
             // Dashboard is shared — all authenticated roles can access it
-            if (path.StartsWith("/dashboard"))
+            if (path.StartsWith("/home/dashboard"))
+                return true;
+            if (path.StartsWith("/home/cca"))
                 return true;
 
             switch (systemRole?.ToUpper())
@@ -42,7 +44,7 @@ namespace ACRPortal.Filters
                 case "ADMIN":
                     return path.StartsWith("/api/admin")
                         || path.StartsWith("/api/user/createuser")
-                        || path.StartsWith("/admin");
+                        || path.StartsWith("/admin") || path.StartsWith("/home/dashboard") || path.StartsWith("/home/cca");
 
                 case "CCA":
                     return path.StartsWith("/api/cca")
