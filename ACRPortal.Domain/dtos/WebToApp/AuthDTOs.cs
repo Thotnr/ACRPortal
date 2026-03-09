@@ -2,7 +2,6 @@
 
 namespace ACRPortal.Domain.DTOs.WebToApp
 {
-    // API 2 — Login Step 2 response
     public class LoginResponse
     {
         public string Token { get; set; }
@@ -12,7 +11,6 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string SystemRole { get; set; }
     }
 
-    // API 4 — /me response
     public class MeResponse
     {
         public string UserId { get; set; }
@@ -22,20 +20,17 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string UserStatus { get; set; }
     }
 
-    // API 5 — Change password request
     public class ChangePasswordRequest
     {
         public string CurrentPassword { get; set; }
         public string NewPassword { get; set; }
     }
 
-    // API 6 — Forgot password request
     public class ForgotPasswordRequest
     {
         public string LoginId { get; set; }
     }
 
-    // API 7 — Reset password request
     public class ResetPasswordRequest
     {
         public string LoginId { get; set; }

@@ -2,7 +2,6 @@
 
 namespace ACRPortal.Domain.DTOs.Models
 {
-    // 1. User Table Mapping
     public class User
     {
         public Guid UserId { get; set; }
@@ -10,11 +9,10 @@ namespace ACRPortal.Domain.DTOs.Models
         public string PasswordHash { get; set; }
         public string DisplayName { get; set; }
         public string SystemRole { get; set; }
-        public string UserStatus { get; set; }  // raw value: PENDING / ACTIVE / INACTIVE
-        public bool IsActive => UserStatus == "ACTIVE";
+        public string UserStatus { get; set; }       // raw: PENDING / ACTIVE / INACTIVE
+        public bool IsActive { get { return UserStatus == "ACTIVE"; } }  // computed, read-only
     }
 
-    // 2. Encrypted Identity (Phone/Email)
     public class UserIdentity
     {
         public Guid IdentityId { get; set; }
@@ -24,7 +22,6 @@ namespace ACRPortal.Domain.DTOs.Models
         public bool IsVerified { get; set; }
     }
 
-    // 3. OTP Tracking
     public class OtpChallenge
     {
         public Guid OtpId { get; set; }
@@ -36,7 +33,6 @@ namespace ACRPortal.Domain.DTOs.Models
         public bool IsUsed { get; set; }
     }
 
-    // 4. Session Tracking
     public class Session
     {
         public Guid SessionId { get; set; }
@@ -44,7 +40,6 @@ namespace ACRPortal.Domain.DTOs.Models
         public string SessionToken { get; set; }
         public string IpAddress { get; set; }
         public string UserAgent { get; set; }
-        public bool IsActive { get; set; }
         public DateTime ExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }
