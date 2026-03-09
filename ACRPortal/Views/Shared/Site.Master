@@ -337,7 +337,7 @@ var token = localStorage.getItem("token");
 
 $.ajax({
 
-url: "/api/user/logout",
+url: "/api/auth/logout",
 method: "POST",
 
 headers:{

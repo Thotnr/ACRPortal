@@ -322,7 +322,7 @@ $(document).ready(function(){
     if(!token){
         window.location="/Login/UserAuth";
     }else {
-        // loadCurrentUser(token);
+        loadCurrentUser(token);
     }
 });
 
