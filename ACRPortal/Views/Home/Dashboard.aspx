@@ -17,7 +17,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         if(!token){
             window.location="/Login/UserAuth";
         }else {
-            // loadCurrentUser(token);
+            loadCurrentUser(token);
         }
     });
 
