@@ -1,4 +1,4 @@
-@{ Layout = null; }
+﻿@{ Layout = null; }
 
 <!DOCTYPE html>
 <html>
@@ -374,12 +374,18 @@ $("#headerTitle").text("Login");
 }
 
 function sendReset(){
-var loginId = $("#forgotUser").val();
+
+showError("");
+
+var loginId = $.trim($("#forgotUser").val());
 
 if(!loginId){
-alert("Enter Login ID");
+showError("Enter Login ID");
+toastr.error("Enter Login ID");
 return;
 }
+
+setLoading(true);
 
 $.ajax({
 
@@ -391,27 +397,34 @@ data: JSON.stringify({
 LoginId: loginId
 }),
 
-success:function(res){
+complete:function(xhr){
 
-if(res.Success){
+setLoading(false);
 
-alert(res.Message);
+var res = tryParseJson(xhr.responseText);
+
+if(res && res.Success){
+
+toastr.success(res.Message);
+$("#forgotUser").val("");
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
 
 }
 else{
 
-alert(res.Message);
+showError("Server error");
+toastr.error("Server error");
 
 }
 
-},
-
-error:function(){
-alert("Request failed");
 }
 
 });
-// alert("Reset link sent (demo)");
 
 }
 
