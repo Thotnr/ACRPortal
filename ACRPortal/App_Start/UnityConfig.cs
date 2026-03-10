@@ -28,6 +28,9 @@ namespace ACRPortal
             // Auth (login, logout, me, change-password, forgot/reset)
             container.RegisterType<IAuthRepoPort, AuthAdapter>();
             container.RegisterType<IAuthUseCase, AuthService>();
+
+            container.RegisterType<IAdminMastersRepoPort, AdminMastersAdapter>();
+            container.RegisterType<IAdminMastersUseCase, AdminMastersService>();
         }
     }
 }
