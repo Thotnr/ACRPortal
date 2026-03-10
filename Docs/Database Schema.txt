@@ -1,0 +1,243 @@
+ALTER TABLE dbo.users
+ADD system_role VARCHAR(30) NOT NULL DEFAULT 'EMPLOYEE';
+GO
+
+ALTER TABLE dbo.users
+ADD CONSTRAINT CK_users_system_role
+CHECK (system_role IN ('ADMIN','CCA','EMPLOYEE'));
+GO
+
+CREATE TABLE dbo.postings (
+    posting_id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    officer_user_id UNIQUEIDENTIFIER NOT NULL,
+
+    department NVARCHAR(200) NOT NULL,
+    location NVARCHAR(200) NOT NULL,
+    designation NVARCHAR(200) NOT NULL,
+
+    posting_from DATE NOT NULL,
+    posting_to DATE NOT NULL,
+
+    acr_year INT NOT NULL,
+
+    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_postings PRIMARY KEY (posting_id),
+
+    CONSTRAINT FK_postings_user
+        FOREIGN KEY (officer_user_id)
+        REFERENCES dbo.users(user_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT UQ_posting_unique
+        UNIQUE (officer_user_id, department, posting_from)
+);
+GO
+
+CREATE TABLE dbo.acr_cycles (
+    acr_id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+
+    posting_id UNIQUEIDENTIFIER NOT NULL,
+
+    officer_user_id UNIQUEIDENTIFIER NOT NULL,
+    reporting_user_id UNIQUEIDENTIFIER NOT NULL,
+    reviewing_user_id UNIQUEIDENTIFIER NOT NULL,
+    accepting_user_id UNIQUEIDENTIFIER NOT NULL,
+    cca_user_id UNIQUEIDENTIFIER NOT NULL,
+
+    date_of_birth DATE NULL,
+    qualification NVARCHAR(500) NULL,
+    career_posting_summary NVARCHAR(MAX) NULL,
+    medical_record_path NVARCHAR(500) NULL,
+    property_return_done BIT NOT NULL DEFAULT 0,
+
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING_OFFICER',
+
+    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+    updated_at DATETIME NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_acr_cycles PRIMARY KEY (acr_id),
+
+    CONSTRAINT FK_acr_posting
+        FOREIGN KEY (posting_id)
+        REFERENCES dbo.postings(posting_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT FK_acr_officer
+        FOREIGN KEY (officer_user_id)
+        REFERENCES dbo.users(user_id),
+
+    CONSTRAINT FK_acr_reporting
+        FOREIGN KEY (reporting_user_id)
+        REFERENCES dbo.users(user_id),
+
+    CONSTRAINT FK_acr_reviewing
+        FOREIGN KEY (reviewing_user_id)
+        REFERENCES dbo.users(user_id),
+
+    CONSTRAINT FK_acr_accepting
+        FOREIGN KEY (accepting_user_id)
+        REFERENCES dbo.users(user_id),
+
+    CONSTRAINT FK_acr_cca
+        FOREIGN KEY (cca_user_id)
+        REFERENCES dbo.users(user_id),
+
+    CONSTRAINT UQ_acr_per_posting UNIQUE (posting_id),
+
+    CONSTRAINT CK_acr_status CHECK (
+        status IN (
+            'PENDING_OFFICER',
+            'PENDING_REPORTING',
+            'PENDING_REVIEWING',
+            'PENDING_ACCEPTING',
+            'APPROVED',
+            'REJECTED'
+        )
+    )
+);
+GO
+
+
+
+CREATE TABLE dbo.self_appraisals (
+    appraisal_id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    acr_id UNIQUEIDENTIFIER NOT NULL,
+
+    duties_performed NVARCHAR(MAX) NULL,
+    achievements NVARCHAR(MAX) NULL,
+    major_contributions NVARCHAR(MAX) NULL,
+    trainings_undergone NVARCHAR(MAX) NULL,
+    awards_received NVARCHAR(MAX) NULL,
+    leave_details NVARCHAR(MAX) NULL,
+
+    property_declared BIT NOT NULL DEFAULT 0,
+    medical_compliance BIT NOT NULL DEFAULT 0,
+
+    document_path NVARCHAR(500) NULL,
+
+    submitted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_self_appraisals PRIMARY KEY (appraisal_id),
+
+    CONSTRAINT FK_self_acr
+        FOREIGN KEY (acr_id)
+        REFERENCES dbo.acr_cycles(acr_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT UQ_self_one_per_acr UNIQUE (acr_id)
+);
+GO
+
+CREATE TABLE dbo.reporting_assessments (
+    assessment_id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    acr_id UNIQUEIDENTIFIER NOT NULL,
+
+    agree_with_self BIT NULL,
+
+    work_output_grade INT NOT NULL,
+    personal_attr_grade INT NOT NULL,
+    functional_comp_grade INT NOT NULL,
+
+    integrity_comments NVARCHAR(MAX) NULL,
+    overall_grade INT NOT NULL,
+    remarks NVARCHAR(MAX) NULL,
+    document_path NVARCHAR(500) NULL,
+
+    submitted_at DATETIME NULL,
+
+    CONSTRAINT PK_reporting PRIMARY KEY (assessment_id),
+
+    CONSTRAINT FK_reporting_acr
+        FOREIGN KEY (acr_id)
+        REFERENCES dbo.acr_cycles(acr_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT UQ_reporting_one_per_acr UNIQUE (acr_id),
+
+    CONSTRAINT CK_reporting_grades CHECK (
+        work_output_grade BETWEEN 1 AND 10 AND
+        personal_attr_grade BETWEEN 1 AND 10 AND
+        functional_comp_grade BETWEEN 1 AND 10 AND
+        overall_grade BETWEEN 1 AND 10
+    )
+);
+GO
+
+CREATE TABLE dbo.reviewing_assessments (
+    review_id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    acr_id UNIQUEIDENTIFIER NOT NULL,
+
+    agree_with_ra BIT NULL,
+    final_grade INT NOT NULL,
+    remarks NVARCHAR(MAX) NULL,
+    document_path NVARCHAR(500) NULL,
+
+    submitted_at DATETIME NULL,
+
+    CONSTRAINT PK_reviewing PRIMARY KEY (review_id),
+
+    CONSTRAINT FK_reviewing_acr
+        FOREIGN KEY (acr_id)
+        REFERENCES dbo.acr_cycles(acr_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT UQ_reviewing_one_per_acr UNIQUE (acr_id),
+
+    CONSTRAINT CK_reviewing_grade CHECK (
+        final_grade BETWEEN 1 AND 10
+    )
+);
+GO
+
+CREATE TABLE dbo.accepting_decisions (
+    decision_id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    acr_id UNIQUEIDENTIFIER NOT NULL,
+
+    agree_with_previous BIT NULL,
+    conflict_resolved BIT NOT NULL DEFAULT 0,
+
+    final_grade INT NOT NULL,
+    final_remarks NVARCHAR(MAX) NULL,
+    document_path NVARCHAR(500) NULL,
+
+    is_approved BIT NOT NULL,
+    decided_at DATETIME NULL,
+
+    CONSTRAINT PK_accepting PRIMARY KEY (decision_id),
+
+    CONSTRAINT FK_accepting_acr
+        FOREIGN KEY (acr_id)
+        REFERENCES dbo.acr_cycles(acr_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT UQ_accepting_one_per_acr UNIQUE (acr_id),
+
+    CONSTRAINT CK_accepting_grade CHECK (
+        final_grade BETWEEN 1 AND 10
+    )
+);
+GO
+
+CREATE TABLE dbo.audit_logs (
+    audit_id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    user_id UNIQUEIDENTIFIER NOT NULL,
+    acr_id UNIQUEIDENTIFIER NULL,
+
+    action NVARCHAR(500) NOT NULL,
+    table_name NVARCHAR(100) NOT NULL,
+    record_id UNIQUEIDENTIFIER NULL,
+
+    ip_address VARCHAR(45) NULL,
+    user_agent NVARCHAR(MAX) NULL,
+
+    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_audit PRIMARY KEY (audit_id),
+
+    CONSTRAINT FK_audit_user
+        FOREIGN KEY (user_id)
+        REFERENCES dbo.users(user_id)
+);
+GO
