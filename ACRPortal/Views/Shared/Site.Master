@@ -118,6 +118,91 @@ color:white;
 border-left:4px solid white;
 }
 
+/* SUBMENU */
+.sidebar-submenu{
+max-height:0;
+overflow:hidden;
+transition:max-height 0.3s ease;
+}
+
+.sidebar-submenu.show{
+max-height:500px;
+}
+
+.sidebar-submenu a{
+padding:10px 25px 10px 50px;
+font-size:14px;
+border-left:4px solid transparent;
+color:#a8b5bf;
+}
+
+.sidebar-submenu a:hover{
+background:#34495e;
+color:white;
+}
+
+.sidebar-submenu a.active{
+background:#0056b3;
+color:white;
+border-left:4px solid white;
+}
+
+.sidebar .menu-toggle{
+cursor:pointer;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:13px 25px;
+color:#cfd8dc;
+border-left:4px solid transparent;
+transition:0.3s;
+}
+
+.sidebar .menu-toggle:hover{
+background:#34495e;
+color:white;
+text-decoration:none;
+}
+
+.sidebar .menu-toggle.active{
+background:#007bff;
+color:white;
+border-left:4px solid white;
+}
+
+.sidebar .menu-toggle i.toggle-icon{
+transition:transform 0.3s ease;
+}
+
+.sidebar .menu-toggle.active i.toggle-icon{
+transform:rotate(180deg);
+}
+
+/* HEADER CLOSE BUTTON - MOBILE ONLY */
+.sidebar .sidebar-close-btn{
+    display:none;
+    background:transparent;
+    border:none;
+    color:#cfd8dc;
+    font-size:24px;
+    cursor:pointer;
+    padding:5px 25px;
+    margin-top:-70px;
+    margin-bottom:10px;
+    align-self:flex-start;
+    transition:0.3s;
+}
+
+.sidebar .sidebar-close-btn:hover{
+    color:white;
+}
+
+@media(max-width:768px){
+    .sidebar .sidebar-close-btn{
+        display:block;
+    }
+}
+
 /* MOBILE */
 @media(max-width:768px){
 
@@ -143,13 +228,22 @@ border-left:4px solid white;
         transform: translateX(0) !important;
     }
 
+    .sidebar .sidebar-close {
+        display: flex !important;
+    }
+
     .sidebar.collapsed a span { display: inline !important; }
     .sidebar.collapsed a { justify-content: flex-start !important; padding: 16px 30px !important; }
     .sidebar a { padding: 16px 30px !important; font-size: 17px !important; }
     .content { padding: 20px; }
 
 }
-/* CONTENT */
+
+.sidebar .sidebar-close{
+    display:none;
+}
+
+/* MOBILE */
 
 .content{
 flex:1;
@@ -212,6 +306,52 @@ data-target="#logoutModal">
 <!-- SIDEBAR -->
 
 <div class="sidebar">
+
+<!-- MOBILE CLOSE BUTTON -->
+<button class="sidebar-close-btn" id="sidebarCloseBtn" type="button">
+<i class="fas fa-times"></i>
+</button>
+
+<!-- MASTERS MENU WITH SUBMENUS -->
+<div class="menu-toggle" id="mastersToggle">
+<div>
+<i class="fas fa-cogs"></i>
+<span>Masters</span>
+</div>
+<i class="fas fa-chevron-down toggle-icon"></i>
+</div>
+
+<div class="sidebar-submenu" id="mastersSubmenu">
+<a href="/Masters/State" id="menuMastersState">
+<i class="fas fa-map"></i>
+<span>State</span>
+</a>
+
+<a href="/Masters/Zone" id="menuMastersZone">
+<i class="fas fa-globe"></i>
+<span>Zone</span>
+</a>
+
+<a href="/Masters/Circle" id="menuMastersCircle">
+<i class="fas fa-ring"></i>
+<span>Circle</span>
+</a>
+
+<a href="/Masters/Division" id="menuMastersDivision">
+<i class="fas fa-th-large"></i>
+<span>Division</span>
+</a>
+
+<a href="/Masters/SubDivision" id="menuMastersSubDivision">
+<i class="fas fa-th"></i>
+<span>SubDivision</span>
+</a>
+
+<a href="/Masters/AddEmployee" id="menuMastersAddEmployee">
+<i class="fas fa-user-plus"></i>
+<span>Add Employee</span>
+</a>
+</div>
 
 <a href="/Home/Dashboard" id="menuDashboard">
 <i class="fas fa-tachometer-alt"></i>
@@ -302,6 +442,35 @@ $("#menuCCA").addClass("active");
 if(path.includes("reports"))
 $("#menuReports").addClass("active");
 
+// Masters menu handling
+if(path.includes("masters")){
+    $("#mastersToggle").addClass("active");
+    $("#mastersSubmenu").addClass("show");
+
+    if(path.includes("state"))
+        $("#menuMastersState").addClass("active");
+    if(path.includes("zone"))
+        $("#menuMastersZone").addClass("active");
+    if(path.includes("circle"))
+        $("#menuMastersCircle").addClass("active");
+    if(path.includes("division"))
+        $("#menuMastersDivision").addClass("active");
+    if(path.includes("subdivision"))
+        $("#menuMastersSubDivision").addClass("active");
+    if(path.includes("addemployee"))
+        $("#menuMastersAddEmployee").addClass("active");
+}
+
+// Masters toggle click handler
+$("#mastersToggle").click(function(){
+    $("#mastersToggle").toggleClass("active");
+    $("#mastersSubmenu").toggleClass("show");
+});
+
+// Close sidebar on mobile
+$("#sidebarCloseBtn").click(function(){
+    $(".sidebar").removeClass("show");
+});
 
 $("#toggleSidebar").click(function(){
     if(window.innerWidth <= 768){
@@ -315,6 +484,10 @@ $(".sidebar a").click(function(){
     if(window.innerWidth <= 768){
         $(".sidebar").removeClass("show");
     }
+});
+
+$(".sidebar .menu-toggle").click(function(e){
+    e.preventDefault();
 });
 
 $(window).resize(function(){
