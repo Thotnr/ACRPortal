@@ -322,6 +322,12 @@ data-target="#logoutModal">
 </div>
 
 <div class="sidebar-submenu" id="mastersSubmenu">
+
+<a href="/Masters/Designation" id="menuMastersDesignation">
+<i class="fas fa-map"></i>
+<span>Designation</span>
+</a>
+
 <a href="/Masters/State" id="menuMastersState">
 <i class="fas fa-map"></i>
 <span>State</span>
@@ -446,7 +452,10 @@ $("#menuReports").addClass("active");
 if(path.includes("/masters/")){
     $("#mastersToggle").addClass("active");
     $("#mastersSubmenu").addClass("show");
-    if(path === "/masters/state")
+    if(path === "/masters/designation")
+        $("#menuMastersDesignation").addClass("active");
+
+    else if(path === "/masters/state")
         $("#menuMastersState").addClass("active");
 
     else if(path === "/masters/zone")

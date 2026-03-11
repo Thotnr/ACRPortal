@@ -5,6 +5,12 @@ namespace ACRPortal.Controllers
 {
     public class MastersController : Controller
     {
+        public ActionResult Designation()
+        {
+            ViewBag.Title = "Designation Master";
+            return View();
+        }
+
         public ActionResult State()
         {
             ViewBag.Title = "State Master";

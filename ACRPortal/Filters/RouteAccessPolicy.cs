@@ -44,6 +44,7 @@ namespace ACRPortal.Filters
                         || path.StartsWith("/api/user/createuser")
                         || path.StartsWith("/admin") || path.StartsWith("/home/dashboard") || path.StartsWith("/home/cca")
                         || path.StartsWith("/masters")
+                        || path.StartsWith("/masters/designation")
                         || path.StartsWith("/masters/zone")
                         || path.StartsWith("/masters/state")
                         || path.StartsWith("/masters/circle")
