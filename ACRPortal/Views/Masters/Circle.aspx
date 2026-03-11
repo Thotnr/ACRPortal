@@ -1,83 +1,114 @@
-<%@ Page Language="C#"
+<%@ Page Language="C#" 
 Inherits="System.Web.Mvc.ViewPage"
 MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
 
-#circleTable{
-font-size:14px;
+.page-card{
+background:#fff;
+border-radius:10px;
+padding:20px;
+box-shadow:0 2px 10px rgba(0,0,0,0.06);
 }
 
-#circleTable th{
-cursor:pointer;
+.page-title{
 font-weight:600;
+font-size:22px;
 }
 
-.modal-body{
-max-height:80vh;
-overflow-y:auto;
+.table thead th{
+background:#f8f9fa;
+cursor:pointer;
 }
 
-.modal-dialog{
-margin-top:30px;
+.table-hover tbody tr:hover{
+background:#f6f9ff;
+}
+
+.action-btn{
+border:none;
+background:none;
+color:#007bff;
+cursor:pointer;
+}
+
+.pagination{
+margin-top:15px;
+}
+
+.table-info-bar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
 }
 
 </style>
 
 <div class="container-fluid">
 
-<!-- HEADER -->
+<div class="page-card">
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
 
-<h3>Circle Master</h3>
+<div class="page-title">Circle Master</div>
 
-<button class="btn btn-primary" onclick="openCircleModal()">
-Add Circle
+<button class="btn btn-primary btn-sm" onclick="openCircleModal()">
+<i class="fa fa-plus"></i> Add Circle
 </button>
 
 </div>
 
-<!-- FILTER -->
-
 <div class="row mb-3">
 
 <div class="col-md-3">
-
-<select class="form-control" id="zoneFilter" onchange="filterCircles()">
+<select id="zoneFilter" class="form-control" onchange="loadCircles()">
 <option value="">All Zones</option>
 </select>
-
 </div>
 
 <div class="col-md-3">
-
 <input type="text"
 class="form-control"
-placeholder="Search circle..."
+placeholder="Search..."
 onkeyup="searchTable(this.value)">
-
 </div>
 
 </div>
-
-<!-- TABLE -->
 
 <div class="table-responsive">
 
-<table class="table table-bordered table-hover" id="circleTable">
+<div class="table-info-bar">
 
-<thead class="thead-dark">
+<div>
+Show
+<select id="pageSizeSelect" class="form-control form-control-sm d-inline-block" style="width:80px;" onchange="changePageSize()">
+<option value="5">5</option>
+<option value="10" selected>10</option>
+<option value="30">30</option>
+<option value="50">50</option>
+<option value="100">100</option>
+</select>
+entries
+</div>
+
+<div id="tableInfo"></div>
+
+</div>
+
+<table class="table table-bordered table-hover">
+
+<thead>
 
 <tr>
-
-<th onclick="sortTable(0)">Circle ID</th>
-<th onclick="sortTable(1)">Zone</th>
-<th onclick="sortTable(2)">Circle</th>
-<th>Action</th>
-
+<th onclick="sortTable('CircleId')">Circle ID</th>
+<th onclick="sortTable('ZoneId')">Zone ID</th>
+<th onclick="sortTable('Circle')">Circle</th>
+<th width="80">Action</th>
 </tr>
 
 </thead>
@@ -88,11 +119,17 @@ onkeyup="searchTable(this.value)">
 
 </div>
 
+<nav>
+<ul class="pagination justify-content-center" id="pagination"></ul>
+</nav>
+
 </div>
 
-<!-- MODAL -->
+</div>
 
-<div class="modal fade" id="circleModal" tabindex="-1">
+<!-- Modal -->
+
+<div class="modal fade" id="circleModal">
 
 <div class="modal-dialog">
 
@@ -102,9 +139,7 @@ onkeyup="searchTable(this.value)">
 
 <h5 class="modal-title" id="modalTitle">Add Circle</h5>
 
-<button type="button" class="close" onclick="closeModal()">
-<span>&times;</span>
-</button>
+<button type="button" class="close" onclick="closeModal()">&times;</button>
 
 </div>
 
@@ -112,33 +147,23 @@ onkeyup="searchTable(this.value)">
 
 <form id="circleForm">
 
-<input type="hidden" id="circleId">
-
 <div class="form-group">
-
 <label>Zone</label>
-
-<select class="form-control" id="zoneDropdown" required></select>
-
+<select id="zoneId" class="form-control" required></select>
 </div>
 
 <div class="form-group">
+<label>Circle ID</label>
+<input type="number" id="circleId" class="form-control" required>
+</div>
 
+<div class="form-group">
 <label>Circle Name</label>
-
-<input type="text"
-class="form-control"
-id="circleName"
-required>
-
+<input type="text" id="circleName" class="form-control" required>
 </div>
 
 <div class="text-center mt-3">
-
-<button type="submit" class="btn btn-success">
-Save
-</button>
-
+<button type="submit" class="btn btn-success btn-sm">Save</button>
 </div>
 
 </form>
@@ -154,12 +179,20 @@ Save
 <script>
 
 var circles=[];
+var filteredCircles=[];
 var zones=[];
 var token=null;
+var isEditMode=false;
+
+var pageSize=10;
+var currentPage=1;
+
+var currentSortColumn="";
+var sortAsc=true;
 
 $(document).ready(function(){
 
-token = localStorage.getItem("token");
+token=localStorage.getItem("token");
 
 if(!token){
 window.location="/Login/UserAuth";
@@ -178,9 +211,7 @@ $.ajax({
 url:"/api/admin/masters/zones",
 method:"GET",
 
-headers:{
-"Authorization":"Bearer "+token
-},
+headers:{ "Authorization":"Bearer "+token },
 
 success:function(res){
 
@@ -188,65 +219,46 @@ if(res.Success){
 
 zones=res.Data.Zones;
 
-populateZoneDropdown();
-populateZoneFilter();
-
-}
-
-}
-
-});
-
-}
-
-function populateZoneDropdown(){
-
-var dropdown=document.getElementById("zoneDropdown");
-
-dropdown.innerHTML="";
+var filter=$("#zoneFilter");
+var form=$("#zoneId");
 
 zones.forEach(function(z){
 
-dropdown.innerHTML+=`<option value="${z.ZoneId}">${z.ZoneName}</option>`;
+filter.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
+form.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 
 });
 
 }
 
-function populateZoneFilter(){
-
-var filter=document.getElementById("zoneFilter");
-
-zones.forEach(function(z){
-
-filter.innerHTML+=`<option value="${z.ZoneId}">${z.ZoneName}</option>`;
+}
 
 });
 
 }
 
-function loadCircles(zoneId){
+function loadCircles(){
+
+var zoneId=$("#zoneFilter").val();
 
 var url="/api/admin/masters/circles";
 
-if(zoneId){
-url+="?zoneId="+zoneId;
-}
+if(zoneId) url+="?zoneId="+zoneId;
 
 $.ajax({
 
 url:url,
 method:"GET",
 
-headers:{
-"Authorization":"Bearer "+token
-},
+headers:{ "Authorization":"Bearer "+token },
 
 success:function(res){
 
 if(res.Success){
 
 circles=res.Data.Circles;
+filteredCircles=[...circles];
+currentPage=1;
 
 renderTable();
 
@@ -260,98 +272,203 @@ renderTable();
 
 function renderTable(){
 
-var body=document.getElementById("circleTableBody");
+var body=$("#circleTableBody");
+body.empty();
 
-body.innerHTML="";
+var start=(currentPage-1)*pageSize;
+var end=start+pageSize;
 
-circles.forEach(function(c){
+var pageData=filteredCircles.slice(start,end);
 
-var zoneName = zones.find(z=>z.ZoneId==c.ZoneId)?.ZoneName || "";
+pageData.forEach(function(c){
 
-var row=`
+body.append(`
 <tr>
-
 <td>${c.CircleId}</td>
-<td>${zoneName}</td>
+<td>${c.ZoneId}</td>
 <td>${c.Circle}</td>
 
-<td>
-
-<button class="btn btn-sm btn-info"
+<td class="text-center">
+<button class="action-btn"
 onclick="editCircle(${c.CircleId},${c.ZoneId},'${c.Circle}')">
-
-Edit
-
+<i class="fa fa-pen"></i>
 </button>
-
 </td>
-
 </tr>
-`;
-
-body.innerHTML+=row;
+`);
 
 });
 
+updateTableInfo(start,end);
+renderPagination();
+
 }
 
-function filterCircles(){
+function updateTableInfo(start,end){
 
-var zoneId=document.getElementById("zoneFilter").value;
+var total=filteredCircles.length;
 
-loadCircles(zoneId);
+if(total==0){
+$("#tableInfo").text("No entries found");
+return;
+}
+
+$("#tableInfo").text(
+"Showing "+(start+1)+" to "+Math.min(end,total)+" of "+total+" entries"
+);
+
+}
+
+function renderPagination(){
+
+var totalPages=Math.ceil(filteredCircles.length/pageSize);
+
+var html="";
+
+html+=`<li class="page-item ${currentPage==1?'disabled':''}">
+<a class="page-link" onclick="gotoPage(${currentPage-1})">Prev</a>
+</li>`;
+
+for(var i=1;i<=totalPages;i++){
+
+html+=`<li class="page-item ${i==currentPage?'active':''}">
+<a class="page-link" onclick="gotoPage(${i})">${i}</a>
+</li>`;
+
+}
+
+html+=`<li class="page-item ${currentPage==totalPages?'disabled':''}">
+<a class="page-link" onclick="gotoPage(${currentPage+1})">Next</a>
+</li>`;
+
+$("#pagination").html(html);
+
+}
+
+function gotoPage(p){
+
+var totalPages=Math.ceil(filteredCircles.length/pageSize);
+
+if(p<1 || p>totalPages) return;
+
+currentPage=p;
+renderTable();
+
+}
+
+function changePageSize(){
+
+pageSize=parseInt($("#pageSizeSelect").val());
+currentPage=1;
+renderTable();
+
+}
+
+function searchTable(val){
+
+val=val.toLowerCase();
+
+filteredCircles=circles.filter(function(c){
+
+return (
+c.Circle.toLowerCase().includes(val) ||
+String(c.CircleId).includes(val) ||
+String(c.ZoneId).includes(val)
+);
+
+});
+
+currentPage=1;
+renderTable();
+
+}
+
+function sortTable(col){
+
+sortAsc = currentSortColumn === col ? !sortAsc : true;
+currentSortColumn = col;
+
+filteredCircles.sort(function(a,b){
+
+var x=a[col];
+var y=b[col];
+
+if(x>y) return sortAsc?1:-1;
+if(x<y) return sortAsc?-1:1;
+return 0;
+
+});
+
+renderTable();
 
 }
 
 function openCircleModal(){
 
-document.getElementById("modalTitle").innerText="Add Circle";
+isEditMode=false;
 
-document.getElementById("circleId").value="";
-document.getElementById("circleName").value="";
+$("#modalTitle").text("Add Circle");
 
-$('#circleModal').modal('show');
+$("#circleId").prop("disabled",false).val("");
+$("#circleName").val("");
+
+$("#circleModal").modal("show");
 
 }
 
 function editCircle(id,zoneId,name){
 
-document.getElementById("modalTitle").innerText="Update Circle";
+isEditMode=true;
 
-document.getElementById("circleId").value=id;
-document.getElementById("zoneDropdown").value=zoneId;
-document.getElementById("circleName").value=name;
+$("#modalTitle").text("Update Circle");
 
-$('#circleModal').modal('show');
+$("#circleId").val(id).prop("disabled",true);
+$("#circleName").val(name);
+$("#zoneId").val(zoneId);
+
+$("#circleModal").modal("show");
 
 }
 
 function closeModal(){
-
-$('#circleModal').modal('hide');
-
+$("#circleModal").modal("hide");
 }
 
-document.getElementById("circleForm")
-.addEventListener("submit",function(e){
+$("#circleForm").submit(function(e){
 
 e.preventDefault();
 
-var circleId=document.getElementById("circleId").value;
+var circleId=$("#circleId").val();
+var zoneId=$("#zoneId").val();
+var circleName=$("#circleName").val().trim();
 
-var payload={
+if(!circleName){
+alert("Circle name required");
+return;
+}
 
-ZoneId:parseInt(document.getElementById("zoneDropdown").value),
-Circle:document.getElementById("circleName").value
+var payload={};
+var url="";
+var method="";
 
+if(isEditMode){
+
+payload={ Circle:circleName };
+
+url="/api/admin/masters/circles/"+circleId;
+method="PATCH";
+
+}else{
+
+payload={
+ZoneId:parseInt(zoneId),
+CircleId:parseInt(circleId),
+Circle:circleName
 };
 
-var url="/api/admin/masters/circles";
-var method="POST";
+url="/api/admin/masters/circles";
+method="POST";
 
-if(circleId){
-url="/api/admin/masters/circles/"+circleId;
-method="PUT";
 }
 
 $.ajax({
@@ -359,91 +476,27 @@ $.ajax({
 url:url,
 method:method,
 
-headers:{
-"Authorization":"Bearer "+token
-},
+headers:{ "Authorization":"Bearer "+token },
 
 contentType:"application/json",
-
 data:JSON.stringify(payload),
 
 success:function(res){
 
 if(res.Success){
 
-alert("Saved successfully");
+alert(res.Message);
 
 closeModal();
-
 loadCircles();
 
 }
 
-},
-
-error:function(){
-
-alert("Failed to save circle");
-
 }
 
 });
 
 });
-
-function searchTable(value){
-
-value=value.toLowerCase();
-
-var rows=document.querySelectorAll("#circleTable tbody tr");
-
-rows.forEach(function(row){
-
-var text=row.innerText.toLowerCase();
-
-row.style.display=text.includes(value)?"":"none";
-
-});
-
-}
-
-function sortTable(col){
-
-var table=document.getElementById("circleTable");
-var switching=true;
-
-while(switching){
-
-switching=false;
-
-var rows=table.rows;
-
-for(var i=1;i<rows.length-1;i++){
-
-var shouldSwitch=false;
-
-var x=rows[i].getElementsByTagName("TD")[col];
-var y=rows[i+1].getElementsByTagName("TD")[col];
-
-if(x.innerHTML.toLowerCase()>y.innerHTML.toLowerCase()){
-
-shouldSwitch=true;
-break;
-
-}
-
-}
-
-if(shouldSwitch){
-
-rows[i].parentNode.insertBefore(rows[i+1],rows[i]);
-switching=true;
-
-}
-
-}
-
-}
 
 </script>
 

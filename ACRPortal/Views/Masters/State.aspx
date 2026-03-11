@@ -22,7 +22,6 @@ font-size:22px;
 
 .table thead th{
 background:#f8f9fa;
-font-weight:600;
 cursor:pointer;
 }
 
@@ -34,21 +33,18 @@ background:#f6f9ff;
 border:none;
 background:none;
 color:#007bff;
-font-size:16px;
 cursor:pointer;
 }
 
-.action-btn:hover{
-color:#0056b3;
+.pagination{
+margin-top:15px;
 }
 
-.search-box{
-max-width:300px;
-}
-
-.modal-body{
-max-height:75vh;
-overflow-y:auto;
+.table-info-bar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
 }
 
 </style>
@@ -68,25 +64,47 @@ overflow-y:auto;
 
 </div>
 
-<div class="mb-3">
+<div class="row mb-3">
+
+<div class="col-md-3">
 
 <input type="text"
-class="form-control search-box"
+class="form-control"
 placeholder="Search state..."
 onkeyup="searchTable(this.value)">
 
 </div>
 
+</div>
+
 <div class="table-responsive">
 
-<table class="table table-hover table-bordered" id="stateTable">
+<div class="table-info-bar">
+
+<div>
+Show
+<select id="pageSizeSelect" class="form-control form-control-sm d-inline-block" style="width:80px;" onchange="changePageSize()">
+<option value="5">5</option>
+<option value="10" selected>10</option>
+<option value="30">30</option>
+<option value="50">50</option>
+<option value="100">100</option>
+</select>
+entries
+</div>
+
+<div id="tableInfo"></div>
+
+</div>
+
+<table class="table table-hover table-bordered">
 
 <thead>
 
 <tr>
 
-<th onclick="sortTable(0)">State ID <i class="fa fa-sort"></i></th>
-<th onclick="sortTable(1)">State Name <i class="fa fa-sort"></i></th>
+<th onclick="sortTable('StateId')">State ID</th>
+<th onclick="sortTable('StateName')">State Name</th>
 <th width="80">Action</th>
 
 </tr>
@@ -99,6 +117,10 @@ onkeyup="searchTable(this.value)">
 
 </div>
 
+<nav>
+<ul class="pagination justify-content-center" id="pagination"></ul>
+</nav>
+
 </div>
 
 </div>
@@ -106,7 +128,7 @@ onkeyup="searchTable(this.value)">
 
 <!-- MODAL -->
 
-<div class="modal fade" id="stateModal" tabindex="-1">
+<div class="modal fade" id="stateModal">
 
 <div class="modal-dialog">
 
@@ -116,9 +138,7 @@ onkeyup="searchTable(this.value)">
 
 <h5 class="modal-title" id="modalTitle">Add State</h5>
 
-<button type="button" class="close" onclick="closeModal()">
-<span>&times;</span>
-</button>
+<button type="button" class="close" onclick="closeModal()">&times;</button>
 
 </div>
 
@@ -171,9 +191,16 @@ Save
 <script>
 
 var states=[];
+var filteredStates=[];
+
 var token=null;
 var isEditMode=false;
-var sortDirection=[true,true];
+
+var pageSize=10;
+var currentPage=1;
+
+var currentSortColumn="";
+var sortAsc=true;
 
 $(document).ready(function(){
 
@@ -203,8 +230,14 @@ headers:{
 success:function(res){
 
 if(res.Success){
+
 states=res.Data.States;
+filteredStates=[...states];
+
+currentPage=1;
+
 renderTable();
+
 }
 
 },
@@ -218,15 +251,20 @@ alert("Failed to load states");
 }
 
 
-
 function renderTable(){
 
 var body=$("#stateTableBody");
 body.empty();
 
-states.forEach(function(s){
+var start=(currentPage-1)*pageSize;
+var end=start+pageSize;
+
+var pageData=filteredStates.slice(start,end);
+
+pageData.forEach(function(s){
 
 var row=`
+
 <tr>
 
 <td>${s.StateId}</td>
@@ -235,7 +273,6 @@ var row=`
 <td class="text-center">
 
 <button class="action-btn"
-title="Edit"
 onclick="editState(${s.StateId},'${s.StateName}')">
 
 <i class="fa fa-pen"></i>
@@ -245,14 +282,127 @@ onclick="editState(${s.StateId},'${s.StateName}')">
 </td>
 
 </tr>
+
 `;
 
 body.append(row);
 
 });
 
+updateTableInfo(start,end);
+renderPagination();
+
 }
 
+
+function updateTableInfo(start,end){
+
+var total=filteredStates.length;
+
+if(total==0){
+$("#tableInfo").text("No entries found");
+return;
+}
+
+$("#tableInfo").text(
+"Showing "+(start+1)+" to "+Math.min(end,total)+" of "+total+" entries"
+);
+
+}
+
+
+function renderPagination(){
+
+var totalPages=Math.ceil(filteredStates.length/pageSize);
+
+var html="";
+
+html+=`<li class="page-item ${currentPage==1?'disabled':''}">
+<a class="page-link" onclick="gotoPage(${currentPage-1})">Prev</a>
+</li>`;
+
+for(var i=1;i<=totalPages;i++){
+
+html+=`<li class="page-item ${i==currentPage?'active':''}">
+<a class="page-link" onclick="gotoPage(${i})">${i}</a>
+</li>`;
+
+}
+
+html+=`<li class="page-item ${currentPage==totalPages?'disabled':''}">
+<a class="page-link" onclick="gotoPage(${currentPage+1})">Next</a>
+</li>`;
+
+$("#pagination").html(html);
+
+}
+
+
+function gotoPage(p){
+
+var totalPages=Math.ceil(filteredStates.length/pageSize);
+
+if(p<1 || p>totalPages) return;
+
+currentPage=p;
+
+renderTable();
+
+}
+
+
+function changePageSize(){
+
+pageSize=parseInt($("#pageSizeSelect").val());
+
+currentPage=1;
+
+renderTable();
+
+}
+
+
+function searchTable(value){
+
+value=value.toLowerCase();
+
+filteredStates=states.filter(function(s){
+
+return (
+String(s.StateId).includes(value) ||
+s.StateName.toLowerCase().includes(value)
+);
+
+});
+
+currentPage=1;
+
+renderTable();
+
+}
+
+
+function sortTable(col){
+
+sortAsc = currentSortColumn === col ? !sortAsc : true;
+
+currentSortColumn = col;
+
+filteredStates.sort(function(a,b){
+
+var x=a[col];
+var y=b[col];
+
+if(x>y) return sortAsc?1:-1;
+if(x<y) return sortAsc?-1:1;
+
+return 0;
+
+});
+
+renderTable();
+
+}
 
 
 function openStateModal(){
@@ -269,7 +419,6 @@ $("#stateModal").modal("show");
 }
 
 
-
 function editState(id,name){
 
 isEditMode=true;
@@ -284,11 +433,11 @@ $("#stateModal").modal("show");
 }
 
 
-
 function closeModal(){
-$("#stateModal").modal("hide");
-}
 
+$("#stateModal").modal("hide");
+
+}
 
 
 $("#stateForm").submit(function(e){
@@ -309,9 +458,7 @@ var method="";
 
 if(isEditMode){
 
-payload={
-StateName:stateName
-};
+payload={ StateName:stateName };
 
 url="/api/admin/masters/states/"+stateId;
 method="PATCH";
@@ -328,7 +475,6 @@ url="/api/admin/masters/states";
 method="POST";
 
 }
-
 
 $.ajax({
 
@@ -353,79 +499,11 @@ loadStates();
 
 }
 
-},
-
-error:function(xhr){
-
-if(xhr.responseJSON){
-
-var err=xhr.responseJSON;
-
-switch(err.ErrorCode){
-
-case "DUPLICATE_ID":
-alert("State ID already exists");
-break;
-
-case "DUPLICATE_NAME":
-alert("State name already exists");
-break;
-
-case "NOT_FOUND":
-alert("State not found");
-break;
-
-default:
-alert(err.Message || "Error occurred");
-
-}
-
-}
-else{
-alert("Server error");
-}
-
 }
 
 });
 
 });
-
-
-
-function searchTable(value){
-
-value=value.toLowerCase();
-
-$("#stateTableBody tr").filter(function(){
-
-$(this).toggle($(this).text().toLowerCase().indexOf(value)>-1);
-
-});
-
-}
-
-
-
-function sortTable(col){
-
-sortDirection[col]=!sortDirection[col];
-
-states.sort(function(a,b){
-
-var valA=col===0 ? a.StateId : a.StateName.toLowerCase();
-var valB=col===0 ? b.StateId : b.StateName.toLowerCase();
-
-if(valA<valB) return sortDirection[col]?-1:1;
-if(valA>valB) return sortDirection[col]?1:-1;
-
-return 0;
-
-});
-
-renderTable();
-
-}
 
 </script>
 
