@@ -1,4 +1,4 @@
-<%@ Page Language="C#"
+<%@ Page Language="C#" 
 Inherits="System.Web.Mvc.ViewPage"
 MasterPageFile="~/Views/Shared/Site.Master" %>
 
@@ -28,8 +28,6 @@ margin-top:30px;
 
 <div class="container-fluid">
 
-<!-- HEADER -->
-
 <div class="d-flex justify-content-between align-items-center mb-4">
 
 <h3>State Master</h3>
@@ -39,8 +37,6 @@ Add State
 </button>
 
 </div>
-
-<!-- SEARCH -->
 
 <div class="row mb-3">
 
@@ -54,8 +50,6 @@ onkeyup="searchTable(this.value)">
 </div>
 
 </div>
-
-<!-- TABLE -->
 
 <div class="table-responsive">
 
@@ -103,7 +97,16 @@ onkeyup="searchTable(this.value)">
 
 <form id="stateForm">
 
-<input type="hidden" id="stateId">
+<div class="form-group">
+
+<label>State ID</label>
+
+<input type="number"
+class="form-control"
+id="stateId"
+required>
+
+</div>
 
 <div class="form-group">
 
@@ -138,6 +141,7 @@ Save
 
 var states=[];
 var token=null;
+var isEditMode=false;   // ⭐ important flag
 
 $(document).ready(function(){
 
@@ -220,9 +224,13 @@ body.innerHTML+=row;
 
 function openStateModal(){
 
+isEditMode=false;
+
 document.getElementById("modalTitle").innerText="Add State";
 
 document.getElementById("stateId").value="";
+document.getElementById("stateId").disabled=false;
+
 document.getElementById("stateName").value="";
 
 $('#stateModal').modal('show');
@@ -231,9 +239,13 @@ $('#stateModal').modal('show');
 
 function editState(id,name){
 
+isEditMode=true;
+
 document.getElementById("modalTitle").innerText="Update State";
 
 document.getElementById("stateId").value=id;
+document.getElementById("stateId").disabled=true;
+
 document.getElementById("stateName").value=name;
 
 $('#stateModal').modal('show');
@@ -252,17 +264,36 @@ document.getElementById("stateForm")
 e.preventDefault();
 
 var stateId=document.getElementById("stateId").value;
+var stateName=document.getElementById("stateName").value;
 
-var payload={
-StateName:document.getElementById("stateName").value
+var payload={};
+var url="";
+var method="";
+
+if(isEditMode){
+
+// UPDATE
+
+payload={
+StateName:stateName
 };
 
-var url="/api/admin/masters/states";
-var method="POST";
-
-if(stateId){
 url="/api/admin/masters/states/"+stateId;
 method="PUT";
+
+}
+else{
+
+// CREATE
+
+payload={
+StateId:parseInt(stateId),
+StateName:stateName
+};
+
+url="/api/admin/masters/states";
+method="POST";
+
 }
 
 $.ajax({
@@ -292,7 +323,7 @@ loadStates();
 
 },
 
-error:function(xhr){
+error:function(){
 
 alert("Failed to save state");
 
