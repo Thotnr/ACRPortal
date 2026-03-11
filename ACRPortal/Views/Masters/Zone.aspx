@@ -1,73 +1,93 @@
-<%@ Page Language="C#"
+<%@ Page Language="C#" 
 Inherits="System.Web.Mvc.ViewPage"
 MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
 
-#zoneTable{
-font-size:14px;
+.page-card{
+background:#fff;
+border-radius:10px;
+padding:20px;
+box-shadow:0 2px 10px rgba(0,0,0,0.06);
 }
 
-#zoneTable th{
-cursor:pointer;
+.page-title{
 font-weight:600;
+font-size:22px;
+}
+
+.table thead th{
+background:#f8f9fa;
+font-weight:600;
+cursor:pointer;
+}
+
+.table-hover tbody tr:hover{
+background:#f6f9ff;
+}
+
+.action-btn{
+border:none;
+background:none;
+color:#007bff;
+font-size:16px;
+cursor:pointer;
+}
+
+.action-btn:hover{
+color:#0056b3;
+}
+
+.search-box{
+max-width:300px;
 }
 
 .modal-body{
-max-height:80vh;
+max-height:75vh;
 overflow-y:auto;
-}
-
-.modal-dialog{
-margin-top:30px;
 }
 
 </style>
 
+
 <div class="container-fluid">
 
-<!-- HEADER -->
+<div class="page-card">
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
 
-<h3>Zone Master</h3>
+<div class="page-title">Zone Master</div>
 
-<button class="btn btn-primary" onclick="openZoneModal()">
-Add Zone
+<button class="btn btn-primary btn-sm" onclick="openZoneModal()">
+<i class="fa fa-plus"></i> Add Zone
 </button>
 
 </div>
 
-<!-- SEARCH -->
-
-<div class="row mb-3">
-
-<div class="col-md-4">
+<div class="mb-3">
 
 <input type="text"
-class="form-control"
+class="form-control search-box"
 placeholder="Search zone..."
 onkeyup="searchTable(this.value)">
 
 </div>
 
-</div>
-
-<!-- TABLE -->
-
 <div class="table-responsive">
 
-<table class="table table-bordered table-hover" id="zoneTable">
+<table class="table table-hover table-bordered" id="zoneTable">
 
-<thead class="thead-dark">
+<thead>
 
 <tr>
 
-<th onclick="sortTable(0)">Zone ID</th>
-<th onclick="sortTable(1)">Zone Name</th>
-<th>Action</th>
+<th onclick="sortTable(0)">Zone ID <i class="fa fa-sort"></i></th>
+<th onclick="sortTable(1)">Zone Name <i class="fa fa-sort"></i></th>
+<th width="80">Action</th>
 
 </tr>
 
@@ -80,6 +100,9 @@ onkeyup="searchTable(this.value)">
 </div>
 
 </div>
+
+</div>
+
 
 <!-- MODAL -->
 
@@ -103,7 +126,16 @@ onkeyup="searchTable(this.value)">
 
 <form id="zoneForm">
 
-<input type="hidden" id="zoneId">
+<div class="form-group">
+
+<label>Zone ID</label>
+
+<input type="number"
+class="form-control"
+id="zoneId"
+required>
+
+</div>
 
 <div class="form-group">
 
@@ -118,7 +150,7 @@ required>
 
 <div class="text-center mt-3">
 
-<button type="submit" class="btn btn-success">
+<button type="submit" class="btn btn-success btn-sm">
 Save
 </button>
 
@@ -134,10 +166,14 @@ Save
 
 </div>
 
+
+
 <script>
 
 var zones=[];
 var token=null;
+var isEditMode=false;
+var sortDirection=[true,true];
 
 $(document).ready(function(){
 
@@ -151,6 +187,8 @@ return;
 loadZones();
 
 });
+
+
 
 function loadZones(){
 
@@ -168,7 +206,6 @@ success:function(res){
 if(res.Success){
 
 zones=res.Data.Zones;
-
 renderTable();
 
 }
@@ -185,10 +222,12 @@ alert("Failed to load zones");
 
 }
 
+
+
 function renderTable(){
 
-var body=document.getElementById("zoneTableBody");
-body.innerHTML="";
+var body=$("#zoneTableBody");
+body.empty();
 
 zones.forEach(function(z){
 
@@ -198,12 +237,13 @@ var row=`
 <td>${z.ZoneId}</td>
 <td>${z.ZoneName}</td>
 
-<td>
+<td class="text-center">
 
-<button class="btn btn-sm btn-info"
+<button class="action-btn"
+title="Edit"
 onclick="editZone(${z.ZoneId},'${z.ZoneName}')">
 
-Edit
+<i class="fa fa-pen"></i>
 
 </button>
 
@@ -212,57 +252,97 @@ Edit
 </tr>
 `;
 
-body.innerHTML+=row;
+body.append(row);
 
 });
 
 }
 
+
+
 function openZoneModal(){
 
-document.getElementById("modalTitle").innerText="Add Zone";
+isEditMode=false;
 
-document.getElementById("zoneId").value="";
-document.getElementById("zoneName").value="";
+$("#modalTitle").text("Add Zone");
 
-$('#zoneModal').modal('show');
+$("#zoneId").val("").prop("disabled",false);
+$("#zoneName").val("");
+
+$("#zoneModal").modal("show");
 
 }
+
+
 
 function editZone(id,name){
 
-document.getElementById("modalTitle").innerText="Update Zone";
+isEditMode=true;
 
-document.getElementById("zoneId").value=id;
-document.getElementById("zoneName").value=name;
+$("#modalTitle").text("Update Zone");
 
-$('#zoneModal').modal('show');
+$("#zoneId").val(id).prop("disabled",true);
+$("#zoneName").val(name);
+
+$("#zoneModal").modal("show");
 
 }
+
+
 
 function closeModal(){
 
-$('#zoneModal').modal('hide');
+$("#zoneModal").modal("hide");
 
 }
 
-document.getElementById("zoneForm")
-.addEventListener("submit",function(e){
+
+
+$("#zoneForm").submit(function(e){
 
 e.preventDefault();
 
-var zoneId=document.getElementById("zoneId").value;
+var zoneId=$("#zoneId").val().trim();
+var zoneName=$("#zoneName").val().trim();
 
-var payload={
-ZoneName:document.getElementById("zoneName").value
+if(!zoneName){
+
+alert("Zone Name is required");
+return;
+
+}
+
+if(!isEditMode && !zoneId){
+
+alert("Zone ID is required");
+return;
+
+}
+
+var payload={};
+var url="";
+var method="";
+
+if(isEditMode){
+
+payload={
+ZoneName:zoneName
 };
 
-var url="/api/admin/masters/zones";
-var method="POST";
-
-if(zoneId){
 url="/api/admin/masters/zones/"+zoneId;
-method="PUT";
+method="PATCH";
+
+}
+else{
+
+payload={
+ZoneId:parseInt(zoneId),
+ZoneName:zoneName
+};
+
+url="/api/admin/masters/zones";
+method="POST";
+
 }
 
 $.ajax({
@@ -282,77 +362,90 @@ success:function(res){
 
 if(res.Success){
 
-alert("Saved successfully");
+alert(res.Message);
 
 closeModal();
-
 loadZones();
 
 }
 
 },
 
-error:function(){
+error:function(xhr){
 
-alert("Failed to save zone");
+if(xhr.responseJSON){
+
+var err=xhr.responseJSON;
+
+switch(err.ErrorCode){
+
+case "DUPLICATE_ID":
+alert("Zone ID already exists");
+break;
+
+case "DUPLICATE_NAME":
+alert("Zone name already exists");
+break;
+
+case "NOT_FOUND":
+alert("Zone not found");
+break;
+
+case "BAD_REQUEST":
+alert("Invalid request");
+break;
+
+default:
+alert(err.Message || "Error occurred");
+
+}
+
+}
+else{
+
+alert("Server error");
+
+}
 
 }
 
 });
 
 });
+
+
 
 function searchTable(value){
 
 value=value.toLowerCase();
 
-var rows=document.querySelectorAll("#zoneTable tbody tr");
+$("#zoneTableBody tr").filter(function(){
 
-rows.forEach(function(row){
-
-var text=row.innerText.toLowerCase();
-
-row.style.display=text.includes(value)?"":"none";
+$(this).toggle($(this).text().toLowerCase().indexOf(value)>-1);
 
 });
 
 }
 
+
+
 function sortTable(col){
 
-var table=document.getElementById("zoneTable");
-var switching=true;
+sortDirection[col]=!sortDirection[col];
 
-while(switching){
+zones.sort(function(a,b){
 
-switching=false;
+var valA=col===0 ? a.ZoneId : a.ZoneName.toLowerCase();
+var valB=col===0 ? b.ZoneId : b.ZoneName.toLowerCase();
 
-var rows=table.rows;
+if(valA<valB) return sortDirection[col]?-1:1;
+if(valA>valB) return sortDirection[col]?1:-1;
 
-for(var i=1;i<rows.length-1;i++){
+return 0;
 
-var shouldSwitch=false;
+});
 
-var x=rows[i].getElementsByTagName("TD")[col];
-var y=rows[i+1].getElementsByTagName("TD")[col];
-
-if(x.innerHTML.toLowerCase()>y.innerHTML.toLowerCase()){
-
-shouldSwitch=true;
-break;
-
-}
-
-}
-
-if(shouldSwitch){
-
-rows[i].parentNode.insertBefore(rows[i+1],rows[i]);
-switching=true;
-
-}
-
-}
+renderTable();
 
 }
 

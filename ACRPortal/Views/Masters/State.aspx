@@ -4,64 +4,90 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
 
-#stateTable{
-font-size:14px;
+.page-card{
+background:#fff;
+border-radius:10px;
+padding:20px;
+box-shadow:0 2px 10px rgba(0,0,0,0.06);
 }
 
-#stateTable th{
-cursor:pointer;
+.page-title{
 font-weight:600;
+font-size:22px;
+}
+
+.table thead th{
+background:#f8f9fa;
+font-weight:600;
+cursor:pointer;
+}
+
+.table-hover tbody tr:hover{
+background:#f6f9ff;
+}
+
+.action-btn{
+border:none;
+background:none;
+color:#007bff;
+font-size:16px;
+cursor:pointer;
+}
+
+.action-btn:hover{
+color:#0056b3;
+}
+
+.search-box{
+max-width:300px;
 }
 
 .modal-body{
-max-height:80vh;
+max-height:75vh;
 overflow-y:auto;
-}
-
-.modal-dialog{
-margin-top:30px;
 }
 
 </style>
 
+
 <div class="container-fluid">
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="page-card">
 
-<h3>State Master</h3>
+<div class="d-flex justify-content-between align-items-center mb-3">
 
-<button class="btn btn-primary" onclick="openStateModal()">
-Add State
+<div class="page-title">State Master</div>
+
+<button class="btn btn-primary btn-sm" onclick="openStateModal()">
+<i class="fa fa-plus"></i> Add State
 </button>
 
 </div>
 
-<div class="row mb-3">
-
-<div class="col-md-4">
+<div class="mb-3">
 
 <input type="text"
-class="form-control"
+class="form-control search-box"
 placeholder="Search state..."
 onkeyup="searchTable(this.value)">
 
 </div>
 
-</div>
-
 <div class="table-responsive">
 
-<table class="table table-bordered table-hover" id="stateTable">
+<table class="table table-hover table-bordered" id="stateTable">
 
-<thead class="thead-dark">
+<thead>
 
 <tr>
 
-<th onclick="sortTable(0)">State ID</th>
-<th onclick="sortTable(1)">State Name</th>
-<th>Action</th>
+<th onclick="sortTable(0)">State ID <i class="fa fa-sort"></i></th>
+<th onclick="sortTable(1)">State Name <i class="fa fa-sort"></i></th>
+<th width="80">Action</th>
 
 </tr>
 
@@ -74,6 +100,9 @@ onkeyup="searchTable(this.value)">
 </div>
 
 </div>
+
+</div>
+
 
 <!-- MODAL -->
 
@@ -121,7 +150,7 @@ required>
 
 <div class="text-center mt-3">
 
-<button type="submit" class="btn btn-success">
+<button type="submit" class="btn btn-success btn-sm">
 Save
 </button>
 
@@ -137,11 +166,14 @@ Save
 
 </div>
 
+
+
 <script>
 
 var states=[];
 var token=null;
-var isEditMode=false;   // ⭐ important flag
+var isEditMode=false;
+var sortDirection=[true,true];
 
 $(document).ready(function(){
 
@@ -155,6 +187,7 @@ return;
 loadStates();
 
 });
+
 
 function loadStates(){
 
@@ -170,29 +203,26 @@ headers:{
 success:function(res){
 
 if(res.Success){
-
 states=res.Data.States;
-
 renderTable();
-
 }
 
 },
 
 error:function(){
-
 alert("Failed to load states");
-
 }
 
 });
 
 }
 
+
+
 function renderTable(){
 
-var body=document.getElementById("stateTableBody");
-body.innerHTML="";
+var body=$("#stateTableBody");
+body.empty();
 
 states.forEach(function(s){
 
@@ -202,12 +232,13 @@ var row=`
 <td>${s.StateId}</td>
 <td>${s.StateName}</td>
 
-<td>
+<td class="text-center">
 
-<button class="btn btn-sm btn-info"
+<button class="action-btn"
+title="Edit"
 onclick="editState(${s.StateId},'${s.StateName}')">
 
-Edit
+<i class="fa fa-pen"></i>
 
 </button>
 
@@ -216,55 +247,61 @@ Edit
 </tr>
 `;
 
-body.innerHTML+=row;
+body.append(row);
 
 });
 
 }
 
+
+
 function openStateModal(){
 
 isEditMode=false;
 
-document.getElementById("modalTitle").innerText="Add State";
+$("#modalTitle").text("Add State");
 
-document.getElementById("stateId").value="";
-document.getElementById("stateId").disabled=false;
+$("#stateId").val("").prop("disabled",false);
+$("#stateName").val("");
 
-document.getElementById("stateName").value="";
-
-$('#stateModal').modal('show');
+$("#stateModal").modal("show");
 
 }
+
+
 
 function editState(id,name){
 
 isEditMode=true;
 
-document.getElementById("modalTitle").innerText="Update State";
+$("#modalTitle").text("Update State");
 
-document.getElementById("stateId").value=id;
-document.getElementById("stateId").disabled=true;
+$("#stateId").val(id).prop("disabled",true);
+$("#stateName").val(name);
 
-document.getElementById("stateName").value=name;
-
-$('#stateModal').modal('show');
+$("#stateModal").modal("show");
 
 }
+
+
 
 function closeModal(){
-
-$('#stateModal').modal('hide');
-
+$("#stateModal").modal("hide");
 }
 
-document.getElementById("stateForm")
-.addEventListener("submit",function(e){
+
+
+$("#stateForm").submit(function(e){
 
 e.preventDefault();
 
-var stateId=document.getElementById("stateId").value;
-var stateName=document.getElementById("stateName").value;
+var stateId=$("#stateId").val().trim();
+var stateName=$("#stateName").val().trim();
+
+if(!stateName){
+alert("State Name is required");
+return;
+}
 
 var payload={};
 var url="";
@@ -272,19 +309,15 @@ var method="";
 
 if(isEditMode){
 
-// UPDATE
-
 payload={
 StateName:stateName
 };
 
 url="/api/admin/masters/states/"+stateId;
-method="PUT";
+method="PATCH";
 
 }
 else{
-
-// CREATE
 
 payload={
 StateId:parseInt(stateId),
@@ -296,6 +329,7 @@ method="POST";
 
 }
 
+
 $.ajax({
 
 url:url,
@@ -306,84 +340,90 @@ headers:{
 },
 
 contentType:"application/json",
-
 data:JSON.stringify(payload),
 
 success:function(res){
 
 if(res.Success){
 
-alert("Saved successfully");
+alert(res.Message);
 
 closeModal();
-
 loadStates();
 
 }
 
 },
 
-error:function(){
+error:function(xhr){
 
-alert("Failed to save state");
+if(xhr.responseJSON){
+
+var err=xhr.responseJSON;
+
+switch(err.ErrorCode){
+
+case "DUPLICATE_ID":
+alert("State ID already exists");
+break;
+
+case "DUPLICATE_NAME":
+alert("State name already exists");
+break;
+
+case "NOT_FOUND":
+alert("State not found");
+break;
+
+default:
+alert(err.Message || "Error occurred");
+
+}
+
+}
+else{
+alert("Server error");
+}
 
 }
 
 });
 
 });
+
+
 
 function searchTable(value){
 
 value=value.toLowerCase();
 
-var rows=document.querySelectorAll("#stateTable tbody tr");
+$("#stateTableBody tr").filter(function(){
 
-rows.forEach(function(row){
-
-var text=row.innerText.toLowerCase();
-
-row.style.display=text.includes(value)?"":"none";
+$(this).toggle($(this).text().toLowerCase().indexOf(value)>-1);
 
 });
 
 }
 
+
+
 function sortTable(col){
 
-var table=document.getElementById("stateTable");
-var switching=true;
+sortDirection[col]=!sortDirection[col];
 
-while(switching){
+states.sort(function(a,b){
 
-switching=false;
+var valA=col===0 ? a.StateId : a.StateName.toLowerCase();
+var valB=col===0 ? b.StateId : b.StateName.toLowerCase();
 
-var rows=table.rows;
+if(valA<valB) return sortDirection[col]?-1:1;
+if(valA>valB) return sortDirection[col]?1:-1;
 
-for(var i=1;i<rows.length-1;i++){
+return 0;
 
-var shouldSwitch=false;
+});
 
-var x=rows[i].getElementsByTagName("TD")[col];
-var y=rows[i+1].getElementsByTagName("TD")[col];
-
-if(x.innerHTML.toLowerCase()>y.innerHTML.toLowerCase()){
-
-shouldSwitch=true;
-break;
-
-}
-
-}
-
-if(shouldSwitch){
-
-rows[i].parentNode.insertBefore(rows[i+1],rows[i]);
-switching=true;
-
-}
-
-}
+renderTable();
 
 }
 
