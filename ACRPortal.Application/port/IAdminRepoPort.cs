@@ -55,6 +55,7 @@ namespace ACRPortal.Application.port
         void UpdateUser(
             Guid userId,
             string displayName,
+            string passwordHash,   // null = no change
             int? dsgId,
             bool clearDsg,
             int? stateId,
@@ -64,6 +65,19 @@ namespace ACRPortal.Application.port
             int? subDivisionId,
             bool clearGeography
         );
+
+        /// <summary>
+        /// INSERT or UPDATE a primary identity row for the user.
+        /// identityValue is plaintext — adapter encrypts before storage.
+        /// Throws SqlException 2627/2601 if another user already owns this value.
+        /// </summary>
+        void UpsertUserIdentity(Guid userId, string identityType, string identityValue);
+
+        /// <summary>
+        /// Deletes the primary identity row of the given type for this user.
+        /// No-op if the row doesn't exist.
+        /// </summary>
+        void DeleteUserIdentity(Guid userId, string identityType);
 
         void UpdateUserStatus(Guid userId, string userStatus);
 
