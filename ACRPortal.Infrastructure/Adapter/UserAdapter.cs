@@ -40,7 +40,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         string userSql = @"INSERT INTO users 
                                             (user_id, display_name, login_id, password_hash, user_status, created_at, updated_at) 
                                            VALUES 
-                                            (@uid, @name, @login, @pwd, 'PENDING', GETDATE(), GETDATE())";
+                                            (@uid, @name, @login, @pwd, 'ACTIVE', GETDATE(), GETDATE())";
 
                         using (SqlCommand cmd = new SqlCommand(userSql, conn, trans))
                         {
