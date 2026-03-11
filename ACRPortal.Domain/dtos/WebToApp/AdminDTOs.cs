@@ -32,8 +32,11 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     public class UpdateUserRequest
     {
         // All nullable — only non-null fields are applied.
-        // LoginId and SystemRole are immutable (ignored if sent).
+        // UserId, LoginId, SystemRole, UserStatus, CreatedAt are immutable (ignored if sent).
         public string DisplayName { get; set; }
+        public string Password { get; set; }   // if set, re-hashed and stored
+        public string Email { get; set; }   // if set, replaces existing EMAIL identity (AES-encrypted)
+        public string Phone { get; set; }   // if set, replaces existing PHONE identity (AES-encrypted)
         public int? DsgId { get; set; }
         public int? StateId { get; set; }
         public int? ZoneId { get; set; }
@@ -41,9 +44,11 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public int? DivisionId { get; set; }
         public int? SubDivisionId { get; set; }
 
-        // Send explicit "clear" flags to null out a field
-        public bool ClearDsg { get; set; }
-        public bool ClearGeography { get; set; }  // clears all 5 geography fields at once
+        // Explicit clear flags
+        public bool ClearEmail { get; set; }  // true → deletes EMAIL identity row
+        public bool ClearPhone { get; set; }  // true → deletes PHONE identity row
+        public bool ClearDsg { get; set; }  // true → sets dsg_id = NULL
+        public bool ClearGeography { get; set; }  // true → clears all 5 geography fields
     }
 
     public class UpdateUserStatusRequest
@@ -68,8 +73,11 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string SystemRole { get; set; }
         public string UserStatus { get; set; }
         public int? DsgId { get; set; }
-        public string DsgName { get; set; }   // joined from tbDsg
-        public string SubDivision { get; set; }   // joined from SubDivision table
+        public int? StateId { get; set; }
+        public int? ZoneId { get; set; }
+        public int? CircleId { get; set; }
+        public int? DivisionId { get; set; }
+        public int? SubDivisionId { get; set; }
         public string CreatedAt { get; set; }   // ISO 8601
     }
 
@@ -86,27 +94,19 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string DisplayName { get; set; }
         public string SystemRole { get; set; }
         public string UserStatus { get; set; }
-        public string CreatedAt { get; set; }
+        public string CreatedAt { get; set; }   // ISO 8601
 
-        // Contact info (from user_identities)
+        // Contact info (decrypted from dbo.user_identities)
         public string Email { get; set; }   // nullable
         public string Phone { get; set; }   // nullable
 
-        // Designation
+        // Master data — IDs only, all nullable
         public int? DsgId { get; set; }
-        public string DsgName { get; set; }
-
-        // Geography — all nullable
         public int? StateId { get; set; }
-        public string StateName { get; set; }
         public int? ZoneId { get; set; }
-        public string ZoneName { get; set; }
         public int? CircleId { get; set; }
-        public string CircleName { get; set; }
         public int? DivisionId { get; set; }
-        public string DivisionName { get; set; }
         public int? SubDivisionId { get; set; }
-        public string SubDivision { get; set; }
     }
 
     // ------------------------------------------------------------------ //
@@ -126,5 +126,112 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public int RowNumber { get; set; }   // 1-based; header = 1, first data = 2
         public string LoginId { get; set; }   // null if not parseable from that row
         public string Reason { get; set; }
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Admin ACR Management                                               //
+    // ------------------------------------------------------------------ //
+
+    public class AdminAcrListItem
+    {
+        public string AcrId { get; set; }
+        public int AcrYear { get; set; }
+        public string Status { get; set; }
+        public string Department { get; set; }
+        public string Location { get; set; }
+        public string Designation { get; set; }
+        public string PostingFrom { get; set; }  // "YYYY-MM-DD"
+        public string PostingTo { get; set; }  // "YYYY-MM-DD"
+        public string OfficerUserId { get; set; }
+        public string OfficerName { get; set; }
+        public string OfficerLoginId { get; set; }
+        public string ReportingName { get; set; }
+        public string ReviewingName { get; set; }
+        public string AcceptingName { get; set; }
+        public string CcaName { get; set; }
+        public string CreatedAt { get; set; }  // ISO 8601
+    }
+
+    public class AdminAcrListResponse
+    {
+        public List<AdminAcrListItem> Acrs { get; set; }
+        public int TotalCount { get; set; }
+    }
+
+    public class AdminAcrDetailResponse
+    {
+        // ACR cycle header
+        public string AcrId { get; set; }
+        public int AcrYear { get; set; }
+        public string Status { get; set; }
+        public string Department { get; set; }
+        public string Location { get; set; }
+        public string Designation { get; set; }
+        public string PostingFrom { get; set; }
+        public string PostingTo { get; set; }
+        public string DateOfBirth { get; set; }  // nullable
+        public string Qualification { get; set; }  // nullable
+        public string CareerPostingSummary { get; set; }  // nullable
+        public bool PropertyReturnDone { get; set; }
+        public string CreatedAt { get; set; }
+
+        // Named participants
+        public string OfficerUserId { get; set; }
+        public string OfficerName { get; set; }
+        public string OfficerLoginId { get; set; }
+        public string ReportingUserId { get; set; }
+        public string ReportingName { get; set; }
+        public string ReviewingUserId { get; set; }
+        public string ReviewingName { get; set; }
+        public string AcceptingUserId { get; set; }
+        public string AcceptingName { get; set; }
+        public string CcaUserId { get; set; }
+        public string CcaName { get; set; }
+
+        // Section completion flags — true if submitted_at is not null
+        public bool SectionISubmitted { get; set; }  // self appraisal
+        public bool SectionIISubmitted { get; set; }  // reporting assessment
+        public bool SectionIIISubmitted { get; set; }  // reviewing assessment
+        public bool SectionIVSubmitted { get; set; }  // accepting decision
+    }
+
+    public class AdminUpdateAcrStatusRequest
+    {
+        public string Status { get; set; }  // "APPROVED" | "REJECTED"
+        public string Remarks { get; set; } // optional
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Admin Dashboard                                                    //
+    // ------------------------------------------------------------------ //
+
+    public class AdminDashboardResponse
+    {
+        // User counts
+        public int TotalUsers { get; set; }
+        public int ActiveUsers { get; set; }
+        public int InactiveUsers { get; set; }
+        public int PendingUsers { get; set; }
+
+        // ACR counts by status
+        public int TotalAcrs { get; set; }
+        public int AcrsPendingOfficer { get; set; }
+        public int AcrsPendingReporting { get; set; }
+        public int AcrsPendingReviewing { get; set; }
+        public int AcrsPendingAccepting { get; set; }
+        public int AcrsApproved { get; set; }
+        public int AcrsRejected { get; set; }
+
+        // ACR counts by year
+        public List<AcrYearCount> AcrsByYear { get; set; }
+    }
+
+    public class AcrYearCount
+    {
+        public int AcrYear { get; set; }
+        public int Total { get; set; }
+        public int Approved { get; set; }
+        public int Rejected { get; set; }
+        public int Pending { get; set; }  // everything not APPROVED or REJECTED
     }
 }

@@ -2,16 +2,19 @@
 using ACRPortal.Application.port;
 using ACRPortal.Application.usecase;
 using ACRPortal.Domain.DTOs.WebToApp;
+using ACRPortal.Domain.Security;
 
 namespace ACRPortal.Application.service
 {
     public class AdminService : IAdminUseCase
     {
         private readonly IAdminRepoPort _repo;
+        private readonly Security _security;
 
         public AdminService(IAdminRepoPort repo)
         {
             _repo = repo;
+            _security = new Security();
         }
 
         // ------------------------------------------------------------------ //
@@ -43,7 +46,7 @@ namespace ACRPortal.Application.service
                 if (geoError != null) return geoError;
 
                 // Hash password
-                string hash = new ACRPortal.Domain.Security.Security().HashWithSha256(password);
+                string hash = _security.HashWithSha256(password);
 
                 string userId;
                 try
@@ -88,6 +91,14 @@ namespace ACRPortal.Application.service
         {
             try
             {
+                // Only CCA and EMPLOYEE users are managed through this API
+                if (!string.IsNullOrWhiteSpace(role))
+                {
+                    role = role.ToUpper();
+                    if (role != "CCA" && role != "EMPLOYEE")
+                        return ApiResponse<UserListResponse>.Fail("Role filter must be CCA or EMPLOYEE", "BAD_REQUEST");
+                }
+
                 var result = _repo.GetAllUsers(role, status, dsgId, zoneId, divisionId);
                 return ApiResponse<UserListResponse>.Ok(result, "Success");
             }
@@ -137,13 +148,20 @@ namespace ACRPortal.Application.service
                 if (!_repo.IsUserExists(guid))
                     return ApiResponse<EmptyResponse>.Fail("User not found", "USER_NOT_FOUND");
 
-                // Validate master data — passing current snapshot for partial hierarchy checks
+                // Validate geography hierarchy
                 var geoError = ValidateGeoOnUpdate(req, guid);
                 if (geoError != null) return geoError;
 
+                // Hash password if being changed
+                string passwordHash = null;
+                if (!string.IsNullOrWhiteSpace(req.Password))
+                    passwordHash = _security.HashWithSha256(req.Password.Trim());
+
+                // Update user row fields
                 _repo.UpdateUser(
                     guid,
                     string.IsNullOrWhiteSpace(req.DisplayName) ? null : req.DisplayName.Trim(),
+                    passwordHash,
                     req.DsgId,
                     req.ClearDsg,
                     req.StateId,
@@ -153,6 +171,32 @@ namespace ACRPortal.Application.service
                     req.SubDivisionId,
                     req.ClearGeography
                 );
+
+                // Handle email identity
+                try
+                {
+                    if (req.ClearEmail)
+                        _repo.DeleteUserIdentity(guid, "EMAIL");
+                    else if (!string.IsNullOrWhiteSpace(req.Email))
+                        _repo.UpsertUserIdentity(guid, "EMAIL", req.Email.Trim());
+                }
+                catch (System.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
+                {
+                    return ApiResponse<EmptyResponse>.Fail("This email address is already registered to another user", "DUPLICATE_IDENTITY");
+                }
+
+                // Handle phone identity
+                try
+                {
+                    if (req.ClearPhone)
+                        _repo.DeleteUserIdentity(guid, "PHONE");
+                    else if (!string.IsNullOrWhiteSpace(req.Phone))
+                        _repo.UpsertUserIdentity(guid, "PHONE", req.Phone.Trim());
+                }
+                catch (System.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
+                {
+                    return ApiResponse<EmptyResponse>.Fail("This phone number is already registered to another user", "DUPLICATE_IDENTITY");
+                }
 
                 return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "User updated successfully");
             }
