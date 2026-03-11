@@ -443,21 +443,25 @@ if(path.includes("reports"))
 $("#menuReports").addClass("active");
 
 // Masters menu handling
-if(path.includes("masters")){
+if(path.includes("/masters/")){
     $("#mastersToggle").addClass("active");
     $("#mastersSubmenu").addClass("show");
-
-    if(path.includes("state"))
+    if(path === "/masters/state")
         $("#menuMastersState").addClass("active");
-    if(path.includes("zone"))
+
+    else if(path === "/masters/zone")
         $("#menuMastersZone").addClass("active");
-    if(path.includes("circle"))
+
+    else if(path === "/masters/circle")
         $("#menuMastersCircle").addClass("active");
-    if(path.includes("division"))
+
+    else if(path === "/masters/division")
         $("#menuMastersDivision").addClass("active");
-    if(path.includes("subdivision"))
+
+    else if(path === "/masters/subdivision")
         $("#menuMastersSubDivision").addClass("active");
-    if(path.includes("addemployee"))
+
+    else if(path === "/masters/addemployee")
         $("#menuMastersAddEmployee").addClass("active");
 }
 
