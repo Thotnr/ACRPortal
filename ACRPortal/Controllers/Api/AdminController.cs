@@ -8,6 +8,7 @@ using ACRPortal.Filters;
 namespace ACRPortal.Controllers.Api
 {
     [RoutePrefix("api/admin")]
+    
     public class AdminController : ApiController
     {
         private readonly IAdminUseCase _admin;
@@ -90,6 +91,7 @@ namespace ACRPortal.Controllers.Api
                 case "INVALID_SUBDIVISION":
                     return HttpStatusCode.BadRequest;
                 case "USER_EXISTS":
+                case "DUPLICATE_IDENTITY":
                     return HttpStatusCode.Conflict;
                 case "TOKEN_INVALID":
                     return HttpStatusCode.Unauthorized;

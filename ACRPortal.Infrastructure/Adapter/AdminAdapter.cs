@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.SqlClient;
 using ACRPortal.Application.port;
 using ACRPortal.Domain.DTOs.WebToApp;
+using ACRPortal.Domain.Security;
 
 namespace ACRPortal.Infrastructure.Adapter
 {
@@ -12,6 +13,9 @@ namespace ACRPortal.Infrastructure.Adapter
     {
         private readonly string _conn = ConfigurationManager
             .ConnectionStrings["ACRPortalContext"].ConnectionString;
+
+        // Security is an instance class — instantiate once per adapter instance
+        private static readonly Security _security = new Security();
 
         // ================================================================== //
         //  Existence checks                                                   //
@@ -129,10 +133,15 @@ namespace ACRPortal.Infrastructure.Adapter
         }
 
         // ================================================================== //
-        //  Create user                                                        //
+        //  Create user (transactional)                                        //
         // ================================================================== //
 
-        public string CreateUser(
+        /// <summary>
+        /// Inserts the user row and any identity rows in a single transaction.
+        /// If the identity insert hits UQ_Identity the whole transaction rolls back
+        /// — no orphaned user row is left behind.
+        /// </summary>
+        public string CreateUserWithIdentities(
             string displayName,
             string loginId,
             string passwordHash,
@@ -142,32 +151,77 @@ namespace ACRPortal.Infrastructure.Adapter
             int? zoneId,
             int? circleId,
             int? divisionId,
-            int? subDivisionId)
+            int? subDivisionId,
+            string email,
+            string phone)
         {
-            const string sql = @"
+            const string insertUser = @"
                 INSERT INTO dbo.users
                     (display_name, login_id, password_hash, system_role, user_status,
                      dsg_id, state_id, zone_id, circle_id, division_id, sub_division_id)
                 OUTPUT INSERTED.user_id
                 VALUES
-                    (@displayName, @loginId, @passwordHash, @systemRole, 'ACTIVE',
+                    (@displayName, @loginId, @passwordHash, @systemRole, 'PENDING',
                      @dsgId, @stateId, @zoneId, @circleId, @divisionId, @subDivisionId)";
 
+            const string insertIdentity = @"
+                INSERT INTO dbo.user_identities (user_id, identity_type, identity_value, is_primary)
+                VALUES (@userId, @identityType, @identityValue, 1)";
+
             using (var con = new SqlConnection(_conn))
-            using (var cmd = new SqlCommand(sql, con))
             {
-                cmd.Parameters.AddWithValue("@displayName", displayName);
-                cmd.Parameters.AddWithValue("@loginId", loginId);
-                cmd.Parameters.AddWithValue("@passwordHash", passwordHash);
-                cmd.Parameters.AddWithValue("@systemRole", systemRole);
-                cmd.Parameters.AddWithValue("@dsgId", (object)dsgId ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@stateId", (object)stateId ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@zoneId", (object)zoneId ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@circleId", (object)circleId ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@divisionId", (object)divisionId ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@subDivisionId", (object)subDivisionId ?? DBNull.Value);
                 con.Open();
-                return cmd.ExecuteScalar().ToString();
+                using (var tx = con.BeginTransaction())
+                    try
+                    {
+                        // 1. Insert user
+                        Guid newUserId;
+                        using (var cmd = new SqlCommand(insertUser, con, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@displayName", displayName);
+                            cmd.Parameters.AddWithValue("@loginId", loginId);
+                            cmd.Parameters.AddWithValue("@passwordHash", passwordHash);
+                            cmd.Parameters.AddWithValue("@systemRole", systemRole);
+                            cmd.Parameters.AddWithValue("@dsgId", (object)dsgId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@stateId", (object)stateId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@zoneId", (object)zoneId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@circleId", (object)circleId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@divisionId", (object)divisionId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@subDivisionId", (object)subDivisionId ?? DBNull.Value);
+                            newUserId = (Guid)cmd.ExecuteScalar();
+                        }
+
+                        // 2. Insert identities (AES-encrypted)
+                        if (email != null)
+                        {
+                            using (var cmd = new SqlCommand(insertIdentity, con, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@userId", newUserId);
+                                cmd.Parameters.AddWithValue("@identityType", "EMAIL");
+                                cmd.Parameters.AddWithValue("@identityValue", _security.EncryptWithAes(email));
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        if (phone != null)
+                        {
+                            using (var cmd = new SqlCommand(insertIdentity, con, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@userId", newUserId);
+                                cmd.Parameters.AddWithValue("@identityType", "PHONE");
+                                cmd.Parameters.AddWithValue("@identityValue", _security.EncryptWithAes(phone));
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        tx.Commit();
+                        return newUserId.ToString();
+                    }
+                    catch
+                    {
+                        tx.Rollback();
+                        throw;  // re-throw so AdminService catch block handles SqlException 2627/2601
+                    }
             }
         }
 
@@ -187,7 +241,6 @@ namespace ACRPortal.Infrastructure.Adapter
             int? subDivisionId,
             bool clearGeography)
         {
-            // Build SET clause dynamically — only touch fields that were sent
             var sets = new List<string> { "updated_at = GETDATE()" };
             var parms = new List<SqlParameter>();
 
@@ -197,7 +250,6 @@ namespace ACRPortal.Infrastructure.Adapter
                 parms.Add(new SqlParameter("@displayName", displayName));
             }
 
-            // Designation
             if (clearDsg)
             {
                 sets.Add("dsg_id = NULL");
@@ -208,7 +260,6 @@ namespace ACRPortal.Infrastructure.Adapter
                 parms.Add(new SqlParameter("@dsgId", dsgId.Value));
             }
 
-            // Geography
             if (clearGeography)
             {
                 sets.Add("state_id = NULL, zone_id = NULL, circle_id = NULL, division_id = NULL, sub_division_id = NULL");
@@ -222,11 +273,10 @@ namespace ACRPortal.Infrastructure.Adapter
                 if (subDivisionId.HasValue) { sets.Add("sub_division_id = @subDivisionId"); parms.Add(new SqlParameter("@subDivisionId", subDivisionId.Value)); }
             }
 
-            if (sets.Count == 1) return;  // only updated_at — nothing meaningful to update
+            if (sets.Count == 1) return;  // nothing meaningful to update
 
             string sql = $"UPDATE dbo.users SET {string.Join(", ", sets)} WHERE user_id = @userId";
             parms.Add(new SqlParameter("@userId", userId));
-
             ExecuteNonQuery(sql, parms.ToArray());
         }
 
@@ -265,8 +315,8 @@ namespace ACRPortal.Infrastructure.Adapter
                        sd.SubDivision,
                        u.created_at
                 FROM   dbo.users u
-                LEFT   JOIN dbo.tbDsg       d  ON d.dsgId          = u.dsg_id
-                LEFT   JOIN dbo.SubDivision sd ON sd.SubDivisionID  = u.sub_division_id
+                LEFT   JOIN dbo.tbDsg       d  ON d.dsgId         = u.dsg_id
+                LEFT   JOIN dbo.SubDivision sd ON sd.SubDivisionID = u.sub_division_id
                 {whereClause}
                 ORDER  BY u.created_at DESC";
 
@@ -301,21 +351,31 @@ namespace ACRPortal.Infrastructure.Adapter
 
         public UserDetailResponse GetUserById(Guid userId)
         {
+            // Two self-joins on user_identities — one alias for EMAIL, one for PHONE.
+            // identity_value is AES-encrypted in the DB — decrypt on read.
             const string sql = @"
                 SELECT u.user_id, u.login_id, u.display_name, u.system_role, u.user_status, u.created_at,
-                       u.dsg_id,         d.dsg         AS dsg_name,
-                       u.state_id,       st.State      AS state_name,
-                       u.zone_id,        z.Zone        AS zone_name,
-                       u.circle_id,      c.Circle      AS circle_name,
-                       u.division_id,    dv.Division   AS division_name,
-                       u.sub_division_id, sd.SubDivision AS sub_division_name
+                       u.dsg_id,          d.dsg          AS dsg_name,
+                       u.state_id,        st.State       AS state_name,
+                       u.zone_id,         z.Zone         AS zone_name,
+                       u.circle_id,       c.Circle       AS circle_name,
+                       u.division_id,     dv.Division    AS division_name,
+                       u.sub_division_id, sd.SubDivision AS sub_division_name,
+                       ei.identity_value  AS email_enc,
+                       pi.identity_value  AS phone_enc
                 FROM   dbo.users u
-                LEFT   JOIN dbo.tbDsg       d  ON d.dsgId          = u.dsg_id
-                LEFT   JOIN dbo.State       st ON st.State_ID       = u.state_id
-                LEFT   JOIN dbo.Zone        z  ON z.Zone_ID         = u.zone_id
-                LEFT   JOIN dbo.Circle      c  ON c.Circle_ID       = u.circle_id
-                LEFT   JOIN dbo.Division    dv ON dv.Division_ID    = u.division_id
-                LEFT   JOIN dbo.SubDivision sd ON sd.SubDivisionID  = u.sub_division_id
+                LEFT   JOIN dbo.tbDsg        d  ON d.dsgId          = u.dsg_id
+                LEFT   JOIN dbo.State        st ON st.State_ID       = u.state_id
+                LEFT   JOIN dbo.Zone         z  ON z.Zone_ID         = u.zone_id
+                LEFT   JOIN dbo.Circle       c  ON c.Circle_ID       = u.circle_id
+                LEFT   JOIN dbo.Division     dv ON dv.Division_ID    = u.division_id
+                LEFT   JOIN dbo.SubDivision  sd ON sd.SubDivisionID  = u.sub_division_id
+                LEFT   JOIN dbo.user_identities ei ON ei.user_id = u.user_id
+                                                   AND ei.identity_type = 'EMAIL'
+                                                   AND ei.is_primary = 1
+                LEFT   JOIN dbo.user_identities pi ON pi.user_id = u.user_id
+                                                   AND pi.identity_type = 'PHONE'
+                                                   AND pi.is_primary = 1
                 WHERE  u.user_id = @userId";
 
             using (var con = new SqlConnection(_conn))
@@ -326,6 +386,10 @@ namespace ACRPortal.Infrastructure.Adapter
                 using (var r = cmd.ExecuteReader())
                 {
                     if (!r.Read()) return null;
+
+                    string emailEnc = r.IsDBNull(18) ? null : r.GetString(18);
+                    string phoneEnc = r.IsDBNull(19) ? null : r.GetString(19);
+
                     return new UserDetailResponse
                     {
                         UserId = r.GetGuid(0).ToString(),
@@ -346,6 +410,8 @@ namespace ACRPortal.Infrastructure.Adapter
                         DivisionName = r.IsDBNull(15) ? null : r.GetString(15),
                         SubDivisionId = r.IsDBNull(16) ? (int?)null : r.GetInt32(16),
                         SubDivision = r.IsDBNull(17) ? null : r.GetString(17),
+                        Email = emailEnc == null ? null : _security.DecryptWithAes(emailEnc),
+                        Phone = phoneEnc == null ? null : _security.DecryptWithAes(phoneEnc),
                     };
                 }
             }

@@ -45,18 +45,31 @@ namespace ACRPortal.Application.service
                 // Hash password
                 string hash = new ACRPortal.Domain.Security.Security().HashWithSha256(password);
 
-                string userId = _repo.CreateUser(
-                    req.DisplayName.Trim(),
-                    req.LoginId.Trim(),
-                    hash,
-                    role,
-                    req.DsgId,
-                    req.StateId,
-                    req.ZoneId,
-                    req.CircleId,
-                    req.DivisionId,
-                    req.SubDivisionId
-                );
+                string userId;
+                try
+                {
+                    userId = _repo.CreateUserWithIdentities(
+                        req.DisplayName.Trim(),
+                        req.LoginId.Trim(),
+                        hash,
+                        role,
+                        req.DsgId,
+                        req.StateId,
+                        req.ZoneId,
+                        req.CircleId,
+                        req.DivisionId,
+                        req.SubDivisionId,
+                        string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim(),
+                        string.IsNullOrWhiteSpace(req.Phone) ? null : req.Phone.Trim()
+                    );
+                }
+                catch (System.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
+                {
+                    string field = sqlEx.Message.Contains("PHONE") ? "phone number" : "email address";
+                    return ApiResponse<CreateUserResponse>.Fail(
+                        $"This {field} is already registered to another user",
+                        "DUPLICATE_IDENTITY");
+                }
 
                 return ApiResponse<CreateUserResponse>.Ok(
                     new CreateUserResponse { UserId = userId },

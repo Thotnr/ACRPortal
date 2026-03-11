@@ -32,7 +32,12 @@ namespace ACRPortal.Application.port
         UserGeoSnapshot GetUserGeoSnapshot(Guid userId);
 
         // ---- Write operations --------------------------------------------
-        string CreateUser(
+        /// <summary>
+        /// Creates a user and inserts email/phone identities in a single transaction.
+        /// If either identity is a duplicate the entire operation is rolled back
+        /// and a SqlException with Number 2627 or 2601 is thrown — caught in AdminService.
+        /// </summary>
+        string CreateUserWithIdentities(
             string displayName,
             string loginId,
             string passwordHash,
@@ -42,7 +47,9 @@ namespace ACRPortal.Application.port
             int? zoneId,
             int? circleId,
             int? divisionId,
-            int? subDivisionId
+            int? subDivisionId,
+            string email,          // nullable
+            string phone           // nullable
         );  // returns new user_id as string
 
         void UpdateUser(

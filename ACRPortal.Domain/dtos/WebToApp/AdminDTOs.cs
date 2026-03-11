@@ -16,6 +16,10 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string Password { get; set; }   // default: "welcome@123"
         public string SystemRole { get; set; }   // default: "EMPLOYEE"
 
+        // Contact info — inserted into dbo.user_identities
+        public string Email { get; set; }   // optional — stored as identity_type = 'EMAIL'
+        public string Phone { get; set; }   // optional — stored as identity_type = 'PHONE'
+
         // Optional master data — all nullable
         public int? DsgId { get; set; }   // FK → tbDsg.dsgId
         public int? StateId { get; set; }   // FK → State.State_ID
@@ -83,6 +87,10 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string SystemRole { get; set; }
         public string UserStatus { get; set; }
         public string CreatedAt { get; set; }
+
+        // Contact info (from user_identities)
+        public string Email { get; set; }   // nullable
+        public string Phone { get; set; }   // nullable
 
         // Designation
         public int? DsgId { get; set; }
