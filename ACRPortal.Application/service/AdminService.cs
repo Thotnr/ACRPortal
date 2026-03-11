@@ -31,8 +31,8 @@ namespace ACRPortal.Application.service
                 string role = string.IsNullOrWhiteSpace(req.SystemRole) ? "EMPLOYEE" : req.SystemRole.ToUpper();
                 string password = string.IsNullOrWhiteSpace(req.Password) ? "welcome@123" : req.Password;
 
-                if (role != "ADMIN" && role != "CCA" && role != "EMPLOYEE")
-                    return ApiResponse<CreateUserResponse>.Fail("SystemRole must be ADMIN, CCA, or EMPLOYEE", "BAD_REQUEST");
+                if (role != "CCA" && role != "EMPLOYEE")
+                    return ApiResponse<CreateUserResponse>.Fail("SystemRole must be CCA or EMPLOYEE", "BAD_REQUEST");
 
                 // LoginId uniqueness
                 if (_repo.IsLoginIdExists(req.LoginId))
