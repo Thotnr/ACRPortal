@@ -437,6 +437,47 @@ Continue
 
 $(document).ready(function(){
 
+var role = localStorage.getItem("role");
+
+if(!role){
+window.location="/Login/UserAuth";
+return;
+}
+
+/* Hide all first */
+
+$("#mastersToggle").hide();
+$("#menuCCA").hide();
+$("#menuReports").hide();
+
+/* ROLE BASED MENU */
+
+if(role === "ADMIN"){
+
+// ADMIN sees everything
+$("#mastersToggle").show();
+$("#menuCCA").show();
+$("#menuReports").show();
+
+}
+
+else if(role === "CCA"){
+
+// CCA can fill form + see reports
+$("#menuCCA").show();
+$("#menuReports").show();
+
+}
+
+else if(role === "EMPLOYEE"){
+
+// EMPLOYEE only dashboard
+$("#menuCCA").hide();
+$("#menuReports").hide();
+$("#mastersToggle").hide();
+
+}
+
 var path = window.location.pathname.toLowerCase();
 
 if(path.includes("dashboard"))
