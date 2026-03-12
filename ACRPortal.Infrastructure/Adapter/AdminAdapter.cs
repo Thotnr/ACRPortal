@@ -166,7 +166,7 @@ namespace ACRPortal.Infrastructure.Adapter
                      dsg_id, state_id, zone_id, circle_id, division_id, sub_division_id, manager_id)
                 OUTPUT INSERTED.user_id
                 VALUES
-                    (@displayName, @loginId, @passwordHash, @systemRole, 'ACTIVE',
+                    (@displayName, @loginId, @passwordHash, @systemRole, 'PENDING',
                      @dsgId, @stateId, @zoneId, @circleId, @divisionId, @subDivisionId, @managerLoginId)";
 
             const string insertIdentity = @"
@@ -381,8 +381,16 @@ namespace ACRPortal.Infrastructure.Adapter
                 SELECT u.user_id, u.login_id, u.display_name, u.system_role, u.user_status,
                        u.dsg_id, u.state_id, u.zone_id, u.circle_id, u.division_id, u.sub_division_id,
                        u.created_at,
-                       u.manager_id
+                       u.manager_id,
+                       ei.identity_value AS email_enc,
+                       pi.identity_value AS phone_enc
                 FROM   dbo.users u
+                LEFT   JOIN dbo.user_identities ei ON ei.user_id = u.user_id
+                                                   AND ei.identity_type = 'EMAIL'
+                                                   AND ei.is_primary = 1
+                LEFT   JOIN dbo.user_identities pi ON pi.user_id = u.user_id
+                                                   AND pi.identity_type = 'PHONE'
+                                                   AND pi.is_primary = 1
                 {whereClause}
                 ORDER  BY u.created_at DESC";
 
@@ -394,6 +402,9 @@ namespace ACRPortal.Infrastructure.Adapter
                 con.Open();
                 using (var r = cmd.ExecuteReader())
                     while (r.Read())
+                    {
+                        string emailEnc = r.IsDBNull(13) ? null : r.GetString(13);
+                        string phoneEnc = r.IsDBNull(14) ? null : r.GetString(14);
                         list.Add(new UserListItem
                         {
                             UserId = r.GetGuid(0).ToString(),
@@ -409,7 +420,10 @@ namespace ACRPortal.Infrastructure.Adapter
                             SubDivisionId = r.IsDBNull(10) ? (int?)null : r.GetInt32(10),
                             CreatedAt = r.GetDateTime(11).ToString("o"),
                             ManagerId = r.IsDBNull(12) ? null : r.GetString(12),
+                            Email = emailEnc == null ? null : _security.DecryptWithAes(emailEnc),
+                            Phone = phoneEnc == null ? null : _security.DecryptWithAes(phoneEnc),
                         });
+                    }
             }
 
             return new UserListResponse { Users = list, TotalCount = list.Count };
