@@ -5,6 +5,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <style>
 
@@ -42,6 +44,10 @@ color:#007bff;
 cursor:pointer;
 }
 
+.select2-container--default .select2-selection--single .select2-selection__rendered{
+line-height: 24px;
+}
+
 </style>
 
 <div class="container-fluid">
@@ -60,11 +66,49 @@ cursor:pointer;
 
 <div class="row mb-3">
 
-<div class="col-md-4">
+<div class="col-md-2 pr-0">
+<select id="filterDesignation" class="form-control" onchange="applyFilters()">
+<option value="">Designation</option>
+</select>
+</div>
+
+<div class="col-md-2 pr-0">
+<select id="filterZone" class="form-control" onchange="onFilterZoneChange()">
+<option value="">Zone</option>
+</select>
+</div>
+
+<div class="col-md-2 pr-0">
+<select id="filterCircle" class="form-control" onchange="onFilterCircleChange()">
+<option value="">Circle</option>
+</select>
+</div>
+
+<div class="col-md-2 pr-0">
+<select id="filterDivision" class="form-control" onchange="onFilterDivisionChange()">
+<option value="">Division</option>
+</select>
+</div>
+
+<div class="col-md-2 pr-0">
+<select id="filterSubDivision" class="form-control" onchange="applyFilters()">
+<option value="">SubDivision</option>
+</select>
+</div>
+
+<div class="col-md-2">
 <input type="text" class="form-control" placeholder="Search Employee" onkeyup="searchTable(this.value)">
 </div>
 
 </div>
+
+<!-- <div class="row mb-3">
+
+<div class="col-md-4">
+<input type="text" class="form-control" placeholder="Search Employee" onkeyup="searchTable(this.value)">
+</div>
+
+</div> -->
 
 <div class="table-responsive">
 
@@ -166,18 +210,23 @@ Fields marked with <span class="required-star">*</span> are required
 </div> -->
 
 <div class="col-md-6 mt-2">
-<label>Email</label>
-<input type="email" id="email" class="form-control">
+<label>Email <span class="required-star">*</span></label>
+<input type="email" id="email" class="form-control" required>
 </div>
 
 <div class="col-md-6 mt-2">
-<label>Phone</label>
-<input type="text" id="phone" class="form-control">
+<label>Phone <span class="required-star">*</span></label>
+<input type="text" id="phone" class="form-control" required>
 </div>
 
 <div class="col-md-6 mt-2">
-<label>Designation</label>
-<select id="dsgId" class="form-control"></select>
+<label>Designation <span class="required-star">*</span></label>
+<select id="dsgId" class="form-control" required></select>
+</div>
+
+<div class="col-md-6 mt-2">
+<label>Reporting Manager</label>
+<select id="reportingManagerId" class="form-control"></select>
 </div>
 
 </div>
@@ -260,16 +309,151 @@ loadEmployees();
 loadDesignations();
 loadStates();
 
+loadFilterZones();
+loadFilterDesignations();
+
+initDropdowns();
+
 });
 
+function initDropdowns(){
+
+$("#dsgId").select2({width:'100%'});
+$("#stateId").select2({width:'100%'});
+$("#zoneId").select2({width:'100%'});
+$("#circleId").select2({width:'100%'});
+$("#divisionId").select2({width:'100%'});
+$("#subDivisionId").select2({width:'100%'});
+$("#reportingManagerId").select2({width:'100%'});
+
+}
+
+function loadReportingManagers(){
+
+$("#reportingManagerId").html('<option value="">Select Reporting Manager</option>');
+
+employees.forEach(function(e){
+
+$("#reportingManagerId").append(
+`<option value="${e.UserId}">${e.DisplayName} (${e.LoginId})</option>`
+);
+
+});
+
+}
+
+function loadFilterZones(){
+
+$("#filterZone").html('<option value="">Zone</option>');
+
+$.ajax({
+
+url:"/api/admin/masters/zones",
+method:"GET",
+
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+
+res.Data.Zones.forEach(function(z){
+
+$("#filterZone").append(
+`<option value="${z.ZoneId}">${z.ZoneName}</option>`
+);
+
+});
+
+}
+
+}
+
+});
+
+}
+
+function loadFilterDesignations(){
+
+$("#filterDesignation").html('<option value="">Designation</option>');
+
+$.ajax({
+
+url:"/api/admin/masters/designations?activeOnly=true",
+method:"GET",
+
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+
+res.Data.Designations.forEach(function(d){
+
+$("#filterDesignation").append(
+`<option value="${d.DsgId}">${d.DsgDesc}</option>`
+);
+
+});
+
+}
+
+}
+
+});
+
+}
+
+function loadFilterCircles(zoneId){
+
+$("#filterCircle").html('<option value="">Circle</option>');
+
+if(!zoneId) return;
+
+$.ajax({
+
+url:"/api/admin/masters/circles?zoneId="+zoneId,
+method:"GET",
+
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+
+res.Data.Circles.forEach(function(c){
+
+$("#filterCircle").append(
+`<option value="${c.CircleId}">${c.Circle}</option>`
+);
+
+});
+
+}
+
+}
+
+});
+
+}
 
 /* LOAD EMPLOYEES (example endpoint assumed) */
 
 function loadEmployees(){
 
+var zoneId=$("#filterZone").val();
+var dsgId=$("#filterDesignation").val();
+var divisionId=$("#filterDivision").val();
+
+var url="/api/admin/users?role=EMPLOYEE";
+
+if(zoneId) url+="&zoneId="+zoneId;
+if(dsgId) url+="&dsgId="+dsgId;
+if(divisionId) url+="&divisionId="+divisionId;
+
 $.ajax({
 
-url:"/api/admin/users",
+url:url,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -282,7 +466,6 @@ employees=res.Data.Users || [];
 filteredEmployees=[...employees];
 
 currentPage=1;
-
 renderTable();
 
 }
@@ -292,7 +475,6 @@ renderTable();
 });
 
 }
-
 
 /* TABLE */
 
@@ -324,6 +506,10 @@ body.append(`
 <button class="action-btn"
 onclick="editEmployee('${e.UserId}')">
 <i class="fa fa-pen"></i>
+</button>
+<button class="action-btn"
+onclick="changeStatus('${e.UserId}','${e.UserStatus}')">
+<i class="fa fa-toggle-on"></i>
 </button>
 </td>
 </tr>
@@ -452,6 +638,20 @@ $("#modalTitle").text("Add Employee");
 
 $("#employeeForm")[0].reset();
 
+/* reset select2 dropdowns */
+$("#dsgId").val("").trigger("change");
+$("#stateId").val("").trigger("change");
+$("#zoneId").val("").trigger("change");
+$("#circleId").val("").trigger("change");
+$("#divisionId").val("").trigger("change");
+$("#subDivisionId").val("").trigger("change");
+
+/* load managers */
+loadReportingManagers();
+
+/* reset manager dropdown */
+$("#reportingManagerId").val("").trigger("change");
+
 $("#employeeModal").modal("show");
 
 }
@@ -513,8 +713,8 @@ StateId:$("#stateId").val(),
 ZoneId:$("#zoneId").val(),
 CircleId:$("#circleId").val(),
 DivisionId:$("#divisionId").val(),
-SubDivisionId:$("#subDivisionId").val()
-
+SubDivisionId:$("#subDivisionId").val(),
+ReportingManagerId:$("#reportingManagerId").val()
 };
 
 
@@ -775,6 +975,216 @@ pageSize=parseInt($("#pageSizeSelect").val());
 currentPage=1;
 
 renderTable();
+
+}
+
+function applyFilters(){
+
+var zoneId=$("#filterZone").val();
+var dsgId=$("#filterDesignation").val();
+var circleId=$("#filterCircle").val();
+var divisionId=$("#filterDivision").val();
+var subDivisionId=$("#filterSubDivision").val();
+
+filteredEmployees=employees.filter(function(e){
+
+if(zoneId && e.ZoneId!=zoneId) return false;
+if(dsgId && e.DsgId!=dsgId) return false;
+if(circleId && e.CircleId!=circleId) return false;
+if(divisionId && e.DivisionId!=divisionId) return false;
+if(subDivisionId && e.SubDivisionId!=subDivisionId) return false;
+
+return true;
+
+});
+
+currentPage=1;
+renderTable();
+
+}
+
+function editEmployee(userId){
+
+$.ajax({
+
+url:"/api/admin/users/"+userId,
+method:"GET",
+
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+
+var u=res.Data;
+
+isEditMode=true;
+editUserId=userId;
+
+$("#modalTitle").text("Edit Employee");
+
+$("#displayName").val(u.DisplayName);
+$("#loginId").val(u.LoginId);
+$("#email").val(u.Email);
+$("#phone").val(u.Phone);
+$("#dsgId").val(u.DsgId).trigger("change");
+$("#reportingManagerId").val(u.ReportingManagerId).trigger("change");
+$("#stateId").val(u.StateId).trigger("change");
+
+setTimeout(function(){
+$("#zoneId").val(u.ZoneId).trigger("change");
+},300);
+
+setTimeout(function(){
+$("#circleId").val(u.CircleId).trigger("change");
+},600);
+
+setTimeout(function(){
+$("#divisionId").val(u.DivisionId).trigger("change");
+},900);
+
+setTimeout(function(){
+$("#subDivisionId").val(u.SubDivisionId).trigger("change");
+},1200);
+
+$("#employeeModal").modal("show");
+
+}
+
+}
+
+});
+
+}
+
+
+function changeStatus(userId,currentStatus){
+
+var newStatus=currentStatus=="ACTIVE" ? "INACTIVE" : "ACTIVE";
+
+$.ajax({
+
+url:"/api/admin/users/"+userId+"/status",
+method:"PATCH",
+
+headers:{
+"Authorization":"Bearer "+token,
+"Content-Type":"application/json"
+},
+
+data:JSON.stringify({UserStatus:newStatus}),
+
+success:function(res){
+
+if(res.Success){
+
+alert("Status updated");
+loadEmployees();
+
+}
+
+}
+
+});
+
+}
+
+function loadFilterDivisions(circleId){
+
+$("#filterDivision").html('<option value="">Division</option>');
+
+if(!circleId) return;
+
+$.ajax({
+
+url:"/api/admin/masters/divisions?circleId="+circleId,
+method:"GET",
+
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+
+res.Data.Divisions.forEach(function(d){
+
+$("#filterDivision").append(
+`<option value="${d.DivisionId}">${d.Division}</option>`
+);
+
+});
+
+}
+
+}
+
+});
+
+}
+
+function loadFilterSubDivisions(divisionId){
+
+$("#filterSubDivision").html('<option value="">SubDivision</option>');
+
+if(!divisionId) return;
+
+$.ajax({
+
+url:"/api/admin/masters/subdivisions?divisionId="+divisionId,
+method:"GET",
+
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+
+res.Data.SubDivisions.forEach(function(s){
+
+$("#filterSubDivision").append(
+`<option value="${s.SubDivisionId}">${s.SubDivision}</option>`
+);
+
+});
+
+}
+
+}
+
+});
+
+}
+
+function onFilterZoneChange(){
+
+var zoneId=$("#filterZone").val();
+
+$("#filterDivision").html('<option value="">Division</option>');
+$("#filterSubDivision").html('<option value="">SubDivision</option>');
+
+loadFilterCircles(zoneId);
+
+applyFilters();
+
+}
+
+function onFilterCircleChange(){
+
+var circleId=$("#filterCircle").val();
+$("#filterSubDivision").html('<option value="">SubDivision</option>');
+loadFilterDivisions(circleId);
+
+applyFilters();
+
+}
+
+function onFilterDivisionChange(){
+
+var divisionId=$("#filterDivision").val();
+
+loadFilterSubDivisions(divisionId);
+
+applyFilters();
 
 }
 
