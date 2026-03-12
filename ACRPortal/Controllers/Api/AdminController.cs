@@ -3,12 +3,10 @@ using System.Net.Http;
 using System.Web.Http;
 using ACRPortal.Application.usecase;
 using ACRPortal.Domain.DTOs.WebToApp;
-using ACRPortal.Filters;
 
 namespace ACRPortal.Controllers.Api
 {
     [RoutePrefix("api/admin")]
-    
     public class AdminController : ApiController
     {
         private readonly IAdminUseCase _admin;
@@ -16,6 +14,18 @@ namespace ACRPortal.Controllers.Api
         public AdminController(IAdminUseCase admin)
         {
             _admin = admin;
+        }
+
+        // ------------------------------------------------------------------ //
+        //  GET api/admin/users/managers                                       //
+        //  Must be declared BEFORE users/{userId} to prevent route ambiguity. //
+        // ------------------------------------------------------------------ //
+        [HttpGet]
+        [Route("users/managers")]
+        public HttpResponseMessage GetManagers()
+        {
+            var result = _admin.GetManagers();
+            return Request.CreateResponse(MapStatus(result.ErrorCode), result);
         }
 
         // ------------------------------------------------------------------ //
@@ -89,6 +99,7 @@ namespace ACRPortal.Controllers.Api
                 case "INVALID_CIRCLE":
                 case "INVALID_DIVISION":
                 case "INVALID_SUBDIVISION":
+                case "INVALID_MANAGER":
                     return HttpStatusCode.BadRequest;
                 case "USER_EXISTS":
                 case "DUPLICATE_IDENTITY":
