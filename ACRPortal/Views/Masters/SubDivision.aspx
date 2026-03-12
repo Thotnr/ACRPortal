@@ -212,7 +212,7 @@ entries
 
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var subDivisions=[]
 var filteredSubDivisions=[]
 
@@ -236,7 +236,7 @@ $(document).ready(function(){
 token=localStorage.getItem("token")
 
 if(!token){
-window.location="/Login/UserAuth"
+window.location = BASE_URL + "Login/UserAuth";
 return
 }
 
@@ -272,7 +272,7 @@ function loadZones(){
 
 $.ajax({
 
-url:"/api/admin/masters/zones",
+url: BASE_URL + "api/admin/masters/zones",
 method:"GET",
 headers:{ "Authorization":"Bearer "+token },
 
@@ -309,7 +309,7 @@ var zoneId=$("#zoneFilter").val()
 $("#circleFilter").html(`<option value="">All Circles</option>`)
 $("#divisionFilter").html(`<option value="">All Divisions</option>`)
 
-var url="/api/admin/masters/circles"
+var url= BASE_URL + "api/admin/masters/circles"
 if(zoneId) url+="?zoneId="+zoneId
 
 $.ajax({
@@ -347,7 +347,7 @@ var circleId=$("#circleFilter").val()
 
 $("#divisionFilter").html(`<option value="">All Divisions</option>`)
 
-var url="/api/admin/masters/divisions"
+var url= BASE_URL + "api/admin/masters/divisions"
 
 var params=[]
 if(zoneId) params.push("zoneId="+zoneId)
@@ -389,7 +389,7 @@ var zoneId=$("#zoneFilter").val()
 var circleId=$("#circleFilter").val()
 var divisionId=$("#divisionFilter").val()
 
-var url="/api/admin/masters/subdivisions"
+var url= BASE_URL + "api/admin/masters/subdivisions"
 
 var params=[]
 if(zoneId) params.push("zoneId="+zoneId)

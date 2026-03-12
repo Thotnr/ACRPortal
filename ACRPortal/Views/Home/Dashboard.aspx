@@ -12,10 +12,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 </div>
 
 <script>
+    var BASE_URL = '<%= Url.Content("~/") %>';
     $(document).ready(function(){
         var token = localStorage.getItem("token");
         if(!token){
-            window.location="/Login/UserAuth";
+            window.location= BASE_URL + "Login/UserAuth";
         }else {
             loadCurrentUser(token);
         }
@@ -24,13 +25,13 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     function loadCurrentUser(token){
 
     if(!token){
-    window.location = "/Login/UserAuth";
+    window.location = BASE_URL + "Login/UserAuth";
     return;
     }
 
     $.ajax({
 
-    url: "/api/auth/me",
+    url: BASE_URL + "api/auth/me",
     method: "GET",
 
     headers:{
@@ -59,7 +60,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
     else{
 
-    window.location="/Login/UserAuth";
+    window.location = BASE_URL + "Login/UserAuth";
 
     }
 
@@ -70,7 +71,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     if(xhr.status === 401 || xhr.status === 404){
 
     localStorage.clear();
-    window.location="/Login/UserAuth";
+    window.location = BASE_URL + "Login/UserAuth";
 
     }
     else{

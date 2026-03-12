@@ -177,7 +177,7 @@ entries
 </div>
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var circles=[];
 var filteredCircles=[];
 var zones=[];
@@ -197,7 +197,7 @@ $(document).ready(function(){
 token=localStorage.getItem("token");
 
 if(!token){
-window.location="/Login/UserAuth";
+window.location = BASE_URL + "Login/UserAuth";
 return;
 }
 
@@ -209,7 +209,7 @@ function loadZones(){
 
 $.ajax({
 
-url:"/api/admin/masters/zones",
+url: BASE_URL + "api/admin/masters/zones",
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -250,7 +250,7 @@ function loadCircles(){
 
 var zoneId=$("#zoneFilter").val();
 
-var url="/api/admin/masters/circles";
+var url= BASE_URL + "api/admin/masters/circles";
 
 if(zoneId) url+="?zoneId="+zoneId;
 
@@ -508,7 +508,7 @@ if(isEditMode){
 
 payload={ Circle:circleName };
 
-url="/api/admin/masters/circles/"+circleId;
+url= BASE_URL + "api/admin/masters/circles/"+circleId;
 method="PATCH";
 
 }else{
@@ -519,7 +519,7 @@ CircleId:parseInt(circleId),
 Circle:circleName
 };
 
-url="/api/admin/masters/circles";
+url= BASE_URL + "api/admin/masters/circles";
 method="POST";
 
 }

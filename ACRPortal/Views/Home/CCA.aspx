@@ -316,11 +316,12 @@ Submit Appraisal
 </div>
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 $(document).ready(function(){
+    var BASE_URL = '<%= Url.Content("~/") %>';
     var token = localStorage.getItem("token");
     if(!token){
-        window.location="/Login/UserAuth";
+        window.location = BASE_URL + "Login/UserAuth";
     }else {
         loadCurrentUser(token);
     }
@@ -335,7 +336,7 @@ function loadCurrentUser(token){
 
     $.ajax({
 
-    url: "/api/auth/me",
+    url: BASE_URL + "api/auth/me",
     method: "GET",
 
     headers:{
@@ -364,7 +365,7 @@ function loadCurrentUser(token){
     }
     else{
 
-    window.location="/Login/UserAuth";
+    window.location = BASE_URL + "Login/UserAuth";
 
     }
 
@@ -375,7 +376,7 @@ function loadCurrentUser(token){
     if(xhr.status === 401 || xhr.status === 404){
 
     localStorage.clear();
-    window.location="/Login/UserAuth";
+    window.location = BASE_URL + "Login/UserAuth";
 
     }
     else{

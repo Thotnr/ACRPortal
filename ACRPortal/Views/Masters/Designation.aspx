@@ -200,7 +200,7 @@ entries
 
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var designations=[];
 var filteredDesignations=[];
 var token=null;
@@ -220,7 +220,7 @@ $(document).ready(function(){
 token=localStorage.getItem("token");
 
 if(!token){
-window.location="/Login/UserAuth";
+window.location = BASE_URL + "Login/UserAuth";
 return;
 }
 
@@ -239,7 +239,7 @@ var activeOnly=$("#activeFilter").val();
 
 $.ajax({
 
-url:"/api/admin/masters/designations?activeOnly="+activeOnly,
+url: BASE_URL + "api/admin/masters/designations?activeOnly="+activeOnly,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -516,7 +516,7 @@ if(!isEditMode){
 
 $.ajax({
 
-url:"/api/admin/masters/designations",
+url: BASE_URL + "api/admin/masters/designations",
 method:"POST",
 
 headers:{
@@ -570,7 +570,7 @@ DsgLevel:1
 
 $.ajax({
 
-url:"/api/admin/masters/designations/"+editId,
+url: BASE_URL + "api/admin/masters/designations/"+editId,
 method:"PATCH",
 
 headers:{

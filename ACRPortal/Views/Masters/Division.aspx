@@ -210,7 +210,7 @@ entries
 
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var divisions=[];
 var filteredDivisions=[];
 
@@ -234,7 +234,7 @@ $(document).ready(function(){
 token=localStorage.getItem("token");
 
 if(!token){
-window.location="/Login/UserAuth";
+window.location = BASE_URL + "Login/UserAuth";
 return;
 }
 
@@ -247,7 +247,7 @@ function loadZones(){
 
 $.ajax({
 
-url:"/api/admin/masters/zones",
+url: BASE_URL + "api/admin/masters/zones",
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -290,7 +290,7 @@ function loadAllCircles(){
 
 $.ajax({
 
-url:"/api/admin/masters/circles",
+url: BASE_URL + "api/admin/masters/circles",
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -370,7 +370,7 @@ function loadDivisions(){
 var zoneId=$("#zoneFilter").val();
 var circleId=$("#circleFilter").val();
 
-var url="/api/admin/masters/divisions";
+var url= BASE_URL + "api/admin/masters/divisions";
 
 var params=[];
 
@@ -651,7 +651,7 @@ if(!isEditMode){
 
 $.ajax({
 
-url:"/api/admin/masters/divisions",
+url: BASE_URL + "api/admin/masters/divisions",
 method:"POST",
 
 headers:{
@@ -686,7 +686,7 @@ loadDivisions();
 
 $.ajax({
 
-url:"/api/admin/masters/divisions/"+divisionId,
+url: BASE_URL + "api/admin/masters/divisions/"+divisionId,
 method:"PATCH",
 
 headers:{

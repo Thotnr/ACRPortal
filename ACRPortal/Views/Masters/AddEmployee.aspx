@@ -281,7 +281,7 @@ Fields marked with <span class="required-star">*</span> are required
 
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var employees=[];
 var filteredEmployees=[];
 var designations=[];
@@ -301,7 +301,7 @@ $(document).ready(function(){
 token=localStorage.getItem("token");
 
 if(!token){
-window.location="/Login/UserAuth";
+window.location = BASE_URL + "Login/UserAuth";
 return;
 }
 
@@ -352,7 +352,7 @@ $("#filterZone").html('<option value="">Zone</option>');
 
 $.ajax({
 
-url:"/api/admin/masters/zones",
+url: BASE_URL + "api/admin/masters/zones",
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -383,7 +383,7 @@ $("#filterDesignation").html('<option value="">Designation</option>');
 
 $.ajax({
 
-url:"/api/admin/masters/designations?activeOnly=true",
+url: BASE_URL + "api/admin/masters/designations?activeOnly=true",
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -416,7 +416,7 @@ if(!zoneId) return;
 
 $.ajax({
 
-url:"/api/admin/masters/circles?zoneId="+zoneId,
+url: BASE_URL + "api/admin/masters/circles?zoneId="+zoneId,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -449,7 +449,7 @@ var zoneId=$("#filterZone").val();
 var dsgId=$("#filterDesignation").val();
 var divisionId=$("#filterDivision").val();
 
-var url="/api/admin/users?role=EMPLOYEE";
+var url= BASE_URL + "api/admin/users?role=EMPLOYEE";
 
 if(zoneId) url+="&zoneId="+zoneId;
 if(dsgId) url+="&dsgId="+dsgId;
@@ -696,7 +696,7 @@ $("#dsgId").html('<option value="">Select Designation</option>');
 
 $.ajax({
 
-url:"/api/admin/masters/designations?activeOnly=true",
+url: BASE_URL + "api/admin/masters/designations?activeOnly=true",
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -751,7 +751,7 @@ if(!isEditMode){
 
 $.ajax({
 
-url:"/api/user/createuser",
+url: BASE_URL + "api/user/createuser",
 method:"POST",
 
 headers:{
@@ -794,7 +794,7 @@ else{
 
 $.ajax({
 
-url:"/api/admin/users/"+editUserId,
+url: BASE_URL + "api/admin/users/"+editUserId,
 method:"PATCH",
 
 headers:{
@@ -830,7 +830,7 @@ function loadStates(){
 
 $.ajax({
 
-url:"/api/admin/masters/states",
+url: BASE_URL + "api/admin/masters/states",
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -870,7 +870,7 @@ if(!stateId) return;
 
 $.ajax({
 
-url:"/api/admin/masters/zones?stateId="+stateId,
+url: BASE_URL + "api/admin/masters/zones?stateId="+stateId,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -906,7 +906,7 @@ if(!zoneId) return;
 
 $.ajax({
 
-url:"/api/admin/masters/circles?zoneId="+zoneId,
+url: BASE_URL + "api/admin/masters/circles?zoneId="+zoneId,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -940,7 +940,7 @@ if(!circleId) return;
 
 $.ajax({
 
-url:"/api/admin/masters/divisions?circleId="+circleId,
+url: BASE_URL + "api/admin/masters/divisions?circleId="+circleId,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -973,7 +973,7 @@ if(!divisionId) return;
 
 $.ajax({
 
-url:"/api/admin/masters/subdivisions?divisionId="+divisionId,
+url: BASE_URL + "api/admin/masters/subdivisions?divisionId="+divisionId,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -1036,7 +1036,7 @@ function editEmployee(userId){
 
 $.ajax({
 
-url:"/api/admin/users/"+userId,
+url: BASE_URL + "api/admin/users/"+userId,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -1104,7 +1104,7 @@ var newStatus=currentStatus==="ACTIVE"?"INACTIVE":"ACTIVE";
 
 $.ajax({
 
-url:"/api/admin/users/"+userId+"/status",
+url: BASE_URL + "api/admin/users/"+userId+"/status",
 method:"PATCH",
 
 headers:{
@@ -1147,7 +1147,7 @@ if(!circleId) return;
 
 $.ajax({
 
-url:"/api/admin/masters/divisions?circleId="+circleId,
+url: BASE_URL + "api/admin/masters/divisions?circleId="+circleId,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -1180,7 +1180,7 @@ if(!divisionId) return;
 
 $.ajax({
 
-url:"/api/admin/masters/subdivisions?divisionId="+divisionId,
+url: BASE_URL + "api/admin/masters/subdivisions?divisionId="+divisionId,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },

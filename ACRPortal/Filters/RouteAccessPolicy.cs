@@ -17,7 +17,12 @@ namespace ACRPortal.Filters
         public static bool IsAllowed(string systemRole, string requestPath)
         {
             string path = requestPath.ToLowerInvariant();
-
+            
+            int apiIndex = path.IndexOf("/api/");
+            if (apiIndex >= 0)
+            {
+                path = path.Substring(apiIndex);
+            }
             // Login page — safety net against redirect loops ([NoAuth] handles primary)
             if (path.StartsWith("/login"))
                 return true;
@@ -34,7 +39,7 @@ namespace ACRPortal.Filters
                 return true;
 
             // Dashboard is shared — all authenticated roles can access it
-            if (path.StartsWith("/home/dashboard"))
+            if (path.EndsWith("/home/dashboard"))
                 return true;
 
             switch (systemRole?.ToUpper())
@@ -42,15 +47,17 @@ namespace ACRPortal.Filters
                 case "ADMIN":
                     return path.StartsWith("/api/admin")
                         || path.StartsWith("/api/user/createuser")
-                        || path.StartsWith("/admin") || path.StartsWith("/home/dashboard") || path.StartsWith("/home/cca")
-                        || path.StartsWith("/masters")
-                        || path.StartsWith("/masters/designation")
-                        || path.StartsWith("/masters/zone")
-                        || path.StartsWith("/masters/state")
-                        || path.StartsWith("/masters/circle")
-                        || path.StartsWith("/masters/division")
-                        || path.StartsWith("/masters/subdivision")
-                        || path.StartsWith("/masters/addemployee");
+                        || path.StartsWith("/admin") 
+                        || path.EndsWith("/home/dashboard") 
+                        || path.EndsWith("/home/cca")
+                        || path.EndsWith("/masters")
+                        || path.EndsWith("/masters/designation")
+                        || path.EndsWith("/masters/zone")
+                        || path.EndsWith("/masters/state")
+                        || path.EndsWith("/masters/circle")
+                        || path.EndsWith("/masters/division")
+                        || path.EndsWith("/masters/subdivision")
+                        || path.EndsWith("/masters/addemployee");
 
                 case "CCA":
                     return path.StartsWith("/api/cca")

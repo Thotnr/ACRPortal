@@ -120,11 +120,27 @@
   </ItemGroup>
   <ItemGroup>
   <Content Include="Global.asax" />
-  <Content Include="assets\**\*.*" />
-  <Content Include="Views\Home\Hello.aspx" />
-  <Content Include="Views\Home\Dashboard.aspx" />
-  <Content Include="Views\Home\CCA.aspx" />
   <Content Include="Web.config" />
+
+  <!-- Assets -->
+  <Content Include="assets\**\*.*" />
+
+  <!-- Views -->
+  <Content Include="Views\**\*.*" />
+
+  <!-- Config -->
+  <Content Include="Views\web.config" />
+
+  <!-- NuGet -->
+  <None Include="packages.config" />
+
+  <!-- Transform -->
+  <None Include="Web.Debug.config">
+    <DependentUpon>Web.config</DependentUpon>
+  </None>
+  <None Include="Web.Release.config">
+    <DependentUpon>Web.config</DependentUpon>
+  </None>
 </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\FilterConfig.cs" />
@@ -150,19 +166,6 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-  <Content Include="Views\web.config" />
-  <None Include="packages.config" />
-  <Content Include="Views\Auth\Login.cshtml" />
-  <Content Include="Views\Auth\reset-password.cshtml" />
-  <Content Include="Views\Dashboard\Index.cshtml" />
-  <None Include="Web.Debug.config">
-    <DependentUpon>Web.config</DependentUpon>
-  </None>
-  <None Include="Web.Release.config">
-    <DependentUpon>Web.config</DependentUpon>
-  </None>
-</ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
     <Folder Include="Models\" />
