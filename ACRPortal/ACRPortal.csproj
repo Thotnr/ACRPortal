@@ -120,7 +120,7 @@
   </ItemGroup>
   <ItemGroup>
   <Content Include="Global.asax" />
-  <Content Include="assets\image\dhbvn_logo.png" />
+  <Content Include="assets\**\*.*" />
   <Content Include="Views\Home\Hello.aspx" />
   <Content Include="Views\Home\Dashboard.aspx" />
   <Content Include="Views\Home\CCA.aspx" />
