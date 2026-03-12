@@ -85,6 +85,8 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public int? CircleId { get; set; }
         public int? DivisionId { get; set; }
         public int? SubDivisionId { get; set; }
+        public string Email { get; set; }          // nullable, decrypted
+        public string Phone { get; set; }          // nullable, decrypted
         public string ManagerId { get; set; }     // manager's login_id, nullable
         public string CreatedAt { get; set; }     // ISO 8601
     }
