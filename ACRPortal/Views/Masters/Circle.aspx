@@ -181,6 +181,8 @@ entries
 var circles=[];
 var filteredCircles=[];
 var zones=[];
+var zoneMap={};
+
 var token=null;
 var isEditMode=false;
 
@@ -200,7 +202,6 @@ return;
 }
 
 loadZones();
-loadCircles();
 
 });
 
@@ -217,17 +218,25 @@ success:function(res){
 
 if(res.Success){
 
-zones=res.Data.Zones;
+zones = res.Data.Zones || [];
+zoneMap = {};
 
 var filter=$("#zoneFilter");
 var form=$("#zoneId");
 
+filter.html(`<option value="">All Zones</option>`);
+form.html("");
+
 zones.forEach(function(z){
+
+zoneMap[z.ZoneId] = z.ZoneName;
 
 filter.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 form.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 
 });
+
+loadCircles();
 
 }
 
@@ -256,7 +265,7 @@ success:function(res){
 
 if(res.Success){
 
-circles=res.Data.Circles;
+circles = res.Data.Circles || [];
 filteredCircles=[...circles];
 currentPage=1;
 
@@ -272,40 +281,47 @@ renderTable();
 
 function getZoneName(zoneId){
 
-var z = zones.find(function(x){
-return x.ZoneId == zoneId;
-});
-
-return z ? z.ZoneName : "";
+return zoneMap[zoneId] || "";
 
 }
 
 function renderTable(){
 
-var body=$("#circleTableBody");
-body.empty();
-
 var start=(currentPage-1)*pageSize;
 var end=start+pageSize;
 
 var pageData=filteredCircles.slice(start,end);
+
+var rows="";
+
 pageData.forEach(function(c){
-body.append(`
+
+rows+=`
 <tr>
+
 <td>${c.ZoneId} | ${getZoneName(c.ZoneId)}</td>
+
 <td>${c.CircleId}</td>
+
 <td>${c.Circle}</td>
 
 <td class="text-center">
+
 <button class="action-btn"
 onclick="editCircle(${c.CircleId},${c.ZoneId},'${c.Circle}')">
+
 <i class="fa fa-pen"></i>
+
 </button>
+
 </td>
+
 </tr>
-`);
+`;
 
 });
+
+$("#circleTableBody").html(rows);
 
 updateTableInfo(start,end);
 renderPagination();
@@ -317,8 +333,10 @@ function updateTableInfo(start,end){
 var total=filteredCircles.length;
 
 if(total==0){
+
 $("#tableInfo").text("No entries found");
 return;
+
 }
 
 $("#tableInfo").text(
@@ -330,6 +348,13 @@ $("#tableInfo").text(
 function renderPagination(){
 
 var totalPages=Math.ceil(filteredCircles.length/pageSize);
+
+if(totalPages<=1){
+
+$("#pagination").html("");
+return;
+
+}
 
 var html="";
 
@@ -368,23 +393,38 @@ function changePageSize(){
 
 pageSize=parseInt($("#pageSizeSelect").val());
 currentPage=1;
+
 renderTable();
 
 }
 
 function searchTable(val){
 
-val=val.toLowerCase();
+val = val.toLowerCase().trim();
 
-filteredCircles=circles.filter(function(c){
+if(!val){
+
+filteredCircles=[...circles];
+
+}else{
+
+filteredCircles = circles.filter(function(c){
 
 return (
-c.Circle.toLowerCase().includes(val) ||
+
+(c.Circle && c.Circle.toLowerCase().includes(val)) ||
+
 String(c.CircleId).includes(val) ||
-String(c.ZoneId).includes(val)
+
+String(c.ZoneId).includes(val) ||
+
+getZoneName(c.ZoneId).toLowerCase().includes(val)
+
 );
 
 });
+
+}
 
 currentPage=1;
 renderTable();
@@ -403,6 +443,7 @@ var y=b[col];
 
 if(x>y) return sortAsc?1:-1;
 if(x<y) return sortAsc?-1:1;
+
 return 0;
 
 });
@@ -439,7 +480,9 @@ $("#circleModal").modal("show");
 }
 
 function closeModal(){
+
 $("#circleModal").modal("hide");
+
 }
 
 $("#circleForm").submit(function(e){
@@ -451,8 +494,10 @@ var zoneId=$("#zoneId").val();
 var circleName=$("#circleName").val().trim();
 
 if(!circleName){
+
 alert("Circle name required");
 return;
+
 }
 
 var payload={};

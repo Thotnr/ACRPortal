@@ -140,7 +140,6 @@ entries
 
 </div>
 
-
 <!-- MODAL -->
 
 <div class="modal fade" id="divisionModal">
@@ -214,8 +213,13 @@ entries
 
 var divisions=[];
 var filteredDivisions=[];
+
 var zones=[];
 var circles=[];
+
+var zoneMap={};
+var circleMap={};
+
 var token=null;
 var isEditMode=false;
 
@@ -235,8 +239,6 @@ return;
 }
 
 loadZones();
-loadAllCircles();
-loadDivisions();
 
 });
 
@@ -254,7 +256,9 @@ success:function(res){
 
 if(res.Success){
 
-zones=res.Data.Zones;
+zones=res.Data.Zones || [];
+
+zoneMap={};
 
 var filter=$("#zoneFilter");
 var form=$("#zoneId");
@@ -264,11 +268,15 @@ form.html(`<option value="" disabled selected>Select Zone</option>`);
 
 zones.forEach(function(z){
 
+zoneMap[z.ZoneId]=z.ZoneName;
+
 filter.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 form.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 
 });
 
+loadAllCircles();
+
 }
 
 }
@@ -276,6 +284,7 @@ form.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 });
 
 }
+
 
 function loadAllCircles(){
 
@@ -290,7 +299,15 @@ success:function(res){
 
 if(res.Success){
 
-circles = res.Data.Circles;
+circles=res.Data.Circles || [];
+
+circleMap={};
+
+circles.forEach(function(c){
+circleMap[c.CircleId]=c.Circle || c.CircleName;
+});
+
+loadDivisions();
 
 }
 
@@ -299,6 +316,7 @@ circles = res.Data.Circles;
 });
 
 }
+
 
 function loadCircles(){
 
@@ -311,20 +329,9 @@ loadDivisions();
 return;
 }
 
-$.ajax({
+var filtered=circles.filter(c=>c.ZoneId==zoneId);
 
-url:"/api/admin/masters/circles?zoneId="+zoneId,
-method:"GET",
-
-headers:{ "Authorization":"Bearer "+token },
-
-success:function(res){
-
-if(res.Success){
-
-circles = res.Data.Circles;   // ⭐ IMPORTANT
-
-res.Data.Circles.forEach(function(c){
+filtered.forEach(function(c){
 
 $("#circleFilter").append(
 `<option value="${c.CircleId}">${c.Circle}</option>`
@@ -332,48 +339,26 @@ $("#circleFilter").append(
 
 });
 
-}
-
-}
-
-});
-
 loadDivisions();
 
 }
+
 
 function loadCirclesForForm(){
 
 var zoneId=$("#zoneId").val();
 
-var circleDropdown=$("#circleId");
+var dropdown=$("#circleId");
 
-circleDropdown.html(`<option value="" disabled selected>Select Circle</option>`);
+dropdown.html(`<option value="" disabled selected>Select Circle</option>`);
 
-if(!zoneId) return;
+var filtered=circles.filter(c=>c.ZoneId==zoneId);
 
-$.ajax({
+filtered.forEach(function(c){
 
-url:"/api/admin/masters/circles?zoneId="+zoneId,
-method:"GET",
-
-headers:{ "Authorization":"Bearer "+token },
-
-success:function(res){
-
-if(res.Success){
-
-res.Data.Circles.forEach(function(c){
-
-circleDropdown.append(
+dropdown.append(
 `<option value="${c.CircleId}">${c.Circle}</option>`
 );
-
-});
-
-}
-
-}
 
 });
 
@@ -405,7 +390,8 @@ success:function(res){
 
 if(res.Success){
 
-divisions=res.Data.Divisions;
+divisions=res.Data.Divisions || [];
+
 filteredDivisions=[...divisions];
 
 currentPage=1;
@@ -420,41 +406,36 @@ renderTable();
 
 }
 
-function getZoneName(zoneId){
-var z = zones.find(function(x){
-return x.ZoneId == zoneId;
-});
-return z ? z.ZoneName : "";
+
+function getZoneName(id){
+return zoneMap[id] || "";
 }
 
-function getCircleName(circleId){
-
-var c = circles.find(function(x){
-return x.CircleId == circleId;
-});
-
-return c ? (c.CircleName || c.Circle) : "";
-
+function getCircleName(id){
+return circleMap[id] || "";
 }
+
 
 function renderTable(){
-
-var body=$("#divisionTableBody");
-body.empty();
 
 var start=(currentPage-1)*pageSize;
 var end=start+pageSize;
 
 var pageData=filteredDivisions.slice(start,end);
 
+var rows="";
+
 pageData.forEach(function(d){
 
-body.append(`
+rows+=`
 <tr>
 
 <td>${d.ZoneId} | ${getZoneName(d.ZoneId)}</td>
+
 <td>${d.CircleId} | ${getCircleName(d.CircleId)}</td>
+
 <td>${d.DivisionId}</td>
+
 <td>${d.Division}</td>
 
 <td class="text-center">
@@ -469,9 +450,11 @@ onclick="editDivision(${d.DivisionId},${d.ZoneId},${d.CircleId},'${d.Division}')
 </td>
 
 </tr>
-`);
+`;
 
 });
+
+$("#divisionTableBody").html(rows);
 
 updateTableInfo(start,end);
 renderPagination();
@@ -489,37 +472,58 @@ $("#tableInfo").text(
 
 }
 
+
 function renderPagination(){
+
 var totalPages=Math.ceil(filteredDivisions.length/pageSize);
+
+if(totalPages<=1){
+$("#pagination").html("");
+return;
+}
+
 var html="";
-/* PREVIOUS BUTTON */
+
 html+=`<li class="page-item ${currentPage==1?'disabled':''}">
 <a class="page-link" onclick="gotoPage(${currentPage-1})">Prev</a>
 </li>`;
-/* PAGE NUMBERS */
+
 for(var i=1;i<=totalPages;i++){
+
 html+=`<li class="page-item ${i==currentPage?'active':''}">
 <a class="page-link" onclick="gotoPage(${i})">${i}</a>
 </li>`;
+
 }
-/* NEXT BUTTON */
+
 html+=`<li class="page-item ${currentPage==totalPages?'disabled':''}">
 <a class="page-link" onclick="gotoPage(${currentPage+1})">Next</a>
 </li>`;
+
 $("#pagination").html(html);
+
 }
 
+
 function gotoPage(p){
+
 var totalPages=Math.ceil(filteredDivisions.length/pageSize);
+
 if(p<1 || p>totalPages) return;
+
 currentPage=p;
+
 renderTable();
+
 }
+
 
 function changePageSize(){
 
 pageSize=parseInt($("#pageSizeSelect").val());
+
 currentPage=1;
+
 renderTable();
 
 }
@@ -527,18 +531,34 @@ renderTable();
 
 function searchTable(val){
 
-val=val.toLowerCase();
+val=val.toLowerCase().trim();
+
+if(!val){
+
+filteredDivisions=[...divisions];
+
+}else{
 
 filteredDivisions=divisions.filter(function(d){
 
-return (
-d.Division.toLowerCase().includes(val) ||
-String(d.DivisionId).includes(val)
+return(
+
+(d.Division && d.Division.toLowerCase().includes(val)) ||
+
+String(d.DivisionId).includes(val) ||
+
+getZoneName(d.ZoneId).toLowerCase().includes(val) ||
+
+getCircleName(d.CircleId).toLowerCase().includes(val)
+
 );
 
 });
 
+}
+
 currentPage=1;
+
 renderTable();
 
 }
@@ -546,9 +566,9 @@ renderTable();
 
 function sortTable(col){
 
-sortAsc = currentSortColumn === col ? !sortAsc : true;
+sortAsc=currentSortColumn===col?!sortAsc:true;
 
-currentSortColumn = col;
+currentSortColumn=col;
 
 filteredDivisions.sort(function(a,b){
 
@@ -592,13 +612,14 @@ $("#modalTitle").text("Update Division");
 
 $("#divisionId").val(id).prop("disabled",true);
 $("#divisionName").val(name);
+
 $("#zoneId").val(zoneId);
 
 loadCirclesForForm();
 
 setTimeout(function(){
 $("#circleId").val(circleId);
-},300);
+},200);
 
 $("#divisionModal").modal("show");
 
@@ -610,7 +631,7 @@ $("#divisionModal").modal("hide");
 }
 
 
-/* FORM VALIDATION */
+/* FORM SUBMIT */
 
 $("#divisionForm").submit(function(e){
 
@@ -618,32 +639,13 @@ e.preventDefault();
 
 var zoneId=$("#zoneId").val();
 var circleId=$("#circleId").val();
-var divisionId=$("#divisionId").val().trim();
+var divisionId=$("#divisionId").val();
 var divisionName=$("#divisionName").val().trim();
 
-if(!zoneId){
-alert("Please select Zone");
-return;
-}
-
-if(!circleId){
-alert("Please select Circle");
-return;
-}
-
-if(!divisionId){
-alert("Please enter Division ID");
-return;
-}
-
-if(!divisionName){
-alert("Please enter Division Name");
-return;
-}
-
-/* =========================
-CREATE DIVISION
-========================= */
+if(!zoneId){ alert("Select Zone"); return; }
+if(!circleId){ alert("Select Circle"); return; }
+if(!divisionId){ alert("Enter Division ID"); return; }
+if(!divisionName){ alert("Enter Division Name"); return; }
 
 if(!isEditMode){
 
@@ -674,33 +676,13 @@ closeModal();
 
 loadDivisions();
 
-}else{
-
-alert(res.Message || "Error creating division");
-
-}
-
-},
-
-error:function(xhr){
-
-if(xhr.responseJSON){
-alert(xhr.responseJSON.Message);
-}else{
-alert("Server error");
 }
 
 }
 
 });
 
-}
-
-/* =========================
-UPDATE DIVISION
-========================= */
-
-else{
+}else{
 
 $.ajax({
 
@@ -726,20 +708,6 @@ closeModal();
 
 loadDivisions();
 
-}else{
-
-alert(res.Message || "Error updating division");
-
-}
-
-},
-
-error:function(xhr){
-
-if(xhr.responseJSON){
-alert(xhr.responseJSON.Message);
-}else{
-alert("Server error");
 }
 
 }
