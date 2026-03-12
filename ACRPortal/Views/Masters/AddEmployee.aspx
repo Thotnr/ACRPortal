@@ -140,12 +140,12 @@ entries
 
 <tr>
 
-<th onclick="sortTable('DisplayName')">Name</th>
+<!-- <th onclick="sortTable('DisplayName')">Name</th> -->
 <th onclick="sortTable('LoginId')">Login ID</th>
 <th>Email</th>
 <th>Phone</th>
 <th onclick="sortTable('Dsg')">Designation</th>
-<th>Status</th>
+<th>Reporting Manager</th>
 <th width="90">Action</th>
 
 </tr>
@@ -284,7 +284,7 @@ Fields marked with <span class="required-star">*</span> are required
 
 var employees=[];
 var filteredEmployees=[];
-
+var designations=[];
 var token=null;
 
 var pageSize=10;
@@ -305,8 +305,10 @@ window.location="/Login/UserAuth";
 return;
 }
 
-loadEmployees();
+// loadEmployees();
+// loadDesignations();
 loadDesignations();
+setTimeout(loadEmployees,200);
 loadStates();
 
 loadFilterZones();
@@ -328,14 +330,16 @@ $("#reportingManagerId").select2({width:'100%'});
 
 }
 
-function loadReportingManagers(){
+function loadReportingManagers(excludeLoginId){
 
 $("#reportingManagerId").html('<option value="">Select Reporting Manager</option>');
 
 employees.forEach(function(e){
 
+if(excludeLoginId && e.LoginId === excludeLoginId) return;
+
 $("#reportingManagerId").append(
-`<option value="${e.UserId}">${e.DisplayName} (${e.LoginId})</option>`
+`<option value="${e.LoginId}">${e.DisplayName} (${e.LoginId})</option>`
 );
 
 });
@@ -476,6 +480,14 @@ renderTable();
 
 }
 
+function getDesignationName(dsgId){
+
+var d=designations.find(x=>x.DsgId==dsgId);
+
+return d ? d.Dsg : dsgId;
+
+}
+
 /* TABLE */
 
 function renderTable(){
@@ -491,27 +503,38 @@ var end=start+pageSize;
 var pageData=filteredEmployees.slice(start,end);
 
 pageData.forEach(function(e){
-debugger
+// var statusIcon = e.UserStatus === "ACTIVE"
+// ? '<i class="fa-solid fa-toggle-on text-success"></i>'
+// : '<i class="fa-solid fa-toggle-off text-danger"></i>';
+var dsgName=getDesignationName(e.DsgId);
+
 body.append(`
 
 <tr>
-<td>${e.DisplayName}</td>
 <td>${e.LoginId}</td>
 <td>${e.Email || ""}</td>
 <td>${e.Phone || ""}</td>
-<td>${e.Dsg || ""}</td>
-<td>${e.UserStatus}</td>
+<td>${dsgName}</td>
+<td>${e.ManagerId || "-"}</td>
 
 <td class="text-center">
+
 <button class="action-btn"
 onclick="editEmployee('${e.UserId}')">
 <i class="fa fa-pen"></i>
 </button>
+
 <button class="action-btn"
-onclick="changeStatus('${e.UserId}','${e.UserStatus}')">
-<i class="fa fa-toggle-on"></i>
+onclick="confirmStatusChange('${e.UserId}','${e.UserStatus}')">
+
+${e.UserStatus==="ACTIVE"
+? '<i class="fa-solid fa-toggle-on text-success"></i>'
+: '<i class="fa-solid fa-toggle-off text-danger"></i>'}
+
 </button>
+
 </td>
+
 </tr>
 
 `);
@@ -630,17 +653,19 @@ renderTable();
 
 
 /* MODAL */
-
 function openEmployeeModal(){
 
 isEditMode=false;
 $("#modalTitle").text("Add Employee");
 
 $("#employeeForm")[0].reset();
+
 $("#circleId").html('<option value="">Select Circle</option>');
 $("#divisionId").html('<option value="">Select Division</option>');
 $("#subDivisionId").html('<option value="">Select SubDivision</option>');
+
 /* reset select2 dropdowns */
+
 $("#dsgId").val("").trigger("change");
 $("#stateId").val("").trigger("change");
 $("#zoneId").val("").trigger("change");
@@ -649,15 +674,16 @@ $("#divisionId").val("").trigger("change");
 $("#subDivisionId").val("").trigger("change");
 
 /* load managers */
+
 loadReportingManagers();
 
 /* reset manager dropdown */
+
 $("#reportingManagerId").val("").trigger("change");
 
 $("#employeeModal").modal("show");
 
 }
-
 function closeModal(){
 $("#employeeModal").modal("hide");
 }
@@ -679,10 +705,12 @@ success:function(res){
 
 if(res.Success){
 
-res.Data.Designations.forEach(function(d){
+designations=res.Data.Designations || [];
+
+designations.forEach(function(d){
 
 $("#dsgId").append(
-`<option value="${d.DsgId}">${d.DsgDesc}</option>`
+`<option value="${d.DsgId}">${d.Dsg}</option>`
 );
 
 });
@@ -694,7 +722,6 @@ $("#dsgId").append(
 });
 
 }
-
 
 /* CREATE / UPDATE */
 
@@ -716,7 +743,7 @@ ZoneId:$("#zoneId").val(),
 CircleId:$("#circleId").val(),
 DivisionId:$("#divisionId").val(),
 SubDivisionId:$("#subDivisionId").val(),
-ReportingManagerId:$("#reportingManagerId").val()
+ManagerId:$("#reportingManagerId").val()
 };
 
 
@@ -1024,13 +1051,13 @@ isEditMode=true;
 editUserId=userId;
 
 $("#modalTitle").text("Edit Employee");
-
+loadReportingManagers(u.LoginId);
 $("#displayName").val(u.DisplayName);
 $("#loginId").val(u.LoginId);
 $("#email").val(u.Email);
 $("#phone").val(u.Phone);
 $("#dsgId").val(u.DsgId).trigger("change");
-$("#reportingManagerId").val(u.ReportingManagerId).trigger("change");
+$("#reportingManagerId").val(u.ManagerId).trigger("change");
 $("#stateId").val(u.StateId).trigger("change");
 
 setTimeout(function(){
@@ -1059,10 +1086,21 @@ $("#employeeModal").modal("show");
 
 }
 
+function confirmStatusChange(userId,currentStatus){
+
+var newStatus=currentStatus==="ACTIVE"?"INACTIVE":"ACTIVE";
+
+var msg="Are you sure you want to change status to "+newStatus+" ?";
+
+if(confirm(msg)){
+changeStatus(userId,currentStatus);
+}
+
+}
 
 function changeStatus(userId,currentStatus){
 
-var newStatus=currentStatus=="ACTIVE" ? "INACTIVE" : "ACTIVE";
+var newStatus=currentStatus==="ACTIVE"?"INACTIVE":"ACTIVE";
 
 $.ajax({
 
@@ -1074,17 +1112,27 @@ headers:{
 "Content-Type":"application/json"
 },
 
-data:JSON.stringify({UserStatus:newStatus}),
+data:JSON.stringify({
+UserStatus:newStatus
+}),
 
 success:function(res){
 
 if(res.Success){
 
-alert("Status updated");
+alert("Status updated successfully");
 loadEmployees();
+
+}else{
+
+alert(res.Message);
 
 }
 
+},
+
+error:function(){
+alert("Failed to update status");
 }
 
 });
