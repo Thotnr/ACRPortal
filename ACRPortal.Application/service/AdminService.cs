@@ -41,9 +41,22 @@ namespace ACRPortal.Application.service
                 if (_repo.IsLoginIdExists(req.LoginId))
                     return ApiResponse<CreateUserResponse>.Fail("LoginId already exists", "USER_EXISTS");
 
-                // Validate master data
+                // Validate geography hierarchy
                 var geoError = ValidateGeoOnCreate(req);
                 if (geoError != null) return geoError;
+
+                // Validate ManagerId (login_id) if provided
+                if (!string.IsNullOrWhiteSpace(req.ManagerId))
+                {
+                    // Cannot assign the user's own LoginId as their manager on create
+                    // (edge case: if ManagerId == the LoginId being created right now)
+                    if (string.Equals(req.ManagerId.Trim(), req.LoginId.Trim(), StringComparison.OrdinalIgnoreCase))
+                        return ApiResponse<CreateUserResponse>.Fail("A user cannot be their own manager", "BAD_REQUEST");
+
+                    if (!_repo.IsValidManager(req.ManagerId.Trim()))
+                        return ApiResponse<CreateUserResponse>.Fail(
+                            "Manager not found or is not an active employee", "INVALID_MANAGER");
+                }
 
                 // Hash password
                 string hash = _security.HashWithSha256(password);
@@ -62,6 +75,7 @@ namespace ACRPortal.Application.service
                         req.CircleId,
                         req.DivisionId,
                         req.SubDivisionId,
+                        string.IsNullOrWhiteSpace(req.ManagerId) ? null : req.ManagerId.Trim(),
                         string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim(),
                         string.IsNullOrWhiteSpace(req.Phone) ? null : req.Phone.Trim()
                     );
@@ -152,6 +166,22 @@ namespace ACRPortal.Application.service
                 var geoError = ValidateGeoOnUpdate(req, guid);
                 if (geoError != null) return geoError;
 
+                // Validate ManagerId (login_id) if provided and not being cleared
+                string managerLoginId = null;
+                if (!req.ClearManager && !string.IsNullOrWhiteSpace(req.ManagerId))
+                {
+                    managerLoginId = req.ManagerId.Trim();
+
+                    // Fetch the user's own login_id to guard against self-assignment
+                    var target = _repo.GetUserById(guid);
+                    if (target != null && string.Equals(managerLoginId, target.LoginId, StringComparison.OrdinalIgnoreCase))
+                        return ApiResponse<EmptyResponse>.Fail("A user cannot be their own manager", "BAD_REQUEST");
+
+                    if (!_repo.IsValidManager(managerLoginId))
+                        return ApiResponse<EmptyResponse>.Fail(
+                            "Manager not found or is not an active employee", "INVALID_MANAGER");
+                }
+
                 // Hash password if being changed
                 string passwordHash = null;
                 if (!string.IsNullOrWhiteSpace(req.Password))
@@ -169,33 +199,34 @@ namespace ACRPortal.Application.service
                     req.CircleId,
                     req.DivisionId,
                     req.SubDivisionId,
-                    req.ClearGeography
+                    req.ClearGeography,
+                    managerLoginId,
+                    req.ClearManager
                 );
 
-                // Handle email identity
-                try
+                // Handle identity upserts / deletes
+                if (req.ClearEmail)
+                    _repo.DeleteUserIdentity(guid, "EMAIL");
+                else if (!string.IsNullOrWhiteSpace(req.Email))
                 {
-                    if (req.ClearEmail)
-                        _repo.DeleteUserIdentity(guid, "EMAIL");
-                    else if (!string.IsNullOrWhiteSpace(req.Email))
-                        _repo.UpsertUserIdentity(guid, "EMAIL", req.Email.Trim());
-                }
-                catch (System.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
-                {
-                    return ApiResponse<EmptyResponse>.Fail("This email address is already registered to another user", "DUPLICATE_IDENTITY");
+                    try { _repo.UpsertUserIdentity(guid, "EMAIL", req.Email.Trim()); }
+                    catch (System.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
+                    {
+                        return ApiResponse<EmptyResponse>.Fail(
+                            "This email address is already registered to another user", "DUPLICATE_IDENTITY");
+                    }
                 }
 
-                // Handle phone identity
-                try
+                if (req.ClearPhone)
+                    _repo.DeleteUserIdentity(guid, "PHONE");
+                else if (!string.IsNullOrWhiteSpace(req.Phone))
                 {
-                    if (req.ClearPhone)
-                        _repo.DeleteUserIdentity(guid, "PHONE");
-                    else if (!string.IsNullOrWhiteSpace(req.Phone))
-                        _repo.UpsertUserIdentity(guid, "PHONE", req.Phone.Trim());
-                }
-                catch (System.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
-                {
-                    return ApiResponse<EmptyResponse>.Fail("This phone number is already registered to another user", "DUPLICATE_IDENTITY");
+                    try { _repo.UpsertUserIdentity(guid, "PHONE", req.Phone.Trim()); }
+                    catch (System.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
+                    {
+                        return ApiResponse<EmptyResponse>.Fail(
+                            "This phone number is already registered to another user", "DUPLICATE_IDENTITY");
+                    }
                 }
 
                 return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "User updated successfully");
@@ -234,6 +265,22 @@ namespace ACRPortal.Application.service
             catch (Exception ex)
             {
                 return ApiResponse<EmptyResponse>.Fail("An unexpected error occurred: " + ex.Message, "INTERNAL_ERROR");
+            }
+        }
+
+        // ------------------------------------------------------------------ //
+        //  Get Managers (dropdown)                                             //
+        // ------------------------------------------------------------------ //
+        public ApiResponse<ManagerListResponse> GetManagers()
+        {
+            try
+            {
+                var result = _repo.GetManagers();
+                return ApiResponse<ManagerListResponse>.Ok(result, "Success");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ManagerListResponse>.Fail("An unexpected error occurred: " + ex.Message, "INTERNAL_ERROR");
             }
         }
 
@@ -292,29 +339,15 @@ namespace ACRPortal.Application.service
 
         /// <summary>
         /// Validates geography on partial update.
-        /// If a child is sent without its parent, we fall back to the user's currently
-        /// stored parent value to validate the relationship.
+        /// For any level that has a parent, resolves the parent from the request first,
+        /// then falls back to the existing value stored on the user row.
         /// </summary>
         private ApiResponse<EmptyResponse> ValidateGeoOnUpdate(UpdateUserRequest req, Guid userId)
         {
-            if (req.ClearGeography) return null;  // clearing all — nothing to validate
+            if (req.ClearGeography) return null;  // clearing everything — nothing to validate
 
             if (req.DsgId.HasValue && !_repo.IsDsgIdValid(req.DsgId.Value))
                 return ApiResponse<EmptyResponse>.Fail("Designation not found", "INVALID_DSG");
-
-            // Load existing snapshot only if any geography field is being updated
-            bool anyGeo = req.StateId.HasValue || req.ZoneId.HasValue || req.CircleId.HasValue
-                       || req.DivisionId.HasValue || req.SubDivisionId.HasValue;
-            if (!anyGeo) return null;
-
-            UserGeoSnapshot snap = _repo.GetUserGeoSnapshot(userId);
-
-            // Resolve effective values: use what's in request, fall back to stored snapshot
-            int? effectiveStateId = req.StateId ?? snap.StateId;
-            int? effectiveZoneId = req.ZoneId ?? snap.ZoneId;
-            int? effectiveCircleId = req.CircleId ?? snap.CircleId;
-            int? effectiveDivisionId = req.DivisionId ?? snap.DivisionId;
-            int? effectiveSubDivId = req.SubDivisionId ?? snap.SubDivisionId;
 
             if (req.StateId.HasValue && !_repo.IsStateIdValid(req.StateId.Value))
                 return ApiResponse<EmptyResponse>.Fail("State not found", "INVALID_STATE");
@@ -324,35 +357,51 @@ namespace ACRPortal.Application.service
 
             if (req.CircleId.HasValue)
             {
-                if (effectiveZoneId == null)
-                    return ApiResponse<EmptyResponse>.Fail("ZoneId is required when CircleId is provided", "BAD_REQUEST");
                 if (!_repo.IsCircleIdValid(req.CircleId.Value))
                     return ApiResponse<EmptyResponse>.Fail("Circle not found", "INVALID_CIRCLE");
-                if (!_repo.IsCircleInZone(req.CircleId.Value, effectiveZoneId.Value))
+
+                // Resolve parent ZoneId: from request, else from existing user row
+                int? parentZone = req.ZoneId;
+                if (!parentZone.HasValue)
+                    parentZone = _repo.GetUserGeoSnapshot(userId).ZoneId;
+
+                if (!parentZone.HasValue)
+                    return ApiResponse<EmptyResponse>.Fail("ZoneId is required when CircleId is provided", "BAD_REQUEST");
+                if (!_repo.IsCircleInZone(req.CircleId.Value, parentZone.Value))
                     return ApiResponse<EmptyResponse>.Fail("Circle does not belong to the given Zone", "INVALID_CIRCLE");
             }
 
             if (req.DivisionId.HasValue)
             {
-                if (effectiveCircleId == null)
-                    return ApiResponse<EmptyResponse>.Fail("CircleId is required when DivisionId is provided", "BAD_REQUEST");
                 if (!_repo.IsDivisionIdValid(req.DivisionId.Value))
                     return ApiResponse<EmptyResponse>.Fail("Division not found", "INVALID_DIVISION");
-                if (!_repo.IsDivisionInCircle(req.DivisionId.Value, effectiveCircleId.Value))
+
+                int? parentCircle = req.CircleId;
+                if (!parentCircle.HasValue)
+                    parentCircle = _repo.GetUserGeoSnapshot(userId).CircleId;
+
+                if (!parentCircle.HasValue)
+                    return ApiResponse<EmptyResponse>.Fail("CircleId is required when DivisionId is provided", "BAD_REQUEST");
+                if (!_repo.IsDivisionInCircle(req.DivisionId.Value, parentCircle.Value))
                     return ApiResponse<EmptyResponse>.Fail("Division does not belong to the given Circle", "INVALID_DIVISION");
             }
 
             if (req.SubDivisionId.HasValue)
             {
-                if (effectiveDivisionId == null)
-                    return ApiResponse<EmptyResponse>.Fail("DivisionId is required when SubDivisionId is provided", "BAD_REQUEST");
                 if (!_repo.IsSubDivisionIdValid(req.SubDivisionId.Value))
                     return ApiResponse<EmptyResponse>.Fail("SubDivision not found", "INVALID_SUBDIVISION");
-                if (!_repo.IsSubDivisionInDivision(req.SubDivisionId.Value, effectiveDivisionId.Value))
+
+                int? parentDiv = req.DivisionId;
+                if (!parentDiv.HasValue)
+                    parentDiv = _repo.GetUserGeoSnapshot(userId).DivisionId;
+
+                if (!parentDiv.HasValue)
+                    return ApiResponse<EmptyResponse>.Fail("DivisionId is required when SubDivisionId is provided", "BAD_REQUEST");
+                if (!_repo.IsSubDivisionInDivision(req.SubDivisionId.Value, parentDiv.Value))
                     return ApiResponse<EmptyResponse>.Fail("SubDivision does not belong to the given Division", "INVALID_SUBDIVISION");
             }
 
-            return null;
+            return null;  // no error
         }
     }
 }

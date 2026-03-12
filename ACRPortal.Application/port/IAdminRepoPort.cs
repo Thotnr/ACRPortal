@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using ACRPortal.Domain.DTOs.WebToApp;
 
 namespace ACRPortal.Application.port
@@ -27,6 +26,13 @@ namespace ACRPortal.Application.port
         bool IsDivisionInCircle(int divisionId, int circleId);
         bool IsSubDivisionInDivision(int subDivisionId, int divisionId);
 
+        // ---- Manager validation ------------------------------------------
+        /// <summary>
+        /// Returns true if the given loginId exists, has system_role = 'EMPLOYEE',
+        /// and user_status = 'ACTIVE'. Used to validate ManagerId on create/update.
+        /// </summary>
+        bool IsValidManager(string managerLoginId);
+
         // ---- Reads used for hierarchy resolution on partial update -------
         // Returns current geography IDs for a user (nulls if not set)
         UserGeoSnapshot GetUserGeoSnapshot(Guid userId);
@@ -48,6 +54,7 @@ namespace ACRPortal.Application.port
             int? circleId,
             int? divisionId,
             int? subDivisionId,
+            string managerLoginId, // nullable — stored directly in manager_id column
             string email,          // nullable
             string phone           // nullable
         );  // returns new user_id as string
@@ -55,7 +62,7 @@ namespace ACRPortal.Application.port
         void UpdateUser(
             Guid userId,
             string displayName,
-            string passwordHash,   // null = no change
+            string passwordHash,      // null = no change
             int? dsgId,
             bool clearDsg,
             int? stateId,
@@ -63,7 +70,9 @@ namespace ACRPortal.Application.port
             int? circleId,
             int? divisionId,
             int? subDivisionId,
-            bool clearGeography
+            bool clearGeography,
+            string managerLoginId,    // null = no change (unless clearManager is true)
+            bool clearManager         // true → sets manager_id = NULL
         );
 
         /// <summary>
@@ -84,6 +93,12 @@ namespace ACRPortal.Application.port
         // ---- Reads -------------------------------------------------------
         UserListResponse GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId);
         UserDetailResponse GetUserById(Guid userId);
+
+        /// <summary>
+        /// Returns all ACTIVE EMPLOYEE users for the manager dropdown.
+        /// Ordered by display_name ascending.
+        /// </summary>
+        ManagerListResponse GetManagers();
     }
 
     /// <summary>

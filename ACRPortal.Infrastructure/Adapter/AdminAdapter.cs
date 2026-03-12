@@ -14,7 +14,6 @@ namespace ACRPortal.Infrastructure.Adapter
         private readonly string _conn = ConfigurationManager
             .ConnectionStrings["ACRPortalContext"].ConnectionString;
 
-        // Security is an instance class — instantiate once per adapter instance
         private static readonly Security _security = new Security();
 
         // ================================================================== //
@@ -73,10 +72,6 @@ namespace ACRPortal.Infrastructure.Adapter
             return ExistsCheck(sql, new SqlParameter("@id", subDivisionId));
         }
 
-        // ================================================================== //
-        //  Hierarchy checks                                                   //
-        // ================================================================== //
-
         public bool IsCircleInZone(int circleId, int zoneId)
         {
             const string sql = "SELECT COUNT(1) FROM dbo.Circle WHERE Circle_ID = @circleId AND Zone_ID = @zoneId";
@@ -99,6 +94,20 @@ namespace ACRPortal.Infrastructure.Adapter
             return ExistsCheck(sql,
                 new SqlParameter("@subId", subDivisionId),
                 new SqlParameter("@divisionId", divisionId));
+        }
+
+        // ================================================================== //
+        //  Manager validation                                                 //
+        // ================================================================== //
+
+        public bool IsValidManager(string managerLoginId)
+        {
+            const string sql = @"
+                SELECT COUNT(1) FROM dbo.users
+                WHERE  login_id     = @loginId
+                  AND  system_role  = 'EMPLOYEE'
+                  AND  user_status  = 'ACTIVE'";
+            return ExistsCheck(sql, new SqlParameter("@loginId", managerLoginId));
         }
 
         // ================================================================== //
@@ -136,11 +145,6 @@ namespace ACRPortal.Infrastructure.Adapter
         //  Create user (transactional)                                        //
         // ================================================================== //
 
-        /// <summary>
-        /// Inserts the user row and any identity rows in a single transaction.
-        /// If the identity insert hits UQ_Identity the whole transaction rolls back
-        /// — no orphaned user row is left behind.
-        /// </summary>
         public string CreateUserWithIdentities(
             string displayName,
             string loginId,
@@ -152,17 +156,18 @@ namespace ACRPortal.Infrastructure.Adapter
             int? circleId,
             int? divisionId,
             int? subDivisionId,
+            string managerLoginId,
             string email,
             string phone)
         {
             const string insertUser = @"
                 INSERT INTO dbo.users
                     (display_name, login_id, password_hash, system_role, user_status,
-                     dsg_id, state_id, zone_id, circle_id, division_id, sub_division_id)
+                     dsg_id, state_id, zone_id, circle_id, division_id, sub_division_id, manager_id)
                 OUTPUT INSERTED.user_id
                 VALUES
-                    (@displayName, @loginId, @passwordHash, @systemRole, 'PENDING',
-                     @dsgId, @stateId, @zoneId, @circleId, @divisionId, @subDivisionId)";
+                    (@displayName, @loginId, @passwordHash, @systemRole, 'ACTIVE',
+                     @dsgId, @stateId, @zoneId, @circleId, @divisionId, @subDivisionId, @managerLoginId)";
 
             const string insertIdentity = @"
                 INSERT INTO dbo.user_identities (user_id, identity_type, identity_value, is_primary)
@@ -174,7 +179,6 @@ namespace ACRPortal.Infrastructure.Adapter
                 using (var tx = con.BeginTransaction())
                     try
                     {
-                        // 1. Insert user
                         Guid newUserId;
                         using (var cmd = new SqlCommand(insertUser, con, tx))
                         {
@@ -188,10 +192,10 @@ namespace ACRPortal.Infrastructure.Adapter
                             cmd.Parameters.AddWithValue("@circleId", (object)circleId ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@divisionId", (object)divisionId ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@subDivisionId", (object)subDivisionId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@managerLoginId", (object)managerLoginId ?? DBNull.Value);
                             newUserId = (Guid)cmd.ExecuteScalar();
                         }
 
-                        // 2. Insert identities (AES-encrypted)
                         if (email != null)
                         {
                             using (var cmd = new SqlCommand(insertIdentity, con, tx))
@@ -220,7 +224,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     catch
                     {
                         tx.Rollback();
-                        throw;  // re-throw so AdminService catch block handles SqlException 2627/2601
+                        throw;
                     }
             }
         }
@@ -240,7 +244,9 @@ namespace ACRPortal.Infrastructure.Adapter
             int? circleId,
             int? divisionId,
             int? subDivisionId,
-            bool clearGeography)
+            bool clearGeography,
+            string managerLoginId,
+            bool clearManager)
         {
             var sets = new List<string> { "updated_at = GETDATE()" };
             var parms = new List<SqlParameter>();
@@ -280,6 +286,16 @@ namespace ACRPortal.Infrastructure.Adapter
                 if (subDivisionId.HasValue) { sets.Add("sub_division_id = @subDivisionId"); parms.Add(new SqlParameter("@subDivisionId", subDivisionId.Value)); }
             }
 
+            if (clearManager)
+            {
+                sets.Add("manager_id = NULL");
+            }
+            else if (managerLoginId != null)
+            {
+                sets.Add("manager_id = @managerLoginId");
+                parms.Add(new SqlParameter("@managerLoginId", managerLoginId));
+            }
+
             if (sets.Count == 1) return;  // only updated_at — nothing meaningful to write
 
             string sql = $"UPDATE dbo.users SET {string.Join(", ", sets)} WHERE user_id = @userId";
@@ -291,12 +307,6 @@ namespace ACRPortal.Infrastructure.Adapter
         //  Identity upsert / delete                                           //
         // ================================================================== //
 
-        /// <summary>
-        /// INSERT or UPDATE the primary identity for a user.
-        /// Uses MERGE so it is idempotent — safe to call on create or update.
-        /// identityValue is plaintext — encrypted here before storage.
-        /// Throws SqlException 2627/2601 if another user owns this encrypted value.
-        /// </summary>
         public void UpsertUserIdentity(Guid userId, string identityType, string identityValue)
         {
             string encrypted = _security.EncryptWithAes(identityValue);
@@ -317,10 +327,6 @@ namespace ACRPortal.Infrastructure.Adapter
                 new SqlParameter("@identityValue", encrypted));
         }
 
-        /// <summary>
-        /// Deletes the primary identity row of the given type for this user.
-        /// No-op if the row doesn't exist.
-        /// </summary>
         public void DeleteUserIdentity(Guid userId, string identityType)
         {
             const string sql = @"
@@ -363,6 +369,7 @@ namespace ACRPortal.Infrastructure.Adapter
             {
                 where.Add("u.system_role IN ('CCA', 'EMPLOYEE')");
             }
+
             if (!string.IsNullOrWhiteSpace(status)) { where.Add("u.user_status = @status"); parms.Add(new SqlParameter("@status", status.ToUpper())); }
             if (dsgId.HasValue) { where.Add("u.dsg_id = @dsgId"); parms.Add(new SqlParameter("@dsgId", dsgId.Value)); }
             if (zoneId.HasValue) { where.Add("u.zone_id = @zoneId"); parms.Add(new SqlParameter("@zoneId", zoneId.Value)); }
@@ -373,7 +380,8 @@ namespace ACRPortal.Infrastructure.Adapter
             string sql = $@"
                 SELECT u.user_id, u.login_id, u.display_name, u.system_role, u.user_status,
                        u.dsg_id, u.state_id, u.zone_id, u.circle_id, u.division_id, u.sub_division_id,
-                       u.created_at
+                       u.created_at,
+                       u.manager_id
                 FROM   dbo.users u
                 {whereClause}
                 ORDER  BY u.created_at DESC";
@@ -400,6 +408,7 @@ namespace ACRPortal.Infrastructure.Adapter
                             DivisionId = r.IsDBNull(9) ? (int?)null : r.GetInt32(9),
                             SubDivisionId = r.IsDBNull(10) ? (int?)null : r.GetInt32(10),
                             CreatedAt = r.GetDateTime(11).ToString("o"),
+                            ManagerId = r.IsDBNull(12) ? null : r.GetString(12),
                         });
             }
 
@@ -412,13 +421,12 @@ namespace ACRPortal.Infrastructure.Adapter
 
         public UserDetailResponse GetUserById(Guid userId)
         {
-            // Two self-joins on user_identities for EMAIL and PHONE.
-            // identity_value is AES-encrypted — decrypt on read.
             const string sql = @"
                 SELECT u.user_id, u.login_id, u.display_name, u.system_role, u.user_status, u.created_at,
                        u.dsg_id, u.state_id, u.zone_id, u.circle_id, u.division_id, u.sub_division_id,
                        ei.identity_value AS email_enc,
-                       pi.identity_value AS phone_enc
+                       pi.identity_value AS phone_enc,
+                       u.manager_id
                 FROM   dbo.users u
                 LEFT   JOIN dbo.user_identities ei ON ei.user_id = u.user_id
                                                    AND ei.identity_type = 'EMAIL'
@@ -456,9 +464,41 @@ namespace ACRPortal.Infrastructure.Adapter
                         SubDivisionId = r.IsDBNull(11) ? (int?)null : r.GetInt32(11),
                         Email = emailEnc == null ? null : _security.DecryptWithAes(emailEnc),
                         Phone = phoneEnc == null ? null : _security.DecryptWithAes(phoneEnc),
+                        ManagerId = r.IsDBNull(14) ? null : r.GetString(14),
                     };
                 }
             }
+        }
+
+        // ================================================================== //
+        //  Get managers (dropdown)                                            //
+        // ================================================================== //
+
+        public ManagerListResponse GetManagers()
+        {
+            const string sql = @"
+                SELECT user_id, display_name, login_id
+                FROM   dbo.users
+                WHERE  system_role = 'EMPLOYEE'
+                  AND  user_status = 'ACTIVE'
+                ORDER  BY display_name ASC";
+
+            var list = new List<ManagerListItem>();
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                con.Open();
+                using (var r = cmd.ExecuteReader())
+                    while (r.Read())
+                        list.Add(new ManagerListItem
+                        {
+                            UserId = r.GetGuid(0).ToString(),
+                            DisplayName = r.IsDBNull(1) ? null : r.GetString(1),
+                            LoginId = r.GetString(2),
+                        });
+            }
+
+            return new ManagerListResponse { Managers = list };
         }
 
         // ================================================================== //
