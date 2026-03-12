@@ -27,6 +27,9 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public int? CircleId { get; set; }   // FK → Circle.Circle_ID
         public int? DivisionId { get; set; }   // FK → Division.Division_ID
         public int? SubDivisionId { get; set; }   // FK → SubDivision.SubDivisionID
+
+        // Optional — must be an ACTIVE EMPLOYEE; cannot be the user being created
+        public string ManagerId { get; set; }   // manager's login_id, nullable
     }
 
     public class UpdateUserRequest
@@ -44,11 +47,15 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public int? DivisionId { get; set; }
         public int? SubDivisionId { get; set; }
 
+        // Manager — must be ACTIVE EMPLOYEE; cannot be the user being updated
+        public string ManagerId { get; set; }   // manager's login_id, nullable
+
         // Explicit clear flags
-        public bool ClearEmail { get; set; }  // true → deletes EMAIL identity row
-        public bool ClearPhone { get; set; }  // true → deletes PHONE identity row
-        public bool ClearDsg { get; set; }  // true → sets dsg_id = NULL
+        public bool ClearEmail { get; set; }      // true → deletes EMAIL identity row
+        public bool ClearPhone { get; set; }      // true → deletes PHONE identity row
+        public bool ClearDsg { get; set; }        // true → sets dsg_id = NULL
         public bool ClearGeography { get; set; }  // true → clears all 5 geography fields
+        public bool ClearManager { get; set; }    // true → sets manager_id = NULL
     }
 
     public class UpdateUserStatusRequest
@@ -78,7 +85,10 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public int? CircleId { get; set; }
         public int? DivisionId { get; set; }
         public int? SubDivisionId { get; set; }
-        public string CreatedAt { get; set; }   // ISO 8601
+        public string Email { get; set; }          // nullable, decrypted
+        public string Phone { get; set; }          // nullable, decrypted
+        public string ManagerId { get; set; }     // manager's login_id, nullable
+        public string CreatedAt { get; set; }     // ISO 8601
     }
 
     public class UserListResponse
@@ -107,6 +117,25 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public int? CircleId { get; set; }
         public int? DivisionId { get; set; }
         public int? SubDivisionId { get; set; }
+
+        // Manager
+        public string ManagerId { get; set; }     // manager's login_id, nullable
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Manager lookup (for dropdown population)                           //
+    // ------------------------------------------------------------------ //
+
+    public class ManagerListItem
+    {
+        public string UserId { get; set; }
+        public string DisplayName { get; set; }
+        public string LoginId { get; set; }
+    }
+
+    public class ManagerListResponse
+    {
+        public List<ManagerListItem> Managers { get; set; }
     }
 
     // ------------------------------------------------------------------ //
@@ -141,97 +170,11 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string Location { get; set; }
         public string Designation { get; set; }
         public string PostingFrom { get; set; }  // "YYYY-MM-DD"
-        public string PostingTo { get; set; }  // "YYYY-MM-DD"
+        public string PostingTo { get; set; }    // "YYYY-MM-DD"
         public string OfficerUserId { get; set; }
         public string OfficerName { get; set; }
         public string OfficerLoginId { get; set; }
         public string ReportingName { get; set; }
         public string ReviewingName { get; set; }
-        public string AcceptingName { get; set; }
-        public string CcaName { get; set; }
-        public string CreatedAt { get; set; }  // ISO 8601
-    }
-
-    public class AdminAcrListResponse
-    {
-        public List<AdminAcrListItem> Acrs { get; set; }
-        public int TotalCount { get; set; }
-    }
-
-    public class AdminAcrDetailResponse
-    {
-        // ACR cycle header
-        public string AcrId { get; set; }
-        public int AcrYear { get; set; }
-        public string Status { get; set; }
-        public string Department { get; set; }
-        public string Location { get; set; }
-        public string Designation { get; set; }
-        public string PostingFrom { get; set; }
-        public string PostingTo { get; set; }
-        public string DateOfBirth { get; set; }  // nullable
-        public string Qualification { get; set; }  // nullable
-        public string CareerPostingSummary { get; set; }  // nullable
-        public bool PropertyReturnDone { get; set; }
-        public string CreatedAt { get; set; }
-
-        // Named participants
-        public string OfficerUserId { get; set; }
-        public string OfficerName { get; set; }
-        public string OfficerLoginId { get; set; }
-        public string ReportingUserId { get; set; }
-        public string ReportingName { get; set; }
-        public string ReviewingUserId { get; set; }
-        public string ReviewingName { get; set; }
-        public string AcceptingUserId { get; set; }
-        public string AcceptingName { get; set; }
-        public string CcaUserId { get; set; }
-        public string CcaName { get; set; }
-
-        // Section completion flags — true if submitted_at is not null
-        public bool SectionISubmitted { get; set; }  // self appraisal
-        public bool SectionIISubmitted { get; set; }  // reporting assessment
-        public bool SectionIIISubmitted { get; set; }  // reviewing assessment
-        public bool SectionIVSubmitted { get; set; }  // accepting decision
-    }
-
-    public class AdminUpdateAcrStatusRequest
-    {
-        public string Status { get; set; }  // "APPROVED" | "REJECTED"
-        public string Remarks { get; set; } // optional
-    }
-
-    // ------------------------------------------------------------------ //
-    //  Admin Dashboard                                                    //
-    // ------------------------------------------------------------------ //
-
-    public class AdminDashboardResponse
-    {
-        // User counts
-        public int TotalUsers { get; set; }
-        public int ActiveUsers { get; set; }
-        public int InactiveUsers { get; set; }
-        public int PendingUsers { get; set; }
-
-        // ACR counts by status
-        public int TotalAcrs { get; set; }
-        public int AcrsPendingOfficer { get; set; }
-        public int AcrsPendingReporting { get; set; }
-        public int AcrsPendingReviewing { get; set; }
-        public int AcrsPendingAccepting { get; set; }
-        public int AcrsApproved { get; set; }
-        public int AcrsRejected { get; set; }
-
-        // ACR counts by year
-        public List<AcrYearCount> AcrsByYear { get; set; }
-    }
-
-    public class AcrYearCount
-    {
-        public int AcrYear { get; set; }
-        public int Total { get; set; }
-        public int Approved { get; set; }
-        public int Rejected { get; set; }
-        public int Pending { get; set; }  // everything not APPROVED or REJECTED
     }
 }
