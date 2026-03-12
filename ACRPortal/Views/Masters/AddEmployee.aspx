@@ -461,7 +461,7 @@ headers:{ "Authorization":"Bearer "+token },
 success:function(res){
 
 if(res.Success){
-
+debugger
 employees=res.Data.Users || [];
 filteredEmployees=[...employees];
 
@@ -491,7 +491,7 @@ var end=start+pageSize;
 var pageData=filteredEmployees.slice(start,end);
 
 pageData.forEach(function(e){
-
+debugger
 body.append(`
 
 <tr>

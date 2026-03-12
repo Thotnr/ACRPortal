@@ -4,7 +4,7 @@
 
 <html>
 <head runat="server">
-    <title><%= ViewData["Title"] ?? "CCA Portal" %></title>
+    <title><%= ViewData["Title"] ?? "ACR Portal" %></title>
 
 ```
 <!-- Bootstrap -->
@@ -84,7 +84,7 @@ href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <div class="header">
 
 ```
-<h5>CCA Portal</h5>
+<h5>ACR Portal</h5>
 
 <div>
     <span style="margin-right:15px;">Welcome User</span>

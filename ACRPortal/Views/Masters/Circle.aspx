@@ -105,8 +105,8 @@ entries
 <thead>
 
 <tr>
+<th onclick="sortTable('ZoneId')">Zone</th>
 <th onclick="sortTable('CircleId')">Circle ID</th>
-<th onclick="sortTable('ZoneId')">Zone ID</th>
 <th onclick="sortTable('Circle')">Circle</th>
 <th width="80">Action</th>
 </tr>
@@ -270,6 +270,16 @@ renderTable();
 
 }
 
+function getZoneName(zoneId){
+
+var z = zones.find(function(x){
+return x.ZoneId == zoneId;
+});
+
+return z ? z.ZoneName : "";
+
+}
+
 function renderTable(){
 
 var body=$("#circleTableBody");
@@ -279,13 +289,11 @@ var start=(currentPage-1)*pageSize;
 var end=start+pageSize;
 
 var pageData=filteredCircles.slice(start,end);
-
 pageData.forEach(function(c){
-
 body.append(`
 <tr>
+<td>${c.ZoneId} | ${getZoneName(c.ZoneId)}</td>
 <td>${c.CircleId}</td>
-<td>${c.ZoneId}</td>
 <td>${c.Circle}</td>
 
 <td class="text-center">

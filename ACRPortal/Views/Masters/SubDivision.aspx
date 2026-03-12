@@ -123,10 +123,10 @@ entries
 
 <tr>
 
-<th onclick="sortTable('SubDivisionId')">SubDivision ID</th>
 <th onclick="sortTable('ZoneId')">Zone</th>
 <th onclick="sortTable('CircleId')">Circle</th>
 <th onclick="sortTable('DivisionId')">Division</th>
+<th onclick="sortTable('SubDivisionId')">SubDivision ID</th>
 <th onclick="sortTable('SubDivision')">SubDivision</th>
 <th width="80">Action</th>
 
@@ -239,6 +239,8 @@ return;
 }
 
 loadZones();
+loadAllCircles();
+loadAllDivisions();
 loadSubDivisions();
     $("#divisionFilter").change(function(){
         loadSubDivisions();
@@ -267,6 +269,46 @@ $("#zoneId").append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 
 });
 
+}
+
+}
+
+});
+
+}
+
+function loadAllCircles(){
+
+$.ajax({
+
+url:"/api/admin/masters/circles",
+method:"GET",
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+circles = res.Data.Circles || [];
+}
+
+}
+
+});
+
+}
+
+function loadAllDivisions(){
+
+$.ajax({
+
+url:"/api/admin/masters/divisions",
+method:"GET",
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+divisions = res.Data.Divisions || [];
 }
 
 }
@@ -464,6 +506,35 @@ renderTable();
 
 }
 
+function getZoneName(zoneId){
+
+var z = zones.find(function(x){
+return x.ZoneId == zoneId;
+});
+
+return z ? z.ZoneName : "";
+
+}
+
+function getCircleName(circleId){
+
+var c = circles.find(function(x){
+return x.CircleId == circleId;
+});
+
+return c ? c.Circle : "";
+
+}
+
+function getDivisionName(divisionId){
+
+var d = divisions.find(function(x){
+return x.DivisionId == divisionId;
+});
+
+return d ? d.Division : "";
+
+}
 
 function renderTable(){
 
@@ -480,10 +551,10 @@ pageData.forEach(function(s){
 body.append(`
 <tr>
 
+<td>${s.ZoneId} | ${getZoneName(s.ZoneId)}</td>
+<td>${s.CircleId} | ${getCircleName(s.CircleId)}</td>
+<td>${s.DivisionId} | ${getDivisionName(s.DivisionId)}</td>
 <td>${s.SubDivisionId}</td>
-<td>${s.ZoneId}</td>
-<td>${s.CircleId}</td>
-<td>${s.DivisionId}</td>
 <td>${s.SubDivision}</td>
 
 <td class="text-center">

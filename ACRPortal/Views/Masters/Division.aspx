@@ -117,9 +117,9 @@ entries
 <thead>
 
 <tr>
+<th onclick="sortTable('ZoneId')">Zone</th>
+<th onclick="sortTable('CircleId')">Circle</th>
 <th onclick="sortTable('DivisionId')">Division ID</th>
-<th onclick="sortTable('ZoneId')">Zone ID</th>
-<th onclick="sortTable('CircleId')">Circle ID</th>
 <th onclick="sortTable('Division')">Division</th>
 <th width="80">Action</th>
 </tr>
@@ -215,6 +215,7 @@ entries
 var divisions=[];
 var filteredDivisions=[];
 var zones=[];
+var circles=[];
 var token=null;
 var isEditMode=false;
 
@@ -234,6 +235,7 @@ return;
 }
 
 loadZones();
+loadAllCircles();
 loadDivisions();
 
 });
@@ -275,6 +277,28 @@ form.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 
 }
 
+function loadAllCircles(){
+
+$.ajax({
+
+url:"/api/admin/masters/circles",
+method:"GET",
+
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+
+circles = res.Data.Circles;
+
+}
+
+}
+
+});
+
+}
 
 function loadCircles(){
 
@@ -298,9 +322,13 @@ success:function(res){
 
 if(res.Success){
 
+circles = res.Data.Circles;   // ⭐ IMPORTANT
+
 res.Data.Circles.forEach(function(c){
 
-$("#circleFilter").append(`<option value="${c.CircleId}">${c.Circle}</option>`);
+$("#circleFilter").append(
+`<option value="${c.CircleId}">${c.Circle}</option>`
+);
 
 });
 
@@ -313,7 +341,6 @@ $("#circleFilter").append(`<option value="${c.CircleId}">${c.Circle}</option>`);
 loadDivisions();
 
 }
-
 
 function loadCirclesForForm(){
 
@@ -393,6 +420,22 @@ renderTable();
 
 }
 
+function getZoneName(zoneId){
+var z = zones.find(function(x){
+return x.ZoneId == zoneId;
+});
+return z ? z.ZoneName : "";
+}
+
+function getCircleName(circleId){
+
+var c = circles.find(function(x){
+return x.CircleId == circleId;
+});
+
+return c ? (c.CircleName || c.Circle) : "";
+
+}
 
 function renderTable(){
 
@@ -409,9 +452,9 @@ pageData.forEach(function(d){
 body.append(`
 <tr>
 
+<td>${d.ZoneId} | ${getZoneName(d.ZoneId)}</td>
+<td>${d.CircleId} | ${getCircleName(d.CircleId)}</td>
 <td>${d.DivisionId}</td>
-<td>${d.ZoneId}</td>
-<td>${d.CircleId}</td>
 <td>${d.Division}</td>
 
 <td class="text-center">
