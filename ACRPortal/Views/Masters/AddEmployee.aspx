@@ -637,7 +637,9 @@ isEditMode=false;
 $("#modalTitle").text("Add Employee");
 
 $("#employeeForm")[0].reset();
-
+$("#circleId").html('<option value="">Select Circle</option>');
+$("#divisionId").html('<option value="">Select Division</option>');
+$("#subDivisionId").html('<option value="">Select SubDivision</option>');
 /* reset select2 dropdowns */
 $("#dsgId").val("").trigger("change");
 $("#stateId").val("").trigger("change");
@@ -833,6 +835,9 @@ function loadZones(){
 var stateId=$("#stateId").val();
 
 $("#zoneId").html('<option value="">Select Zone</option>');
+$("#circleId").html('<option value="">Select Circle</option>');
+$("#divisionId").html('<option value="">Select Division</option>');
+$("#subDivisionId").html('<option value="">Select SubDivision</option>');
 
 if(!stateId) return;
 
@@ -864,10 +869,11 @@ $("#zoneId").append(
 }
 
 function loadCircles(){
-
 var zoneId=$("#zoneId").val();
 
 $("#circleId").html('<option value="">Select Circle</option>');
+$("#divisionId").html('<option value="">Select Division</option>');
+$("#subDivisionId").html('<option value="">Select SubDivision</option>');
 
 if(!zoneId) return;
 
@@ -895,14 +901,13 @@ $("#circleId").append(
 }
 
 });
-
 }
 
 function loadDivisions(){
-
 var circleId=$("#circleId").val();
 
 $("#divisionId").html('<option value="">Select Division</option>');
+$("#subDivisionId").html('<option value="">Select SubDivision</option>');
 
 if(!circleId) return;
 
@@ -930,11 +935,9 @@ $("#divisionId").append(
 }
 
 });
-
 }
 
 function loadSubDivisions(){
-
 var divisionId=$("#divisionId").val();
 
 $("#subDivisionId").html('<option value="">Select SubDivision</option>');
@@ -965,7 +968,6 @@ $("#subDivisionId").append(
 }
 
 });
-
 }
 
 function changePageSize(){
