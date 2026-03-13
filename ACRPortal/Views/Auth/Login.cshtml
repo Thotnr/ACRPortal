@@ -315,15 +315,15 @@ localStorage.setItem("displayName", res.Data.DisplayName);
 localStorage.setItem("role", res.Data.SystemRole);
 localStorage.setItem("tokenExpiry", res.Data.ExpiresAt);
 
-window.location.href="/Home/Dashboard";
+window.location.href='@Url.Action("Dashboard","Home")';
 document.cookie="jwt_token="+token+"; path=/; SameSite=Strict";
 toastr.success("Login successful");
 
 setTimeout(function(){
 
-window.location.href="/Home/Dashboard";
+window.location.href='@Url.Action("Dashboard","Home")';
 
-},1000);
+},500);
 
 }
 else if(res && res.Message){

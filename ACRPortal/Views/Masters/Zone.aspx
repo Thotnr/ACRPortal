@@ -188,7 +188,7 @@ Save
 
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var zones=[];
 var filteredZones=[];
 
@@ -206,7 +206,7 @@ $(document).ready(function(){
 token = localStorage.getItem("token");
 
 if(!token){
-window.location="/Login/UserAuth";
+window.location = BASE_URL + "Login/UserAuth";
 return;
 }
 
@@ -218,7 +218,7 @@ function loadZones(){
 
 $.ajax({
 
-url:"/api/admin/masters/zones",
+url: BASE_URL + "api/admin/masters/zones",
 method:"GET",
 
 headers:{
@@ -456,7 +456,7 @@ if(isEditMode){
 
 payload={ ZoneName:zoneName };
 
-url="/api/admin/masters/zones/"+zoneId;
+url= BASE_URL + "api/admin/masters/zones/"+zoneId;
 method="PATCH";
 
 }
@@ -467,7 +467,7 @@ ZoneId:parseInt(zoneId),
 ZoneName:zoneName
 };
 
-url="/api/admin/masters/zones";
+url= BASE_URL + "api/admin/masters/zones";
 method="POST";
 
 }

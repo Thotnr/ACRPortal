@@ -189,7 +189,7 @@ Save
 
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var states=[];
 var filteredStates=[];
 
@@ -207,7 +207,7 @@ $(document).ready(function(){
 token = localStorage.getItem("token");
 
 if(!token){
-window.location="/Login/UserAuth";
+window.location = BASE_URL + "Login/UserAuth";
 return;
 }
 
@@ -220,7 +220,7 @@ function loadStates(){
 
 $.ajax({
 
-url:"/api/admin/masters/states",
+url: BASE_URL + "api/admin/masters/states",
 method:"GET",
 
 headers:{
@@ -460,7 +460,7 @@ if(isEditMode){
 
 payload={ StateName:stateName };
 
-url="/api/admin/masters/states/"+stateId;
+url= BASE_URL + "api/admin/masters/states/"+stateId;
 method="PATCH";
 
 }
@@ -471,7 +471,7 @@ StateId:parseInt(stateId),
 StateName:stateName
 };
 
-url="/api/admin/masters/states";
+url= BASE_URL + "api/admin/masters/states";
 method="POST";
 
 }

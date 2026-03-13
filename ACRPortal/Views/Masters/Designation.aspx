@@ -67,14 +67,14 @@ margin-bottom:10px;
 
 <div class="row mb-3">
 
-<div class="col-md-3">
+<!-- <div class="col-md-3">
 
 <select id="activeFilter" class="form-control" onchange="loadDesignations()">
 <option value="true" selected>Active Only</option>
 <option value="false">All</option>
 </select>
 
-</div>
+</div> -->
 
 <div class="col-md-3">
 
@@ -122,10 +122,10 @@ entries
 <tr>
 
 <th onclick="sortTable('DsgId')">ID</th>
-<th onclick="sortTable('Dsg')">Code</th>
+<th onclick="sortTable('Dsg')">Designation</th>
 <th onclick="sortTable('DsgDesc')">Description</th>
-<th onclick="sortTable('DsgLevel')">Level</th>
-<th onclick="sortTable('IsActive')">Active</th>
+<!-- <th onclick="sortTable('DsgLevel')">Level</th> -->
+<!-- <th onclick="sortTable('IsActive')">Active</th> -->
 <th width="80">Action</th>
 
 </tr>
@@ -169,7 +169,7 @@ entries
 <form id="designationForm">
 
 <div class="form-group">
-<label>Code</label>
+<label>Designation</label>
 <input type="text" id="dsg" class="form-control" required>
 </div>
 
@@ -178,10 +178,10 @@ entries
 <input type="text" id="dsgDesc" class="form-control">
 </div>
 
-<div class="form-group">
+<!-- <div class="form-group">
 <label>Level</label>
 <input type="number" id="dsgLevel" class="form-control" required>
-</div>
+</div> -->
 
 <div class="text-center mt-3">
 <button type="submit" class="btn btn-success btn-sm">Save</button>
@@ -200,7 +200,7 @@ entries
 
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var designations=[];
 var filteredDesignations=[];
 var token=null;
@@ -220,7 +220,7 @@ $(document).ready(function(){
 token=localStorage.getItem("token");
 
 if(!token){
-window.location="/Login/UserAuth";
+window.location = BASE_URL + "Login/UserAuth";
 return;
 }
 
@@ -239,7 +239,7 @@ var activeOnly=$("#activeFilter").val();
 
 $.ajax({
 
-url:"/api/admin/masters/designations?activeOnly="+activeOnly,
+url: BASE_URL + "api/admin/masters/designations?activeOnly="+activeOnly,
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -298,13 +298,11 @@ body.append(`
 <td>${d.DsgId}</td>
 <td>${d.Dsg}</td>
 <td>${d.DsgDesc || ""}</td>
-<td>${d.DsgLevel}</td>
-<td>${d.IsActive ? "Yes" : "No"}</td>
 
 <td class="text-center">
 
 <button class="action-btn"
-onclick="editDesignation(${d.DsgId},'${d.Dsg}','${d.DsgDesc || ""}',${d.DsgLevel})">
+onclick="editDesignation(${d.DsgId},'${d.Dsg}','${d.DsgDesc || ""}')">
 
 <i class="fa fa-pen"></i>
 
@@ -460,14 +458,14 @@ $("#modalTitle").text("Add Designation");
 
 $("#dsg").val("");
 $("#dsgDesc").val("");
-$("#dsgLevel").val("");
+// $("#dsgLevel").val("");
 
 $("#designationModal").modal("show");
 
 }
 
 
-function editDesignation(id,code,desc,level){
+function editDesignation(id,code,desc){
 
 isEditMode=true;
 editId=id;
@@ -476,7 +474,7 @@ $("#modalTitle").text("Update Designation");
 
 $("#dsg").val(code);
 $("#dsgDesc").val(desc);
-$("#dsgLevel").val(level);
+// $("#dsgLevel").val(level);
 
 $("#designationModal").modal("show");
 
@@ -499,17 +497,17 @@ e.preventDefault();
 
 var dsg=$("#dsg").val().trim();
 var dsgDesc=$("#dsgDesc").val().trim();
-var dsgLevel=parseInt($("#dsgLevel").val());
+// var dsgLevel=parseInt($("#dsgLevel").val());
 
 if(!dsg){
-alert("Enter designation code");
+alert("Enter designation");
 return;
 }
 
-if(!dsgLevel || dsgLevel<=0){
-alert("Level must be greater than 0");
-return;
-}
+// if(!dsgLevel || dsgLevel<=0){
+// alert("Level must be greater than 0");
+// return;
+// }
 
 
 /* CREATE */
@@ -518,7 +516,7 @@ if(!isEditMode){
 
 $.ajax({
 
-url:"/api/admin/masters/designations",
+url: BASE_URL + "api/admin/masters/designations",
 method:"POST",
 
 headers:{
@@ -529,7 +527,7 @@ headers:{
 data:JSON.stringify({
 Dsg:dsg,
 DsgDesc:dsgDesc,
-DsgLevel:dsgLevel
+DsgLevel:1
 }),
 
 success:function(res){
@@ -567,12 +565,12 @@ else{
 var body={
 Dsg:dsg,
 DsgDesc:dsgDesc,
-DsgLevel:dsgLevel
+DsgLevel:1
 };
 
 $.ajax({
 
-url:"/api/admin/masters/designations/"+editId,
+url: BASE_URL + "api/admin/masters/designations/"+editId,
 method:"PATCH",
 
 headers:{
@@ -622,7 +620,7 @@ function handleApiError(res){
 switch(res.ErrorCode){
 
 case "DUPLICATE_NAME":
-alert("Designation code already exists");
+alert("Designation already exists");
 break;
 
 case "BAD_REQUEST":
