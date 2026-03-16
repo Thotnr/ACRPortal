@@ -117,9 +117,9 @@ entries
 <thead>
 
 <tr>
+<th onclick="sortTable('ZoneId')">Zone</th>
+<th onclick="sortTable('CircleId')">Circle</th>
 <th onclick="sortTable('DivisionId')">Division ID</th>
-<th onclick="sortTable('ZoneId')">Zone ID</th>
-<th onclick="sortTable('CircleId')">Circle ID</th>
 <th onclick="sortTable('Division')">Division</th>
 <th width="80">Action</th>
 </tr>
@@ -139,7 +139,6 @@ entries
 </div>
 
 </div>
-
 
 <!-- MODAL -->
 
@@ -211,10 +210,16 @@ entries
 
 
 <script>
-
+var BASE_URL = '<%= Url.Content("~/") %>';
 var divisions=[];
 var filteredDivisions=[];
+
 var zones=[];
+var circles=[];
+
+var zoneMap={};
+var circleMap={};
+
 var token=null;
 var isEditMode=false;
 
@@ -229,12 +234,11 @@ $(document).ready(function(){
 token=localStorage.getItem("token");
 
 if(!token){
-window.location="/Login/UserAuth";
+window.location = BASE_URL + "Login/UserAuth";
 return;
 }
 
 loadZones();
-loadDivisions();
 
 });
 
@@ -243,7 +247,7 @@ function loadZones(){
 
 $.ajax({
 
-url:"/api/admin/masters/zones",
+url: BASE_URL + "api/admin/masters/zones",
 method:"GET",
 
 headers:{ "Authorization":"Bearer "+token },
@@ -252,7 +256,9 @@ success:function(res){
 
 if(res.Success){
 
-zones=res.Data.Zones;
+zones=res.Data.Zones || [];
+
+zoneMap={};
 
 var filter=$("#zoneFilter");
 var form=$("#zoneId");
@@ -262,10 +268,46 @@ form.html(`<option value="" disabled selected>Select Zone</option>`);
 
 zones.forEach(function(z){
 
+zoneMap[z.ZoneId]=z.ZoneName;
+
 filter.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 form.append(`<option value="${z.ZoneId}">${z.ZoneName}</option>`);
 
 });
+
+loadAllCircles();
+
+}
+
+}
+
+});
+
+}
+
+
+function loadAllCircles(){
+
+$.ajax({
+
+url: BASE_URL + "api/admin/masters/circles",
+method:"GET",
+
+headers:{ "Authorization":"Bearer "+token },
+
+success:function(res){
+
+if(res.Success){
+
+circles=res.Data.Circles || [];
+
+circleMap={};
+
+circles.forEach(function(c){
+circleMap[c.CircleId]=c.Circle || c.CircleName;
+});
+
+loadDivisions();
 
 }
 
@@ -287,26 +329,13 @@ loadDivisions();
 return;
 }
 
-$.ajax({
+var filtered=circles.filter(c=>c.ZoneId==zoneId);
 
-url:"/api/admin/masters/circles?zoneId="+zoneId,
-method:"GET",
+filtered.forEach(function(c){
 
-headers:{ "Authorization":"Bearer "+token },
-
-success:function(res){
-
-if(res.Success){
-
-res.Data.Circles.forEach(function(c){
-
-$("#circleFilter").append(`<option value="${c.CircleId}">${c.Circle}</option>`);
-
-});
-
-}
-
-}
+$("#circleFilter").append(
+`<option value="${c.CircleId}">${c.Circle}</option>`
+);
 
 });
 
@@ -319,34 +348,17 @@ function loadCirclesForForm(){
 
 var zoneId=$("#zoneId").val();
 
-var circleDropdown=$("#circleId");
+var dropdown=$("#circleId");
 
-circleDropdown.html(`<option value="" disabled selected>Select Circle</option>`);
+dropdown.html(`<option value="" disabled selected>Select Circle</option>`);
 
-if(!zoneId) return;
+var filtered=circles.filter(c=>c.ZoneId==zoneId);
 
-$.ajax({
+filtered.forEach(function(c){
 
-url:"/api/admin/masters/circles?zoneId="+zoneId,
-method:"GET",
-
-headers:{ "Authorization":"Bearer "+token },
-
-success:function(res){
-
-if(res.Success){
-
-res.Data.Circles.forEach(function(c){
-
-circleDropdown.append(
+dropdown.append(
 `<option value="${c.CircleId}">${c.Circle}</option>`
 );
-
-});
-
-}
-
-}
 
 });
 
@@ -358,7 +370,7 @@ function loadDivisions(){
 var zoneId=$("#zoneFilter").val();
 var circleId=$("#circleFilter").val();
 
-var url="/api/admin/masters/divisions";
+var url= BASE_URL + "api/admin/masters/divisions";
 
 var params=[];
 
@@ -378,7 +390,8 @@ success:function(res){
 
 if(res.Success){
 
-divisions=res.Data.Divisions;
+divisions=res.Data.Divisions || [];
+
 filteredDivisions=[...divisions];
 
 currentPage=1;
@@ -394,24 +407,35 @@ renderTable();
 }
 
 
-function renderTable(){
+function getZoneName(id){
+return zoneMap[id] || "";
+}
 
-var body=$("#divisionTableBody");
-body.empty();
+function getCircleName(id){
+return circleMap[id] || "";
+}
+
+
+function renderTable(){
 
 var start=(currentPage-1)*pageSize;
 var end=start+pageSize;
 
 var pageData=filteredDivisions.slice(start,end);
 
+var rows="";
+
 pageData.forEach(function(d){
 
-body.append(`
+rows+=`
 <tr>
 
+<td>${d.ZoneId} | ${getZoneName(d.ZoneId)}</td>
+
+<td>${d.CircleId} | ${getCircleName(d.CircleId)}</td>
+
 <td>${d.DivisionId}</td>
-<td>${d.ZoneId}</td>
-<td>${d.CircleId}</td>
+
 <td>${d.Division}</td>
 
 <td class="text-center">
@@ -426,9 +450,11 @@ onclick="editDivision(${d.DivisionId},${d.ZoneId},${d.CircleId},'${d.Division}')
 </td>
 
 </tr>
-`);
+`;
 
 });
+
+$("#divisionTableBody").html(rows);
 
 updateTableInfo(start,end);
 renderPagination();
@@ -446,37 +472,58 @@ $("#tableInfo").text(
 
 }
 
+
 function renderPagination(){
+
 var totalPages=Math.ceil(filteredDivisions.length/pageSize);
+
+if(totalPages<=1){
+$("#pagination").html("");
+return;
+}
+
 var html="";
-/* PREVIOUS BUTTON */
+
 html+=`<li class="page-item ${currentPage==1?'disabled':''}">
 <a class="page-link" onclick="gotoPage(${currentPage-1})">Prev</a>
 </li>`;
-/* PAGE NUMBERS */
+
 for(var i=1;i<=totalPages;i++){
+
 html+=`<li class="page-item ${i==currentPage?'active':''}">
 <a class="page-link" onclick="gotoPage(${i})">${i}</a>
 </li>`;
+
 }
-/* NEXT BUTTON */
+
 html+=`<li class="page-item ${currentPage==totalPages?'disabled':''}">
 <a class="page-link" onclick="gotoPage(${currentPage+1})">Next</a>
 </li>`;
+
 $("#pagination").html(html);
+
 }
 
+
 function gotoPage(p){
+
 var totalPages=Math.ceil(filteredDivisions.length/pageSize);
+
 if(p<1 || p>totalPages) return;
+
 currentPage=p;
+
 renderTable();
+
 }
+
 
 function changePageSize(){
 
 pageSize=parseInt($("#pageSizeSelect").val());
+
 currentPage=1;
+
 renderTable();
 
 }
@@ -484,18 +531,34 @@ renderTable();
 
 function searchTable(val){
 
-val=val.toLowerCase();
+val=val.toLowerCase().trim();
+
+if(!val){
+
+filteredDivisions=[...divisions];
+
+}else{
 
 filteredDivisions=divisions.filter(function(d){
 
-return (
-d.Division.toLowerCase().includes(val) ||
-String(d.DivisionId).includes(val)
+return(
+
+(d.Division && d.Division.toLowerCase().includes(val)) ||
+
+String(d.DivisionId).includes(val) ||
+
+getZoneName(d.ZoneId).toLowerCase().includes(val) ||
+
+getCircleName(d.CircleId).toLowerCase().includes(val)
+
 );
 
 });
 
+}
+
 currentPage=1;
+
 renderTable();
 
 }
@@ -503,9 +566,9 @@ renderTable();
 
 function sortTable(col){
 
-sortAsc = currentSortColumn === col ? !sortAsc : true;
+sortAsc=currentSortColumn===col?!sortAsc:true;
 
-currentSortColumn = col;
+currentSortColumn=col;
 
 filteredDivisions.sort(function(a,b){
 
@@ -549,13 +612,14 @@ $("#modalTitle").text("Update Division");
 
 $("#divisionId").val(id).prop("disabled",true);
 $("#divisionName").val(name);
+
 $("#zoneId").val(zoneId);
 
 loadCirclesForForm();
 
 setTimeout(function(){
 $("#circleId").val(circleId);
-},300);
+},200);
 
 $("#divisionModal").modal("show");
 
@@ -567,7 +631,7 @@ $("#divisionModal").modal("hide");
 }
 
 
-/* FORM VALIDATION */
+/* FORM SUBMIT */
 
 $("#divisionForm").submit(function(e){
 
@@ -575,38 +639,19 @@ e.preventDefault();
 
 var zoneId=$("#zoneId").val();
 var circleId=$("#circleId").val();
-var divisionId=$("#divisionId").val().trim();
+var divisionId=$("#divisionId").val();
 var divisionName=$("#divisionName").val().trim();
 
-if(!zoneId){
-alert("Please select Zone");
-return;
-}
-
-if(!circleId){
-alert("Please select Circle");
-return;
-}
-
-if(!divisionId){
-alert("Please enter Division ID");
-return;
-}
-
-if(!divisionName){
-alert("Please enter Division Name");
-return;
-}
-
-/* =========================
-CREATE DIVISION
-========================= */
+if(!zoneId){ alert("Select Zone"); return; }
+if(!circleId){ alert("Select Circle"); return; }
+if(!divisionId){ alert("Enter Division ID"); return; }
+if(!divisionName){ alert("Enter Division Name"); return; }
 
 if(!isEditMode){
 
 $.ajax({
 
-url:"/api/admin/masters/divisions",
+url: BASE_URL + "api/admin/masters/divisions",
 method:"POST",
 
 headers:{
@@ -631,37 +676,17 @@ closeModal();
 
 loadDivisions();
 
-}else{
-
-alert(res.Message || "Error creating division");
-
-}
-
-},
-
-error:function(xhr){
-
-if(xhr.responseJSON){
-alert(xhr.responseJSON.Message);
-}else{
-alert("Server error");
 }
 
 }
 
 });
 
-}
-
-/* =========================
-UPDATE DIVISION
-========================= */
-
-else{
+}else{
 
 $.ajax({
 
-url:"/api/admin/masters/divisions/"+divisionId,
+url: BASE_URL + "api/admin/masters/divisions/"+divisionId,
 method:"PATCH",
 
 headers:{
@@ -683,20 +708,6 @@ closeModal();
 
 loadDivisions();
 
-}else{
-
-alert(res.Message || "Error updating division");
-
-}
-
-},
-
-error:function(xhr){
-
-if(xhr.responseJSON){
-alert(xhr.responseJSON.Message);
-}else{
-alert("Server error");
 }
 
 }
