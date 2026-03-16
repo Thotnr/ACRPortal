@@ -49,11 +49,15 @@ namespace ACRPortal.Application.service
                 if (request.DsgLevel <= 0)
                     return ApiResponse<DsgIdResponse>.Fail("DsgLevel must be greater than 0", "BAD_REQUEST");
 
+                var validFormTypes = new[] { "A1a", "A1b", "A2" };
+                if (string.IsNullOrWhiteSpace(request.FormType) || !Array.Exists(validFormTypes, t => t == request.FormType))
+                    return ApiResponse<DsgIdResponse>.Fail("FormType must be one of: A1a, A1b, A2", "BAD_REQUEST");
+
                 if (_repo.IsDsgCodeExists(request.Dsg.Trim()))
                     return ApiResponse<DsgIdResponse>.Fail(
                         "Designation code '" + request.Dsg + "' already exists", "DUPLICATE_NAME");
 
-                int newId = _repo.CreateDsg(request.Dsg.Trim(), request.DsgDesc?.Trim(), request.DsgLevel);
+                int newId = _repo.CreateDsg(request.Dsg.Trim(), request.DsgDesc?.Trim(), request.DsgLevel, request.FormType);
                 return ApiResponse<DsgIdResponse>.Ok(new DsgIdResponse { DsgId = newId }, "Designation created successfully");
             }
             catch (Exception ex)
@@ -72,32 +76,38 @@ namespace ACRPortal.Application.service
                 bool hasCode = !string.IsNullOrWhiteSpace(request.Dsg);
                 bool hasLevel = request.DsgLevel.HasValue;
                 bool hasDesc = request.DsgDesc != null;
+                bool hasFormType = !string.IsNullOrWhiteSpace(request.FormType);
 
-                if (!hasCode && !hasLevel && !hasDesc)
+                if (!hasCode && !hasLevel && !hasDesc && !hasFormType)
                     return ApiResponse<EmptyResponse>.Fail(
-                        "At least one of Dsg, DsgDesc, or DsgLevel must be provided", "BAD_REQUEST");
+                        "At least one of Dsg, DsgDesc, DsgLevel, or FormType must be provided", "BAD_REQUEST");
 
                 if (hasLevel && request.DsgLevel.Value <= 0)
                     return ApiResponse<EmptyResponse>.Fail("DsgLevel must be greater than 0", "BAD_REQUEST");
+
+                if (hasFormType)
+                {
+                    var validFormTypes = new[] { "A1a", "A1b", "A2" };
+                    if (!Array.Exists(validFormTypes, t => t == request.FormType))
+                        return ApiResponse<EmptyResponse>.Fail("FormType must be one of: A1a, A1b, A2", "BAD_REQUEST");
+                }
 
                 if (!_repo.IsDsgIdExists(dsgId))
                     return ApiResponse<EmptyResponse>.Fail(
                         "Designation with DsgId " + dsgId + " not found", "NOT_FOUND");
 
-                // If changing the code, check uniqueness excluding self
                 if (hasCode && _repo.IsDsgCodeExistsExcluding(request.Dsg.Trim(), dsgId))
                     return ApiResponse<EmptyResponse>.Fail(
                         "Designation code '" + request.Dsg + "' already exists", "DUPLICATE_NAME");
 
-                // Fetch current values so we can keep unchanged fields
-                var current = _repo.GetDesignations(false)
-                    .Find(d => d.DsgId == dsgId);
+                var current = _repo.GetDesignations(false).Find(d => d.DsgId == dsgId);
 
                 string finalCode = hasCode ? request.Dsg.Trim() : current.Dsg;
                 string finalDesc = hasDesc ? request.DsgDesc?.Trim() : current.DsgDesc;
                 int finalLevel = hasLevel ? request.DsgLevel.Value : current.DsgLevel;
+                string finalFormType = hasFormType ? request.FormType : current.FormType;
 
-                _repo.UpdateDsg(dsgId, finalCode, finalDesc, finalLevel);
+                _repo.UpdateDsg(dsgId, finalCode, finalDesc, finalLevel, finalFormType);
                 return ApiResponse<EmptyResponse>.Ok(null, "Designation updated successfully");
             }
             catch (Exception ex)
@@ -105,7 +115,6 @@ namespace ACRPortal.Application.service
                 return ApiResponse<EmptyResponse>.Fail(ex.Message, "INTERNAL_ERROR");
             }
         }
-
         // ================================================================== //
         //  State                                                              //
         // ================================================================== //
