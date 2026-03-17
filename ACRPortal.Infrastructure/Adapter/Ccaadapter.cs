@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -107,6 +107,26 @@ namespace ACRPortal.Infrastructure.Adapter
             }
         }
 
+        public bool IsAcrDuplicateExcluding(Guid acrId, Guid officerUserId, string department, DateTime postingFrom)
+        {
+            const string sql = @"
+                SELECT COUNT(1) FROM dbo.acr_cycles
+                WHERE  acr_id          <> @acrId
+                  AND  officer_user_id  = @officerId
+                  AND  department       = @dept
+                  AND  posting_from     = @from";
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@acrId", acrId);
+                cmd.Parameters.AddWithValue("@officerId", officerUserId);
+                cmd.Parameters.AddWithValue("@dept", department);
+                cmd.Parameters.AddWithValue("@from", postingFrom.Date);
+                con.Open();
+                return (int)cmd.ExecuteScalar() > 0;
+            }
+        }
+
         public DesignationLookupItem GetDesignationById(int dsgId)
         {
             const string sql = @"
@@ -149,7 +169,8 @@ namespace ACRPortal.Infrastructure.Adapter
             string academicQualification,
             string technicalQualification,
             string careerPostingSummary,
-            bool propertyReturnDone)
+            bool propertyReturnDone,
+            string status)
         {
             const string insertSql = @"
                 INSERT INTO dbo.acr_cycles (
@@ -167,7 +188,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     @dept, @loc, @designation, @from, @to, @year,
                     @formType, @dob, @qual,
                     @summary, @propReturn,
-                    'PENDING_OFFICER', GETDATE(), GETDATE()
+                    @status, GETDATE(), GETDATE()
                 )";
 
             using (var con = new SqlConnection(_conn))
@@ -197,9 +218,187 @@ namespace ACRPortal.Infrastructure.Adapter
                     cmd.Parameters.AddWithValue("@qual", string.IsNullOrWhiteSpace(combinedQual) ? (object)DBNull.Value : combinedQual);
                     cmd.Parameters.AddWithValue("@summary", string.IsNullOrWhiteSpace(careerPostingSummary) ? (object)DBNull.Value : careerPostingSummary);
                     cmd.Parameters.AddWithValue("@propReturn", propertyReturnDone ? 1 : 0);
+                    cmd.Parameters.AddWithValue("@status", status);
 
                     var newId = cmd.ExecuteScalar();
                     return newId.ToString();
+                }
+            }
+        }
+
+        public bool TrySubmitDraftAcr(Guid acrId, Guid ccaUserId, out string errorCode)
+        {
+            const string sql = @"
+                UPDATE dbo.acr_cycles
+                SET    status = 'PENDING_OFFICER',
+                       updated_at = GETDATE()
+                WHERE  acr_id = @acrId
+                  AND  cca_user_id = @ccaUserId
+                  AND  status = 'DRAFT';
+
+                SELECT @@ROWCOUNT;";
+
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@acrId", acrId);
+                cmd.Parameters.AddWithValue("@ccaUserId", ccaUserId);
+                con.Open();
+
+                int affected = Convert.ToInt32(cmd.ExecuteScalar());
+                if (affected > 0)
+                {
+                    errorCode = null;
+                    return true;
+                }
+            }
+
+            // Distinguish failure reasons (not found vs wrong owner vs wrong state)
+            const string checkSql = @"
+                SELECT cca_user_id, status
+                FROM   dbo.acr_cycles
+                WHERE  acr_id = @acrId";
+
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(checkSql, con))
+            {
+                cmd.Parameters.AddWithValue("@acrId", acrId);
+                con.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    if (!r.Read())
+                    {
+                        errorCode = "NOT_FOUND";
+                        return false;
+                    }
+
+                    Guid owner = r.GetGuid(0);
+                    string status = r.IsDBNull(1) ? null : r.GetString(1);
+
+                    if (owner != ccaUserId)
+                    {
+                        errorCode = "FORBIDDEN";
+                        return false;
+                    }
+
+                    errorCode = status == "DRAFT" ? "INTERNAL_ERROR" : "INVALID_STATE";
+                    return false;
+                }
+            }
+        }
+
+        public bool TryUpdateDraftAcr(
+            Guid acrId,
+            Guid ccaUserId,
+            Guid officerUserId,
+            Guid reportingUserId,
+            Guid? reportingUserId2,
+            Guid reviewingUserId,
+            Guid acceptingUserId,
+            string department,
+            string location,
+            DateTime postingFrom,
+            DateTime postingTo,
+            int acrYear,
+            string designation,
+            string formType,
+            DateTime dateOfBirth,
+            string academicQualification,
+            string technicalQualification,
+            string careerPostingSummary,
+            bool propertyReturnDone,
+            out string errorCode)
+        {
+            const string updateSql = @"
+                UPDATE dbo.acr_cycles
+                SET    officer_user_id        = @officerId,
+                       reporting_user_id      = @ra1Id,
+                       ra2_user_id            = @ra2Id,
+                       reviewing_user_id      = @rvaId,
+                       accepting_user_id      = @aaId,
+                       department             = @dept,
+                       location               = @loc,
+                       designation            = @designation,
+                       posting_from           = @from,
+                       posting_to             = @to,
+                       acr_year               = @year,
+                       form_type              = @formType,
+                       date_of_birth          = @dob,
+                       qualification          = @qual,
+                       career_posting_summary = @summary,
+                       property_return_done   = @propReturn,
+                       updated_at             = GETDATE()
+                WHERE  acr_id = @acrId
+                  AND  cca_user_id = @ccaUserId
+                  AND  status = 'DRAFT';
+
+                SELECT @@ROWCOUNT;";
+
+            string combinedQual = string.Join(" | ",
+                new[] { academicQualification, technicalQualification }
+                    .Where(q => !string.IsNullOrWhiteSpace(q)));
+
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(updateSql, con))
+            {
+                cmd.Parameters.AddWithValue("@acrId", acrId);
+                cmd.Parameters.AddWithValue("@ccaUserId", ccaUserId);
+                cmd.Parameters.AddWithValue("@officerId", officerUserId);
+                cmd.Parameters.AddWithValue("@ra1Id", reportingUserId);
+                cmd.Parameters.AddWithValue("@ra2Id", (object)reportingUserId2 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@rvaId", reviewingUserId);
+                cmd.Parameters.AddWithValue("@aaId", acceptingUserId);
+                cmd.Parameters.AddWithValue("@dept", department);
+                cmd.Parameters.AddWithValue("@loc", location);
+                cmd.Parameters.AddWithValue("@designation", designation);
+                cmd.Parameters.AddWithValue("@from", postingFrom.Date);
+                cmd.Parameters.AddWithValue("@to", postingTo.Date);
+                cmd.Parameters.AddWithValue("@year", acrYear);
+                cmd.Parameters.AddWithValue("@formType", formType);
+                cmd.Parameters.AddWithValue("@dob", dateOfBirth.Date);
+                cmd.Parameters.AddWithValue("@qual", string.IsNullOrWhiteSpace(combinedQual) ? (object)DBNull.Value : combinedQual);
+                cmd.Parameters.AddWithValue("@summary", string.IsNullOrWhiteSpace(careerPostingSummary) ? (object)DBNull.Value : careerPostingSummary);
+                cmd.Parameters.AddWithValue("@propReturn", propertyReturnDone ? 1 : 0);
+
+                con.Open();
+                int affected = Convert.ToInt32(cmd.ExecuteScalar());
+                if (affected > 0)
+                {
+                    errorCode = null;
+                    return true;
+                }
+            }
+
+            // Not updated: determine why
+            const string checkSql = @"
+                SELECT cca_user_id, status
+                FROM   dbo.acr_cycles
+                WHERE  acr_id = @acrId";
+
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(checkSql, con))
+            {
+                cmd.Parameters.AddWithValue("@acrId", acrId);
+                con.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    if (!r.Read())
+                    {
+                        errorCode = "NOT_FOUND";
+                        return false;
+                    }
+
+                    Guid owner = r.GetGuid(0);
+                    string status = r.IsDBNull(1) ? null : r.GetString(1);
+
+                    if (owner != ccaUserId)
+                    {
+                        errorCode = "FORBIDDEN";
+                        return false;
+                    }
+
+                    errorCode = status == "DRAFT" ? "INTERNAL_ERROR" : "INVALID_STATE";
+                    return false;
                 }
             }
         }

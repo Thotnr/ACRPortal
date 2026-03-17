@@ -1,4 +1,4 @@
-﻿using ACRPortal.Domain.DTOs.WebToApp;
+using ACRPortal.Domain.DTOs.WebToApp;
 
 namespace ACRPortal.Application.usecase
 {
@@ -7,6 +7,8 @@ namespace ACRPortal.Application.usecase
         ApiResponse<CcaOfficerListResponse> GetOfficers();
         ApiResponse<CcaEmployeeDropdownResponse> GetEmployeesForDropdown();
         ApiResponse<CreateAcrResponse> CreateAcr(string ccaUserId, CreateAcrRequest request);
+        ApiResponse<EmptyResponse> UpdateDraftAcr(string acrId, string ccaUserId, UpdateDraftAcrRequest request);
+        ApiResponse<EmptyResponse> SubmitDraftAcr(string acrId, string ccaUserId);
         ApiResponse<AcrListResponse> GetAcrList();
     }
 }

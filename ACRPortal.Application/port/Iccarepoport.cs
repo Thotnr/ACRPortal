@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using ACRPortal.Domain.DTOs.WebToApp;
 
@@ -10,6 +10,7 @@ namespace ACRPortal.Application.port
         List<CcaEmployeeDropdownItem> GetEmployeesForDropdown();
         bool IsUserActive(Guid userId);
         bool IsAcrDuplicate(Guid officerUserId, string department, DateTime postingFrom);
+        bool IsAcrDuplicateExcluding(Guid acrId, Guid officerUserId, string department, DateTime postingFrom);
         DesignationLookupItem GetDesignationById(int dsgId);
         string CreateAcr(
             Guid officerUserId,
@@ -29,8 +30,32 @@ namespace ACRPortal.Application.port
             string academicQualification,
             string technicalQualification,
             string careerPostingSummary,
-            bool propertyReturnDone
+            bool propertyReturnDone,
+            string status
         );
+        bool TryUpdateDraftAcr(
+            Guid acrId,
+            Guid ccaUserId,
+            Guid officerUserId,
+            Guid reportingUserId,
+            Guid? reportingUserId2,
+            Guid reviewingUserId,
+            Guid acceptingUserId,
+            string department,
+            string location,
+            DateTime postingFrom,
+            DateTime postingTo,
+            int acrYear,
+            string designation,
+            string formType,
+            DateTime dateOfBirth,
+            string academicQualification,
+            string technicalQualification,
+            string careerPostingSummary,
+            bool propertyReturnDone,
+            out string errorCode
+        );
+        bool TrySubmitDraftAcr(Guid acrId, Guid ccaUserId, out string errorCode);
         List<AcrListItem> GetAcrList();
     }
 }

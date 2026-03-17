@@ -33,7 +33,7 @@ CcaApiController → ICcaUseCase → CcaService → ICcaRepoPort → CcaAdapter
 [qualification]          NVARCHAR(500)     NULL      -- "AcademicQual | TechnicalQual"
 [career_posting_summary] NVARCHAR(MAX)     NULL
 [property_return_done]   BIT               NOT NULL  DEFAULT 0
-[status]                 VARCHAR(30)       NOT NULL  DEFAULT 'PENDING_OFFICER'
+[status]                 VARCHAR(30)       NOT NULL  DEFAULT 'PENDING_OFFICER'  -- includes 'DRAFT'
 [created_at]             DATETIME          NOT NULL  DEFAULT GETDATE()
 [updated_at]             DATETIME          NOT NULL  DEFAULT GETDATE()
 ```
@@ -78,6 +78,9 @@ public class CreateAcrRequest {
     public string OfficerUserId           { get; set; }  // required — GUID string
     public int    DesignationId           { get; set; }  // required — dsgId from tbDsg; CCA selects from dropdown
 
+    // If true, saves ACR in DRAFT status (does not reach officer queue until submitted)
+    public bool   SaveAsDraft             { get; set; }  // optional — default false
+
     // Posting details
     public string Department              { get; set; }  // required
     public string Location                { get; set; }  // required
@@ -104,7 +107,7 @@ public class CreateAcrRequest {
 public class CreateAcrResponse {
     public string AcrId    { get; set; }  // newly created acr_id (GUID string)
     public string FormType { get; set; }  // resolved from officer's designation
-    public string Status   { get; set; }  // always "PENDING_OFFICER" on creation
+    public string Status   { get; set; }  // "DRAFT" when SaveAsDraft=true, else "PENDING_OFFICER"
 }
 ```
 
@@ -222,6 +225,8 @@ Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
 Creates a new ACR cycle for a specific officer posting. The CCA's own `user_id` is read from the JWT token and stored as `cca_user_id` — it is not sent in the request body. `form_type` is resolved server-side from the officer's designation and is not sent by the caller.
 
+**Draft rule:** when `SaveAsDraft = true`, the ACR is created with `status = 'DRAFT'`. It will not appear in the officer's queue until the CCA submits it using **API 5**.
+
 **`ReportingUserId2` rule:** must be provided when the officer's designation has `FormType = 'A1b'`. Must be `null` or omitted for `A1a` and `A2`.
 
 **`acr_year` derivation:** computed from `PostingTo` — if month ≥ April, `acr_year = PostingTo.Year`; otherwise `acr_year = PostingTo.Year - 1`.
@@ -231,6 +236,7 @@ Creates a new ACR cycle for a specific officer posting. The CCA's own `user_id` 
 {
   "OfficerUserId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   "DesignationId": 1002,
+  "SaveAsDraft": false,
   "Department": "OP Division, Sirsa",
   "Location": "Sirsa",
   "PostingFrom": "2025-04-01",
@@ -256,6 +262,20 @@ Creates a new ACR cycle for a specific officer posting. The CCA's own `user_id` 
     "AcrId": "e5f6a7b8-c9d0-1234-efab-345678901234",
     "FormType": "A1b",
     "Status": "PENDING_OFFICER"
+  },
+  "ErrorCode": null
+}
+```
+
+### Success `201` (Draft)
+```json
+{
+  "Success": true,
+  "Message": "ACR saved as draft",
+  "Data": {
+    "AcrId": "e5f6a7b8-c9d0-1234-efab-345678901234",
+    "FormType": "A1b",
+    "Status": "DRAFT"
   },
   "ErrorCode": null
 }
@@ -332,13 +352,79 @@ Returns all ACR cycles across all officers, ordered by creation date descending.
 
 | Status | Who sets it | Meaning |
 |---|---|---|
-| `PENDING_OFFICER` | CCA (on create) | ACR created, waiting for officer self-appraisal |
+| `DRAFT` | CCA (save as draft) | ACR saved by CCA but not yet submitted to the officer step |
+| `PENDING_OFFICER` | CCA (on submit) | ACR is active at officer step, waiting for officer self-appraisal |
 | `PENDING_REPORTING` | System (on officer submit) | Officer submitted, waiting for RA1 |
 | `PENDING_REPORTING2` | System (on RA1 submit, A1b only) | RA1 done, waiting for RA2 |
 | `PENDING_REVIEWING` | System (on RA submit) | RA done, waiting for RvA |
 | `PENDING_ACCEPTING` | System (on RvA submit) | RvA done, waiting for AA |
 | `APPROVED` | System (on AA accept) | ACR finalised and approved |
 | `REJECTED` | System (on AA reject) | ACR finalised and rejected |
+
+---
+
+## API 5 — Save Draft Changes (Update Draft ACR)
+**PATCH** `/api/cca/acr/{acrId}`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
+
+Updates the draft data entered by CCA **without** advancing workflow.
+
+**Allowed only when:** `acr_cycles.status = 'DRAFT'` and `cca_user_id` matches the caller.
+
+### Request
+Same shape as `CreateAcrRequest` **except** `SaveAsDraft` is not used here (status remains `DRAFT`).
+
+### Success `200`
+```json
+{
+  "Success": true,
+  "Message": "Draft saved successfully",
+  "Data": {},
+  "ErrorCode": null
+}
+```
+
+### Failure Cases
+| Scenario | ErrorCode | HTTP |
+|---|---|---|
+| `acrId` is missing/invalid | `BAD_REQUEST` | 400 |
+| Body missing | `BAD_REQUEST` | 400 |
+| ACR not found | `NOT_FOUND` | 404 |
+| ACR was created by a different CCA | `FORBIDDEN` | 403 |
+| ACR is not in `DRAFT` status | `INVALID_STATE` | 409 |
+| Changes make it a duplicate (officer + department + posting_from) | `DUPLICATE_ACR` | 409 |
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
+| Unexpected error | `INTERNAL_ERROR` | 500 |
+
+---
+
+## API 5 — Submit Draft ACR Cycle
+**POST** `/api/cca/acr/{acrId}/submit`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
+
+Moves a drafted ACR to the officer step.
+
+**State transition:** `DRAFT` → `PENDING_OFFICER`
+
+### Success `200`
+```json
+{
+  "Success": true,
+  "Message": "Draft submitted successfully",
+  "Data": {},
+  "ErrorCode": null
+}
+```
+
+### Failure Cases
+| Scenario | ErrorCode | HTTP |
+|---|---|---|
+| `acrId` is missing/invalid | `BAD_REQUEST` | 400 |
+| ACR not found | `NOT_FOUND` | 404 |
+| ACR was created by a different CCA | `FORBIDDEN` | 403 |
+| ACR is not in `DRAFT` status | `INVALID_STATE` | 409 |
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
+| Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
@@ -350,6 +436,8 @@ Returns all ACR cycles across all officers, ordered by creation date descending.
 | GET | `/api/cca/employees` | List active employees for RA/RvA/AA dropdowns |
 | POST | `/api/cca/acr` | Create a new ACR cycle |
 | GET | `/api/cca/acr` | List all ACR cycles |
+| PATCH | `/api/cca/acr/{acrId}` | Save changes to a drafted ACR (DRAFT only) |
+| POST | `/api/cca/acr/{acrId}/submit` | Submit a drafted ACR (DRAFT → PENDING_OFFICER) |
 
 ---
 
@@ -359,6 +447,8 @@ public interface ICcaUseCase {
     ApiResponse<CcaOfficerListResponse>    GetOfficers();
     ApiResponse<CcaEmployeeDropdownResponse> GetEmployeesForDropdown();
     ApiResponse<CreateAcrResponse>         CreateAcr(string ccaUserId, CreateAcrRequest request);
+    ApiResponse<EmptyResponse>             UpdateDraftAcr(string acrId, string ccaUserId, UpdateDraftAcrRequest request);
+    ApiResponse<EmptyResponse>             SubmitDraftAcr(string acrId, string ccaUserId);
     ApiResponse<AcrListResponse>           GetAcrList();
 }
 ```
@@ -370,6 +460,7 @@ public interface ICcaRepoPort {
     List<CcaEmployeeDropdownItem>  GetEmployeesForDropdown();
     bool                           IsUserActive(Guid userId);
     bool                           IsAcrDuplicate(Guid officerUserId, string department, DateTime postingFrom);
+    bool                           IsAcrDuplicateExcluding(Guid acrId, Guid officerUserId, string department, DateTime postingFrom);
     DesignationLookupItem          GetDesignationById(int dsgId);
     string                         CreateAcr(
                                        Guid officerUserId, Guid reportingUserId, Guid? reportingUserId2,
@@ -379,7 +470,20 @@ public interface ICcaRepoPort {
                                        string designation, string formType,
                                        DateTime dateOfBirth,
                                        string academicQualification, string technicalQualification,
-                                       string careerPostingSummary, bool propertyReturnDone);
+                                       string careerPostingSummary, bool propertyReturnDone,
+                                       string status);
+    bool                           TryUpdateDraftAcr(
+                                       Guid acrId, Guid ccaUserId,
+                                       Guid officerUserId, Guid reportingUserId, Guid? reportingUserId2,
+                                       Guid reviewingUserId, Guid acceptingUserId,
+                                       string department, string location,
+                                       DateTime postingFrom, DateTime postingTo, int acrYear,
+                                       string designation, string formType,
+                                       DateTime dateOfBirth,
+                                       string academicQualification, string technicalQualification,
+                                       string careerPostingSummary, bool propertyReturnDone,
+                                       out string errorCode);
+    bool                           TrySubmitDraftAcr(Guid acrId, Guid ccaUserId, out string errorCode);
     List<AcrListItem>              GetAcrList();
 }
 ```
