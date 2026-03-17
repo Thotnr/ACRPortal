@@ -46,13 +46,11 @@ namespace ACRPortal.Infrastructure.Adapter
             return ExistsCheck(sql, new SqlParameter("@id", dsgId));
         }
 
-        public int CreateDsg(string dsg, string dsgDesc, int dsgLevel)
+        public int CreateDsg(string dsg, string dsgDesc, int dsgLevel, string formType)
         {
-            // dsgId is IDENTITY starting at 1001 — let the DB assign it
-            // dsgIsActive is BIT (1 = active), created_at is set by DEFAULT GETDATE()
             const string sql = @"
-                INSERT INTO dbo.tbDsg (dsg, dsgDesc, dsgLevel, dsgIsActive)
-                VALUES (@dsg, @dsgDesc, @dsgLevel, 1);
+                INSERT INTO dbo.tbDsg (dsg, dsgDesc, dsgLevel, dsgIsActive, form_type)
+                VALUES (@dsg, @dsgDesc, @dsgLevel, 1, @formType);
                 SELECT SCOPE_IDENTITY();";
 
             using (var con = new SqlConnection(_conn))
@@ -61,31 +59,34 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.AddWithValue("@dsg", dsg);
                 cmd.Parameters.AddWithValue("@dsgDesc", (object)dsgDesc ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@dsgLevel", dsgLevel);
+                cmd.Parameters.AddWithValue("@formType", formType);
                 con.Open();
                 return Convert.ToInt32(cmd.ExecuteScalar());
             }
         }
 
-        public void UpdateDsg(int dsgId, string dsg, string dsgDesc, int dsgLevel)
+        public void UpdateDsg(int dsgId, string dsg, string dsgDesc, int dsgLevel, string formType)
         {
             const string sql = @"
                 UPDATE dbo.tbDsg
-                SET    dsg      = @dsg,
-                       dsgDesc  = @dsgDesc,
-                       dsgLevel = @dsgLevel
-                WHERE  dsgId    = @id";
+                SET    dsg       = @dsg,
+                       dsgDesc   = @dsgDesc,
+                       dsgLevel  = @dsgLevel,
+                       form_type = @formType
+                WHERE  dsgId     = @id";
 
             ExecuteNonQuery(sql,
                 new SqlParameter("@dsg", dsg),
                 new SqlParameter("@dsgDesc", (object)dsgDesc ?? DBNull.Value),
                 new SqlParameter("@dsgLevel", dsgLevel),
+                new SqlParameter("@formType", formType),
                 new SqlParameter("@id", dsgId));
         }
 
         public List<DsgItem> GetDesignations(bool activeOnly)
         {
             string sql = @"
-                SELECT dsgId, dsg, dsgDesc, dsgLevel, dsgIsActive
+                SELECT dsgId, dsg, dsgDesc, dsgLevel, dsgIsActive, form_type
                 FROM   dbo.tbDsg"
                 + (activeOnly ? " WHERE dsgIsActive = 1" : "")
                 + " ORDER BY dsgLevel, dsgId";
@@ -103,7 +104,8 @@ namespace ACRPortal.Infrastructure.Adapter
                             Dsg = r.IsDBNull(1) ? null : r.GetString(1),
                             DsgDesc = r.IsDBNull(2) ? null : r.GetString(2),
                             DsgLevel = r.IsDBNull(3) ? 0 : r.GetInt32(3),
-                            IsActive = !r.IsDBNull(4) && r.GetBoolean(4)  // BIT column
+                            IsActive = !r.IsDBNull(4) && r.GetBoolean(4),
+                            FormType = r.IsDBNull(5) ? null : r.GetString(5)
                         });
             }
             return list;
