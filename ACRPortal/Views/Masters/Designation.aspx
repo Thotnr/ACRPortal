@@ -124,8 +124,7 @@ entries
 <th onclick="sortTable('DsgId')">ID</th>
 <th onclick="sortTable('Dsg')">Designation</th>
 <th onclick="sortTable('DsgDesc')">Description</th>
-<!-- <th onclick="sortTable('DsgLevel')">Level</th> -->
-<!-- <th onclick="sortTable('IsActive')">Active</th> -->
+<th onclick="sortTable('FormType')">Form Type</th>
 <th width="80">Action</th>
 
 </tr>
@@ -178,10 +177,15 @@ entries
 <input type="text" id="dsgDesc" class="form-control">
 </div>
 
-<!-- <div class="form-group">
-<label>Level</label>
-<input type="number" id="dsgLevel" class="form-control" required>
-</div> -->
+<div class="form-group">
+<label>Form Type</label>
+<select id="formType" class="form-control" required>
+<option value="">Select Form Type</option>
+<option value="A1a">A1a - SE and above</option>
+<option value="A1b">A1b - AE upto XEN</option>
+<option value="A2">A2 - General and Accounts Wing</option>
+</select>
+</div>
 
 <div class="text-center mt-3">
 <button type="submit" class="btn btn-success btn-sm">Save</button>
@@ -298,11 +302,11 @@ body.append(`
 <td>${d.DsgId}</td>
 <td>${d.Dsg}</td>
 <td>${d.DsgDesc || ""}</td>
-
+<td>${d.FormType || ""}</td>
 <td class="text-center">
 
 <button class="action-btn"
-onclick="editDesignation(${d.DsgId},'${d.Dsg}','${d.DsgDesc || ""}')">
+onclick="editDesignation(${d.DsgId},'${d.Dsg}','${d.DsgDesc || ""}','${d.FormType || ""}')">
 
 <i class="fa fa-pen"></i>
 
@@ -465,7 +469,7 @@ $("#designationModal").modal("show");
 }
 
 
-function editDesignation(id,code,desc){
+function editDesignation(id,code,desc, formType){
 
 isEditMode=true;
 editId=id;
@@ -474,9 +478,10 @@ $("#modalTitle").text("Update Designation");
 
 $("#dsg").val(code);
 $("#dsgDesc").val(desc);
-// $("#dsgLevel").val(level);
+$("#formType").val(formType);
 
 $("#designationModal").modal("show");
+
 
 }
 
@@ -498,6 +503,13 @@ e.preventDefault();
 var dsg=$("#dsg").val().trim();
 var dsgDesc=$("#dsgDesc").val().trim();
 // var dsgLevel=parseInt($("#dsgLevel").val());
+debugger
+var formType=$("#formType").val();
+
+if(!formType){
+alert("Select Form Type");
+return;
+}
 
 if(!dsg){
 alert("Enter designation");
@@ -527,7 +539,8 @@ headers:{
 data:JSON.stringify({
 Dsg:dsg,
 DsgDesc:dsgDesc,
-DsgLevel:1
+DsgLevel:1,
+FormType:formType
 }),
 
 success:function(res){
@@ -565,7 +578,8 @@ else{
 var body={
 Dsg:dsg,
 DsgDesc:dsgDesc,
-DsgLevel:1
+DsgLevel:1,
+FormType:formType
 };
 
 $.ajax({
