@@ -41,6 +41,18 @@ namespace ACRPortal
                 url: "{controller}/{action}/{id}",
                 defaults: new { controller = "Dashboard", action = "Index", id = UrlParameter.Optional }
             );
+
+            // routes.MapRoute(
+            //     name: "CcaRaiseAppraisal",
+            //     url: "CCA/RaiseAppraisal",
+            //     defaults: new { controller = "CcaWeb", action = "RaiseAppraisal" }
+            // );
+
+            // routes.MapRoute(
+            //     name: "CcaAcrList",
+            //     url: "CCA/AcrList",
+            //     defaults: new { controller = "CcaWeb", action = "AcrList" }
+            // );
         }
     }
 }

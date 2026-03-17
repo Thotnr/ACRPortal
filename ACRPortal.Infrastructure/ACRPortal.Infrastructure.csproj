@@ -52,6 +52,7 @@
     <Compile Include="Adapter\AdminAdapter.cs" />
     <Compile Include="Adapter\AdminMastersAdapter.cs" />
     <Compile Include="Adapter\AuthAdapter.cs" />
+    <Compile Include="Adapter\Ccaadapter.cs" />
     <Compile Include="Adapter\UserAdapter.cs" />
     <Compile Include="Class1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
