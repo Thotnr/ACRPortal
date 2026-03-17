@@ -119,29 +119,24 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-  <Content Include="Global.asax" />
-  <Content Include="Web.config" />
-
-  <!-- Assets -->
-  <Content Include="assets\**\*.*" />
-
-  <!-- Views -->
-  <Content Include="Views\**\*.*" />
-
-  <!-- Config -->
-  <Content Include="Views\web.config" />
-
-  <!-- NuGet -->
-  <None Include="packages.config" />
-
-  <!-- Transform -->
-  <None Include="Web.Debug.config">
-    <DependentUpon>Web.config</DependentUpon>
-  </None>
-  <None Include="Web.Release.config">
-    <DependentUpon>Web.config</DependentUpon>
-  </None>
-</ItemGroup>
+    <Content Include="Global.asax" />
+    <Content Include="Web.config" />
+    <!-- Assets -->
+    <Content Include="assets\**\*.*" />
+    <!-- Views -->
+    <Content Include="Views\**\*.*" />
+    <!-- Config -->
+    <Content Include="Views\web.config" />
+    <!-- NuGet -->
+    <None Include="packages.config" />
+    <!-- Transform -->
+    <None Include="Web.Debug.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+    <None Include="Web.Release.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+  </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
@@ -151,6 +146,7 @@
     <Compile Include="Controllers\Api\AdminController.cs" />
     <Compile Include="Controllers\Api\AdminMastersController.cs" />
     <Compile Include="Controllers\Api\AuthController.cs" />
+    <Compile Include="Controllers\Api\Ccaapicontroller.cs" />
     <Compile Include="Controllers\Api\HelloController.cs" />
     <Compile Include="Controllers\Api\UserController.cs" />
     <Compile Include="Controllers\Web\DashboardController.cs" />

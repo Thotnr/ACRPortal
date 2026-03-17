@@ -34,6 +34,9 @@ namespace ACRPortal
 
             container.RegisterType<IAdminRepoPort, AdminAdapter>();
             container.RegisterType<IAdminUseCase, AdminService>();
+
+            container.RegisterType<ICcaUseCase, CcaService>();
+            container.RegisterType<ICcaRepoPort, CcaAdapter>();
         }
     }
 }
