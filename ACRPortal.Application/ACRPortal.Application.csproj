@@ -45,16 +45,19 @@
     <Compile Include="port\IAdminMastersRepoPort.cs" />
     <Compile Include="port\IAdminRepoPort.cs" />
     <Compile Include="port\IAuthRepoPort.cs" />
+    <Compile Include="port\Iccarepoport.cs" />
     <Compile Include="port\IUserRepoPort.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="service\AdminMastersService.cs" />
     <Compile Include="service\AdminService.cs" />
     <Compile Include="service\AuthService.cs" />
+    <Compile Include="service\Ccaservice.cs" />
     <Compile Include="service\HelloUseCase.cs" />
     <Compile Include="service\UserService.cs" />
     <Compile Include="usecase\IAdminMastersUseCase.cs" />
     <Compile Include="usecase\IAdminUseCase.cs" />
     <Compile Include="usecase\IAuthUseCase.cs" />
+    <Compile Include="usecase\Iccausecase.cs" />
     <Compile Include="usecase\IHelloUseCase.cs" />
     <Compile Include="usecase\IUserUseCase.cs" />
   </ItemGroup>
