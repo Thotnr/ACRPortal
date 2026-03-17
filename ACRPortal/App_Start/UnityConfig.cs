@@ -37,6 +37,10 @@ namespace ACRPortal
 
             container.RegisterType<ICcaUseCase, CcaService>();
             container.RegisterType<ICcaRepoPort, CcaAdapter>();
+
+            // Officer ACR flow (self-appraisal draft/submit)
+            container.RegisterType<IOfficerRepoPort, OfficerAdapter>();
+            container.RegisterType<IOfficerUseCase, OfficerService>();
         }
     }
 }

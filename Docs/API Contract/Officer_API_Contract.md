@@ -16,6 +16,7 @@ These APIs cover the **Officer step** of the ACR workflow:
 - `acr_cycles.status` stays `PENDING_OFFICER` while the Officer is working.
 - Draft is represented by `self_appraisals.submitted_at = NULL`.
 - Submitting sets `submitted_at` and transitions `acr_cycles.status` to `PENDING_REPORTING`.
+- Draft can be saved **multiple times** before submission (idempotent upsert on `self_appraisals`).
 
 ---
 
@@ -24,6 +25,8 @@ These APIs cover the **Officer step** of the ACR workflow:
 ```
 OfficerApiController → IOfficerUseCase → OfficerService → IOfficerRepoPort → OfficerAdapter
 ```
+
+> Note: This contract defines the target layering for Officer endpoints (same style as Admin/CCA).
 
 ---
 
@@ -273,7 +276,7 @@ Returns the ACR header + officer’s self-appraisal (draft or submitted).
 ---
 
 ## API 3 — Save Self-Appraisal Draft (repeatable)
-**PUT** `/api/acr/{acrId}/self-appraisal/draft`  
+**PATCH** `/api/acr/{acrId}/self-appraisal/draft`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
 Creates or updates the officer’s self-appraisal record for the ACR.
@@ -282,6 +285,7 @@ Creates or updates the officer’s self-appraisal record for the ACR.
 - Allowed only when `acr_cycles.status = 'PENDING_OFFICER'`.
 - Does **not** change `acr_cycles.status`.
 - Sets/keeps `self_appraisals.submitted_at = NULL`.
+- Can be called multiple times; last save wins.
 
 ### Request
 ```json
@@ -319,6 +323,7 @@ Creates or updates the officer’s self-appraisal record for the ACR.
 | ACR not found | `NOT_FOUND` | 404 |
 | ACR does not belong to caller | `FORBIDDEN` | 403 |
 | ACR not in Officer step | `INVALID_STATE` | 409 |
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
 | Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
@@ -350,7 +355,30 @@ Marks the self-appraisal as submitted and advances the workflow.
 | ACR not in Officer step | `INVALID_STATE` | 409 |
 | Self-appraisal missing (never saved) | `BAD_REQUEST` | 400 |
 | Self-appraisal already submitted | `ALREADY_SUBMITTED` | 409 |
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
 | Unexpected error | `INTERNAL_ERROR` | 500 |
+
+---
+
+## `IOfficerUseCase` — interface shape
+```csharp
+public interface IOfficerUseCase {
+  ApiResponse<MyAcrListResponse> GetMyAcrs(string officerUserId, string status);
+  ApiResponse<AcrDetailResponse> GetAcrDetail(string acrId, string officerUserId);
+  ApiResponse<EmptyResponse>     SaveSelfAppraisalDraft(string acrId, string officerUserId, SelfAppraisalDraftRequest request);
+  ApiResponse<EmptyResponse>     SubmitSelfAppraisal(string acrId, string officerUserId);
+}
+```
+
+## `IOfficerRepoPort` — interface shape
+```csharp
+public interface IOfficerRepoPort {
+  MyAcrListResponse GetMyAcrs(Guid officerUserId, string status);
+  AcrDetailResponse GetAcrDetail(Guid acrId, Guid officerUserId);
+  bool TryUpsertSelfAppraisalDraft(Guid acrId, Guid officerUserId, SelfAppraisalDraftRequest request, out string errorCode);
+  bool TrySubmitSelfAppraisal(Guid acrId, Guid officerUserId, out string errorCode);
+}
+```
 
 ---
 
@@ -360,6 +388,6 @@ Marks the self-appraisal as submitted and advances the workflow.
 |---|---|---|
 | GET | `/api/acr/my` | List caller’s ACR cycles |
 | GET | `/api/acr/{acrId}` | Get ACR detail for officer |
-| PUT | `/api/acr/{acrId}/self-appraisal/draft` | Save self-appraisal draft (repeatable) |
+| PATCH | `/api/acr/{acrId}/self-appraisal/draft` | Save self-appraisal draft (repeatable) |
 | POST | `/api/acr/{acrId}/self-appraisal/submit` | Submit self-appraisal (advance status) |
 
