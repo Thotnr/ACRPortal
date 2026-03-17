@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ACRPortal.Domain.DTOs.WebToApp
@@ -34,6 +34,35 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     }
 
     public class CreateAcrRequest
+    {
+        public string OfficerUserId { get; set; }
+        public int DesignationId { get; set; }
+        /// <summary>
+        /// When true, creates the ACR in DRAFT status (CCA can later submit it to Pending Officer).
+        /// When false (default), creates the ACR directly in PENDING_OFFICER.
+        /// </summary>
+        public bool SaveAsDraft { get; set; }
+        public string Department { get; set; }
+        public string Location { get; set; }
+        public string PostingFrom { get; set; }
+        public string PostingTo { get; set; }
+        public string DateOfBirth { get; set; }
+        public string AcademicQualification { get; set; }
+        public string TechnicalQualification { get; set; }
+        public string CareerPostingSummary { get; set; }
+        public bool PropertyReturnDone { get; set; }
+        public string ReportingUserId { get; set; }
+        public string ReportingUserId2 { get; set; }
+        public string ReviewingUserId { get; set; }
+        public string AcceptingUserId { get; set; }
+    }
+
+    /// <summary>
+    /// Updates an existing drafted ACR (status must be DRAFT).
+    /// Full payload is required (same validation rules as CreateAcr),
+    /// but status is not changed by this operation.
+    /// </summary>
+    public class UpdateDraftAcrRequest
     {
         public string OfficerUserId { get; set; }
         public int DesignationId { get; set; }
