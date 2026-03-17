@@ -67,15 +67,6 @@ margin-bottom:10px;
 
 <div class="row mb-3">
 
-<!-- <div class="col-md-3">
-
-<select id="activeFilter" class="form-control" onchange="loadDesignations()">
-<option value="true" selected>Active Only</option>
-<option value="false">All</option>
-</select>
-
-</div> -->
-
 <div class="col-md-3">
 
 <input type="text"
@@ -180,7 +171,7 @@ entries
 <div class="form-group">
 <label>Form Type</label>
 <select id="formType" class="form-control" required>
-<option value="">Select Form Type</option>
+<option value="" selected disabled>Select Form Type</option>
 <option value="A1a">A1a - SE and above</option>
 <option value="A1b">A1b - AE upto XEN</option>
 <option value="A2">A2 - General and Accounts Wing</option>
@@ -253,7 +244,12 @@ success:function(res){
 if(res.Success){
 
 designations=res.Data.Designations || [];
+designations.sort(function(a,b){
+return a.DsgId - b.DsgId;
+});
 filteredDesignations=[...designations];
+currentSortColumn = "DsgId";
+sortAsc = true;
 
 currentPage=1;
 renderTable();
@@ -302,7 +298,7 @@ body.append(`
 <td>${d.DsgId}</td>
 <td>${d.Dsg}</td>
 <td>${d.DsgDesc || ""}</td>
-<td>${d.FormType || ""}</td>
+<td>${getFormTypeText(d.FormType || "")}</td>
 <td class="text-center">
 
 <button class="action-btn"
@@ -455,17 +451,13 @@ MODAL
 ========================= */
 
 function openDesignationModal(){
-
 isEditMode=false;
-
 $("#modalTitle").text("Add Designation");
-
 $("#dsg").val("");
 $("#dsgDesc").val("");
-// $("#dsgLevel").val("");
-
+// ✅ IMPORTANT FIX
+$("#formType").val("");   // reset dropdown
 $("#designationModal").modal("show");
-
 }
 
 
@@ -502,8 +494,6 @@ e.preventDefault();
 
 var dsg=$("#dsg").val().trim();
 var dsgDesc=$("#dsgDesc").val().trim();
-// var dsgLevel=parseInt($("#dsgLevel").val());
-debugger
 var formType=$("#formType").val();
 
 if(!formType){
@@ -515,12 +505,6 @@ if(!dsg){
 alert("Enter designation");
 return;
 }
-
-// if(!dsgLevel || dsgLevel<=0){
-// alert("Level must be greater than 0");
-// return;
-// }
-
 
 /* CREATE */
 
@@ -661,6 +645,14 @@ alert(xhr.responseJSON.Message);
 alert("Server error occurred");
 }
 
+}
+function getFormTypeText(val){
+
+if(val==="A1a") return "SE and above";
+if(val==="A1b") return "AE upto XEN";
+if(val==="A2") return "General and Accounts Wing";
+
+return val || "";
 }
 
 </script>
