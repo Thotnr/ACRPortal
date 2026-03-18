@@ -38,7 +38,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 JOIN    dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
                 WHERE  (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
-                  AND   ac.status IN ('PENDING_REPORTING', 'PENDING_REPORTING2')
+                  AND   ac.status = 'PENDING_REPORTING'
                 ORDER BY ac.created_at DESC";
 
             var resp = new MyReportingQueueResponse();
@@ -219,18 +219,18 @@ namespace ACRPortal.Infrastructure.Adapter
                     Guid ra1 = r.GetGuid(12);
                     Guid? ra2 = r.IsDBNull(13) ? (Guid?)null : r.GetGuid(13);
 
-                    bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase);
-                    bool isRa2Active = string.Equals(status, "PENDING_REPORTING2", StringComparison.OrdinalIgnoreCase);
+                    bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
+                                       && userId == ra1;
+                    bool isRa2Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
+                                       && ra2.HasValue && userId == ra2.Value;
 
-                    if (isRa1Active)
+                    if (!isRa1Active && !isRa2Active)
                     {
-                        if (userId != ra1) { errorCode = "FORBIDDEN"; return null; }
+                        // Not in reporting step at all, or caller is not an RA for this ACR
+                        if (!string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase))
+                        { errorCode = "INVALID_STATE"; return null; }
+                        errorCode = "FORBIDDEN"; return null;
                     }
-                    else if (isRa2Active)
-                    {
-                        if (!ra2.HasValue || userId != ra2.Value) { errorCode = "FORBIDDEN"; return null; }
-                    }
-                    else { errorCode = "INVALID_STATE"; return null; }
 
                     var resp = new ReportingAcrDetailResponse
                     {
@@ -380,13 +380,17 @@ namespace ACRPortal.Infrastructure.Adapter
                 }
             }
 
-            bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase);
-            bool isRa2Active = string.Equals(status, "PENDING_REPORTING2", StringComparison.OrdinalIgnoreCase);
+            bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
+                               && userId == ra1;
+            bool isRa2Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
+                               && ra2.HasValue && userId == ra2.Value;
 
-            if (!isRa1Active && !isRa2Active) { errorCode = "INVALID_STATE"; return false; }
-
-            if (isRa1Active && userId != ra1) { errorCode = "FORBIDDEN"; return false; }
-            if (isRa2Active && (!ra2.HasValue || userId != ra2.Value)) { errorCode = "FORBIDDEN"; return false; }
+            if (!isRa1Active && !isRa2Active)
+            {
+                errorCode = !string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
+                    ? "INVALID_STATE" : "FORBIDDEN";
+                return false;
+            }
 
             // Check not already submitted for this role
             const string submittedCheck = @"
@@ -548,26 +552,42 @@ namespace ACRPortal.Infrastructure.Adapter
                         }
                     }
 
-                    bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase);
-                    bool isRa2Active = string.Equals(status, "PENDING_REPORTING2", StringComparison.OrdinalIgnoreCase);
-                    bool requireA1b = string.Equals(formType, "A1b", StringComparison.OrdinalIgnoreCase);
+                    // Both RA1 and RA2 operate under a single PENDING_REPORTING status
+                    if (!string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase))
+                    { tx.Rollback(); errorCode = "INVALID_STATE"; return false; }
 
-                    if (isRa1Active)
+                    bool callerIsRa1 = userId == ra1;
+                    bool callerIsRa2 = ra2.HasValue && userId == ra2.Value;
+                    bool isA1b = string.Equals(formType, "A1b", StringComparison.OrdinalIgnoreCase);
+
+                    if (!callerIsRa1 && !callerIsRa2)
+                    { tx.Rollback(); errorCode = "FORBIDDEN"; return false; }
+
+                    // Read current submitted_at values; draft row must exist
+                    const string getSubmitted = @"
+                        SELECT ra1_submitted_at, ra2_submitted_at
+                        FROM   dbo.reporting_assessments
+                        WHERE  acr_id = @acrId";
+
+                    DateTime? ra1Sub = null;
+                    DateTime? ra2Sub = null;
+
+                    using (var cmd = new SqlCommand(getSubmitted, con, tx))
                     {
-                        if (userId != ra1) { tx.Rollback(); errorCode = "FORBIDDEN"; return false; }
+                        cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
+                        using (var r = cmd.ExecuteReader())
+                        {
+                            if (!r.Read()) { tx.Rollback(); errorCode = "BAD_REQUEST"; return false; }
+                            ra1Sub = r.IsDBNull(0) ? (DateTime?)null : r.GetDateTime(0);
+                            ra2Sub = r.IsDBNull(1) ? (DateTime?)null : r.GetDateTime(1);
+                        }
                     }
-                    else if (isRa2Active)
-                    {
-                        if (!ra2.HasValue || userId != ra2.Value) { tx.Rollback(); errorCode = "FORBIDDEN"; return false; }
-                    }
-                    else { tx.Rollback(); errorCode = "INVALID_STATE"; return false; }
 
-                    string nextStatus = isRa1Active
-                        ? (requireA1b ? "PENDING_REPORTING2" : "PENDING_REVIEWING")
-                        : "PENDING_REVIEWING";
+                    if (callerIsRa1 && ra1Sub.HasValue) { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }
+                    if (callerIsRa2 && ra2Sub.HasValue) { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }
 
-                    string submittedCol = isRa2Active ? "ra2_submitted_at" : "ra1_submitted_at";
-
+                    // Mark this caller's submitted_at
+                    string submittedCol = callerIsRa2 ? "ra2_submitted_at" : "ra1_submitted_at";
                     string markSql = $@"
                         UPDATE dbo.reporting_assessments
                         SET    {submittedCol} = GETDATE()
@@ -583,17 +603,26 @@ namespace ACRPortal.Infrastructure.Adapter
 
                     if (affected == 0) { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }
 
-                    const string advanceSql = @"
-                        UPDATE dbo.acr_cycles
-                        SET    status = @nextStatus, updated_at = GETDATE()
-                        WHERE  acr_id = @acrId";
+                    // For A1b: advance to PENDING_REVIEWING only when BOTH RA1 and RA2 have submitted.
+                    // For A1a/A2: advance immediately (only RA1 exists).
+                    bool otherAlreadyDone = isA1b
+                        ? (callerIsRa2 ? ra1Sub.HasValue : ra2Sub.HasValue)
+                        : true;   // no second RA — always advance
 
-                    using (var cmd = new SqlCommand(advanceSql, con, tx))
+                    if (otherAlreadyDone)
                     {
-                        cmd.Parameters.Add("@nextStatus", SqlDbType.VarChar).Value = nextStatus;
-                        cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
-                        cmd.ExecuteNonQuery();
+                        const string advanceSql = @"
+                            UPDATE dbo.acr_cycles
+                            SET    status = 'PENDING_REVIEWING', updated_at = GETDATE()
+                            WHERE  acr_id = @acrId";
+
+                        using (var cmd = new SqlCommand(advanceSql, con, tx))
+                        {
+                            cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
+                            cmd.ExecuteNonQuery();
+                        }
                     }
+                    // else: other RA hasn't submitted yet — stay in PENDING_REPORTING
 
                     tx.Commit();
                     errorCode = null;

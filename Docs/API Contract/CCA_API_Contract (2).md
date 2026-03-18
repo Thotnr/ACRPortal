@@ -45,8 +45,8 @@ CcaApiController → ICcaUseCase → CcaService → ICcaRepoPort → CcaAdapter
 [updated_at]                   DATETIME          NOT NULL  DEFAULT GETDATE()
 ```
 
-**`acr_year`:** if `posting_to` month ≥ 4, `posting_to.Year`; otherwise `posting_to.Year - 1`.  
-**`form_type` and `designation`:** resolved from `DesignationId` at INSERT time — not sent by caller.  
+**`acr_year`:** if `posting_to` month ≥ 4 → `posting_to.Year`; otherwise `posting_to.Year - 1`.  
+**`form_type` and `designation`:** resolved from `DesignationId` at INSERT — never sent by caller.  
 **Uniqueness:** `UNIQUE (officer_user_id, department, posting_from)`.
 
 ---
@@ -60,7 +60,7 @@ Both share the same fields. `CreateAcrRequest` adds `SaveAsDraft`.
 ```csharp
 // Required
 string OfficerUserId    // GUID
-int    DesignationId    // tbDsg.dsgId — server resolves form_type and designation from this
+int    DesignationId    // tbDsg.dsgId — server resolves form_type and designation
 string Department
 string Location
 string PostingFrom      // yyyy-MM-dd
@@ -90,91 +90,155 @@ bool   SaveAsDraft   // true → DRAFT; false (default) → PENDING_OFFICER
 
 ### `CcaAcrDetailResponse`
 
-Returned by `GET /api/cca/acr/{acrId}`.
+Returned by `GET /api/cca/acr/{acrId}`. Authority fields contain only the stored UUID — no name resolution.
 
 ```csharp
-public class AuthorityInfo {
-    public string UserId      { get; set; }
-    public string LoginId     { get; set; }
-    public string DisplayName { get; set; }
-    public string DsgDesc     { get; set; }   // nullable
-}
-
 public class CcaAcrDetailResponse {
     // Identity
-    public string AcrId    { get; set; }
-    public string FormType { get; set; }   // 'A1a' | 'A1b' | 'A2'
-    public string Status   { get; set; }
+    string AcrId    
+    string FormType    // 'A1a' | 'A1b' | 'A2'
+    string Status
 
-    // Officer
-    public string OfficerUserId  { get; set; }
-    public string OfficerLoginId { get; set; }
-    public string OfficerName    { get; set; }
-    public int?   DsgId          { get; set; }
-    public string DsgDesc        { get; set; }   // designation snapshot at creation time
+    // Officer (display info resolved from users JOIN)
+    string OfficerUserId
+    string OfficerLoginId
+    string OfficerName
+    int?   DsgId
+    string DsgDesc        // designation snapshot stored at creation time
 
     // Posting
-    public string Department  { get; set; }
-    public string Location    { get; set; }
-    public string PostingFrom { get; set; }   // yyyy-MM-dd
-    public string PostingTo   { get; set; }   // yyyy-MM-dd
-    public int    AcrYear     { get; set; }
+    string Department
+    string Location
+    string PostingFrom    // yyyy-MM-dd
+    string PostingTo      // yyyy-MM-dd
+    int    AcrYear
 
     // Section I
-    public string DateOfBirth               { get; set; }   // yyyy-MM-dd
-    public string DateJoiningNigam          { get; set; }   // nullable
-    public string DateJoiningPresentRank    { get; set; }   // nullable
-    public string DateJoiningPresentStation { get; set; }   // nullable
-    public string AcademicQualification     { get; set; }   // nullable
-    public string TechnicalQualification    { get; set; }   // nullable
-    public string DepartmentalExamPassed    { get; set; }   // nullable
-    public string PropertyReturnDate        { get; set; }   // yyyy-MM-dd, nullable
-    public string LastMedicalExamDate       { get; set; }   // yyyy-MM-dd, nullable
-    public string CareerPostingSummary      { get; set; }   // nullable
+    string DateOfBirth               // yyyy-MM-dd, nullable
+    string DateJoiningNigam          // yyyy-MM-dd, nullable
+    string DateJoiningPresentRank    // yyyy-MM-dd, nullable
+    string DateJoiningPresentStation // yyyy-MM-dd, nullable
+    string AcademicQualification     // nullable
+    string TechnicalQualification    // nullable
+    string DepartmentalExamPassed    // nullable
+    string PropertyReturnDate        // yyyy-MM-dd, nullable
+    string LastMedicalExamDate       // yyyy-MM-dd, nullable
+    string CareerPostingSummary      // nullable
 
-    // Resolved authorities
-    public AuthorityInfo ReportingAuthority  { get; set; }   // RA1 — always present
-    public AuthorityInfo ReportingAuthority2 { get; set; }   // RA2 — null for A1a/A2
-    public AuthorityInfo ReviewingAuthority  { get; set; }
-    public AuthorityInfo AcceptingAuthority  { get; set; }
+    // Authorities — UserId only (UUID string)
+    string ReportingAuthorityUserId   // RA1 — always present
+    string ReportingAuthority2UserId  // RA2 — null for A1a/A2
+    string ReviewingAuthorityUserId
+    string AcceptingAuthorityUserId
 
     // Audit
-    public string CreatedAt { get; set; }   // ISO 8601
-    public string UpdatedAt { get; set; }   // ISO 8601
+    string CreatedAt    // ISO 8601
+    string UpdatedAt    // ISO 8601
 }
 ```
 
 ### `AcrListItem`
 ```csharp
 public class AcrListItem {
-    public string AcrId          { get; set; }
-    public string OfficerName    { get; set; }
-    public string OfficerLoginId { get; set; }
-    public string DsgDesc        { get; set; }
-    public string FormType       { get; set; }
-    public string Department     { get; set; }
-    public string Location       { get; set; }
-    public string PostingFrom    { get; set; }   // yyyy-MM-dd
-    public string PostingTo      { get; set; }   // yyyy-MM-dd
-    public int    AcrYear        { get; set; }
-    public string Status         { get; set; }
-    public string CreatedAt      { get; set; }   // ISO 8601
+    string AcrId; string OfficerName; string OfficerLoginId; string DsgDesc;
+    string FormType; string Department; string Location;
+    string PostingFrom; string PostingTo; int AcrYear; string Status; string CreatedAt;
 }
 ```
 
 ---
 
 ## API 1 — Get Officers List
-**GET** `/api/cca/officers`
+**GET** `/api/cca/officers`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
-Returns all ACTIVE EMPLOYEE users for the officer dropdown. Response shape: `{ "Officers": [ CcaOfficerListItem ] }`.
+Populates the **"Select Officer"** dropdown when the CCA is creating an ACR. Returns `DsgCode`, `DsgDesc`, and `FormType` per officer — the frontend uses `FormType` to immediately know which form template applies and whether to show the RA2 field (`A1b` → show; `A1a` / `A2` → hide), without needing a separate designation lookup after officer selection.
+
+**Why this is different from `/api/cca/employees`:** this endpoint returns `DsgCode` and `FormType` which are only needed for officer selection logic. The employees endpoint omits those fields since authority dropdowns (RA, RvA, AA) don't need form-type awareness.
+
+### Success `200`
+```json
+{
+  "Success": true,
+  "Message": "Success",
+  "Data": {
+    "Officers": [
+      {
+        "UserId": "uuid",
+        "LoginId": "EMP001",
+        "DisplayName": "Ramesh Kumar",
+        "DsgId": 1002,
+        "DsgCode": "XEN",
+        "DsgDesc": "Executive Engineer",
+        "FormType": "A1b"
+      },
+      {
+        "UserId": "uuid",
+        "LoginId": "EMP002",
+        "DisplayName": "Kuldeep Atri",
+        "DsgId": 1003,
+        "DsgCode": "SE",
+        "DsgDesc": "Superintending Engineer",
+        "FormType": "A1a"
+      }
+    ]
+  },
+  "ErrorCode": null
+}
+```
+
+> `DsgId`, `DsgCode`, `DsgDesc`, and `FormType` are `null` if the officer has no designation assigned yet. The CCA should not create an ACR for such officers until a designation is set.
+
+### Failure Cases
+| Scenario | ErrorCode | HTTP |
+|---|---|---|
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
+| Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
 ## API 2 — Get Employees Dropdown
-**GET** `/api/cca/employees`
+**GET** `/api/cca/employees`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
-Returns all ACTIVE EMPLOYEE users for RA/RvA/AA dropdowns. Response shape: `{ "Employees": [ CcaEmployeeDropdownItem ] }`.
+Populates the **RA / RvA / AA authority dropdowns** when creating or editing an ACR. Returns the same active EMPLOYEE pool as `/api/cca/officers` but without `DsgCode` and `FormType` — those fields are irrelevant for authority selection and are omitted to keep the payload lean.
+
+**Why this is different from `/api/cca/officers`:** authority dropdowns only need to show name and designation description for identification. The form-type logic that drives the RA2 field is driven by the officer's designation (from API 1), not by the authority's.
+
+### Success `200`
+```json
+{
+  "Success": true,
+  "Message": "Success",
+  "Data": {
+    "Employees": [
+      {
+        "UserId": "uuid",
+        "LoginId": "EMP010",
+        "DisplayName": "Suresh Singh",
+        "DsgId": 1005,
+        "DsgDesc": "Superintending Engineer"
+      },
+      {
+        "UserId": "uuid",
+        "LoginId": "EMP020",
+        "DisplayName": "Anita Sharma",
+        "DsgId": 1006,
+        "DsgDesc": "Chief Engineer"
+      }
+    ]
+  },
+  "ErrorCode": null
+}
+```
+
+> `DsgId` and `DsgDesc` are `null` if the employee has no designation assigned.
+
+### Failure Cases
+| Scenario | ErrorCode | HTTP |
+|---|---|---|
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
+| Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
@@ -212,8 +276,7 @@ Requires: `Authorization: Bearer <token>` | Role: `CCA`
 ### Success `201`
 ```json
 {
-  "Success": true,
-  "Message": "ACR created successfully",
+  "Success": true, "Message": "ACR created successfully",
   "Data": { "AcrId": "uuid", "FormType": "A1b", "Status": "PENDING_OFFICER" },
   "ErrorCode": null
 }
@@ -229,7 +292,7 @@ Requires: `Authorization: Bearer <token>` | Role: `CCA`
 | RA2 required but missing (A1b) | `BAD_REQUEST` | 400 |
 | RA2 provided but not allowed (A1a/A2) | `BAD_REQUEST` | 400 |
 | Officer is their own authority | `BAD_REQUEST` | 400 |
-| Any user not active | `INVALID_OFFICER` / `INVALID_RA` / `INVALID_RA2` / `INVALID_RVA` / `INVALID_AA` | 400 |
+| Any referenced user not active | `INVALID_OFFICER` / `INVALID_RA` / `INVALID_RA2` / `INVALID_RVA` / `INVALID_AA` | 400 |
 | Duplicate ACR | `DUPLICATE_ACR` | 409 |
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
 | Unexpected error | `INTERNAL_ERROR` | 500 |
@@ -237,29 +300,21 @@ Requires: `Authorization: Bearer <token>` | Role: `CCA`
 ---
 
 ## API 4 — Get ACR List
-**GET** `/api/cca/acr`
-
-Returns all ACR cycles (all statuses), ordered by creation date descending.
+**GET** `/api/cca/acr`  
+Returns all ACR cycles ordered by creation date descending.
 
 ### Success `200`
 ```json
 {
-  "Success": true,
-  "Message": "Success",
+  "Success": true, "Message": "Success",
   "Data": {
     "AcrCycles": [
       {
-        "AcrId": "uuid",
-        "OfficerName": "Ramesh Kumar",
-        "OfficerLoginId": "EMP001",
-        "DsgDesc": "Executive Engineer",
-        "FormType": "A1b",
-        "Department": "Operation Division Hisar",
-        "Location": "Hisar",
-        "PostingFrom": "2023-04-01",
-        "PostingTo": "2024-03-31",
-        "AcrYear": 2024,
-        "Status": "PENDING_OFFICER",
+        "AcrId": "uuid", "OfficerName": "Ramesh Kumar", "OfficerLoginId": "EMP001",
+        "DsgDesc": "Executive Engineer", "FormType": "A1b",
+        "Department": "Operation Division Hisar", "Location": "Hisar",
+        "PostingFrom": "2023-04-01", "PostingTo": "2024-03-31",
+        "AcrYear": 2024, "Status": "PENDING_OFFICER",
         "CreatedAt": "2024-05-01T10:00:00.0000000Z"
       }
     ]
@@ -274,9 +329,7 @@ Returns all ACR cycles (all statuses), ordered by creation date descending.
 **GET** `/api/cca/acr/{acrId}`  
 Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
-Returns the full Section I record for one ACR including all stored fields and resolved authority names. Any CCA can fetch any ACR — no ownership restriction on reads.
-
-Does **not** include any assessment data (self-appraisal, RA grades, reviewing/accepting sections).
+Returns full Section I data for one ACR. Authority fields contain only the stored `UserId` — no name resolution. Any CCA can read any ACR (no ownership restriction on reads).
 
 ### Success `200`
 ```json
@@ -287,7 +340,7 @@ Does **not** include any assessment data (self-appraisal, RA grades, reviewing/a
     "AcrId": "uuid",
     "FormType": "A1b",
     "Status": "PENDING_REPORTING",
-    "OfficerUserId": "uuid",
+    "OfficerUserId": "uuid-officer",
     "OfficerLoginId": "EMP001",
     "OfficerName": "Ramesh Kumar",
     "DsgId": 1002,
@@ -307,30 +360,10 @@ Does **not** include any assessment data (self-appraisal, RA grades, reviewing/a
     "PropertyReturnDate": "2023-06-30",
     "LastMedicalExamDate": "2023-05-15",
     "CareerPostingSummary": "15 years in distribution operations.",
-    "ReportingAuthority": {
-      "UserId": "uuid-ra1",
-      "LoginId": "EMP010",
-      "DisplayName": "Suresh Singh",
-      "DsgDesc": "Superintending Engineer"
-    },
-    "ReportingAuthority2": {
-      "UserId": "uuid-ra2",
-      "LoginId": "EMP011",
-      "DisplayName": "Vikram Patel",
-      "DsgDesc": "Executive Engineer"
-    },
-    "ReviewingAuthority": {
-      "UserId": "uuid-rva",
-      "LoginId": "EMP020",
-      "DisplayName": "Anita Sharma",
-      "DsgDesc": "Chief Engineer"
-    },
-    "AcceptingAuthority": {
-      "UserId": "uuid-aa",
-      "LoginId": "EMP030",
-      "DisplayName": "Rajesh Gupta",
-      "DsgDesc": "Director"
-    },
+    "ReportingAuthorityUserId": "uuid-ra1",
+    "ReportingAuthority2UserId": "uuid-ra2",
+    "ReviewingAuthorityUserId": "uuid-rva",
+    "AcceptingAuthorityUserId": "uuid-aa",
     "CreatedAt": "2024-05-01T10:00:00.0000000Z",
     "UpdatedAt": "2024-05-03T14:22:00.0000000Z"
   },
@@ -338,8 +371,8 @@ Does **not** include any assessment data (self-appraisal, RA grades, reviewing/a
 }
 ```
 
-> For A1a/A2 form types, `ReportingAuthority2` is `null`.  
-> All optional date/text fields (joining dates, qualifications, property return, medical) may be `null` if not yet filled in.
+> `ReportingAuthority2UserId` is `null` for A1a/A2 form types.  
+> All optional date/text fields may be `null` if not yet populated by CCA.
 
 ### Failure Cases
 | Scenario | ErrorCode | HTTP |
@@ -353,9 +386,7 @@ Does **not** include any assessment data (self-appraisal, RA grades, reviewing/a
 
 ## API 6 — Update Draft ACR
 **PATCH** `/api/cca/acr/{acrId}`  
-ACR must be in `DRAFT` status. Same validation rules as Create.
-
-Request body: same fields as `CreateAcrRequest` excluding `SaveAsDraft`.
+ACR must be in `DRAFT` status. Same body as `CreateAcrRequest` excluding `SaveAsDraft`.
 
 ### Success `200`
 ```json
@@ -397,8 +428,8 @@ Request body: same fields as `CreateAcrRequest` excluding `SaveAsDraft`.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/cca/officers` | Active employees for officer dropdown |
-| GET | `/api/cca/employees` | Active employees for RA/RvA/AA dropdowns |
+| GET | `/api/cca/officers` | Officer dropdown — includes `DsgCode` and `FormType` to drive RA2 visibility |
+| GET | `/api/cca/employees` | Authority dropdowns (RA/RvA/AA) — name + designation only, no form-type fields |
 | POST | `/api/cca/acr` | Create a new ACR cycle |
 | GET | `/api/cca/acr` | List all ACR cycles |
 | GET | `/api/cca/acr/{acrId}` | Get full Section I detail for one ACR |
@@ -409,30 +440,26 @@ Request body: same fields as `CreateAcrRequest` excluding `SaveAsDraft`.
 
 ## `ICcaUseCase` — interface shape
 ```csharp
-public interface ICcaUseCase {
-    ApiResponse<CcaOfficerListResponse>      GetOfficers();
-    ApiResponse<CcaEmployeeDropdownResponse> GetEmployeesForDropdown();
-    ApiResponse<CreateAcrResponse>           CreateAcr(string ccaUserId, CreateAcrRequest request);
-    ApiResponse<CcaAcrDetailResponse>        GetAcrDetail(string acrId);
-    ApiResponse<EmptyResponse>               UpdateDraftAcr(string acrId, string ccaUserId, UpdateDraftAcrRequest request);
-    ApiResponse<EmptyResponse>               SubmitDraftAcr(string acrId, string ccaUserId);
-    ApiResponse<AcrListResponse>             GetAcrList();
-}
+ApiResponse<CcaOfficerListResponse>      GetOfficers();
+ApiResponse<CcaEmployeeDropdownResponse> GetEmployeesForDropdown();
+ApiResponse<CreateAcrResponse>           CreateAcr(string ccaUserId, CreateAcrRequest request);
+ApiResponse<CcaAcrDetailResponse>        GetAcrDetail(string acrId);
+ApiResponse<EmptyResponse>               UpdateDraftAcr(string acrId, string ccaUserId, UpdateDraftAcrRequest request);
+ApiResponse<EmptyResponse>               SubmitDraftAcr(string acrId, string ccaUserId);
+ApiResponse<AcrListResponse>             GetAcrList();
 ```
 
 ## `ICcaRepoPort` — interface shape
 ```csharp
-public interface ICcaRepoPort {
-    List<CcaOfficerListItem>      GetOfficers();
-    List<CcaEmployeeDropdownItem> GetEmployeesForDropdown();
-    bool IsUserActive(Guid userId);
-    bool IsAcrDuplicate(Guid officerUserId, string department, DateTime postingFrom);
-    bool IsAcrDuplicateExcluding(Guid acrId, Guid officerUserId, string department, DateTime postingFrom);
-    DesignationLookupItem GetDesignationById(int dsgId);
-    string CreateAcr(/* ... all Section I params ... */ string status);
-    bool TryUpdateDraftAcr(/* ... all Section I params ... */ out string errorCode);
-    bool TrySubmitDraftAcr(Guid acrId, Guid ccaUserId, out string errorCode);
-    CcaAcrDetailResponse GetAcrDetail(Guid acrId);
-    List<AcrListItem> GetAcrList();
-}
+List<CcaOfficerListItem>      GetOfficers();
+List<CcaEmployeeDropdownItem> GetEmployeesForDropdown();
+bool IsUserActive(Guid userId);
+bool IsAcrDuplicate(Guid officerUserId, string department, DateTime postingFrom);
+bool IsAcrDuplicateExcluding(Guid acrId, Guid officerUserId, string department, DateTime postingFrom);
+DesignationLookupItem GetDesignationById(int dsgId);
+string CreateAcr(/* ... Section I params ... */ string status);
+bool   TryUpdateDraftAcr(/* ... Section I params ... */ out string errorCode);
+bool   TrySubmitDraftAcr(Guid acrId, Guid ccaUserId, out string errorCode);
+CcaAcrDetailResponse GetAcrDetail(Guid acrId);
+List<AcrListItem> GetAcrList();
 ```

@@ -14,7 +14,7 @@ These APIs cover the **Reporting Authority step** of the ACR workflow:
 - RA **submits** their assessment to advance the ACR to the next step.
 
 **Draft behaviour:**
-- `acr_cycles.status` stays `PENDING_REPORTING` (or `PENDING_REPORTING2` for RA2) while drafting.
+- `acr_cycles.status` stays `PENDING_REPORTING` while drafting — for both RA1 and RA2.
 - Draft is represented by the relevant submitted timestamp being `NULL`:
   - RA1 draft: `reporting_assessments.ra1_submitted_at = NULL`
   - RA2 draft (A1b only): `reporting_assessments.ra2_submitted_at = NULL`
@@ -135,14 +135,14 @@ One row per ACR: `UNIQUE(acr_id)`. Row is created on first draft save.
 
 | Status | Who can act | Meaning |
 |---|---|---|
-| `PENDING_REPORTING` | RA1 (`reporting_user_id`) | Waiting for RA1 assessment |
-| `PENDING_REPORTING2` | RA2 (`ra2_user_id`) | Waiting for RA2 assessment (A1b only) |
-| `PENDING_REVIEWING` | RvA | RA step complete |
+| `PENDING_REPORTING` | RA1 **and** RA2 (concurrently) | Both authorities fill their assessment independently under one status |
+| `PENDING_REVIEWING` | RvA | RA step complete — advances here once **both** RA1 and RA2 have submitted (A1b), or immediately after RA1 submits (A1a/A2) |
 
 **Submit transitions:**
-- A1a / A2: `PENDING_REPORTING` → `PENDING_REVIEWING`
-- A1b RA1 submits: `PENDING_REPORTING` → `PENDING_REPORTING2`
-- A1b RA2 submits: `PENDING_REPORTING2` → `PENDING_REVIEWING`
+- A1a / A2 (single RA): `PENDING_REPORTING` → `PENDING_REVIEWING` when RA1 submits
+- A1b (two RAs): stays `PENDING_REPORTING` after first submit; transitions to `PENDING_REVIEWING` only when **both** `ra1_submitted_at` and `ra2_submitted_at` are set
+
+RA1 and RA2 can save drafts and submit in any order. The workflow gate is server-side: `TrySubmitReporting` marks the caller's `submitted_at`, then checks whether the other RA has already submitted before deciding whether to advance the status.
 
 ---
 
@@ -160,7 +160,7 @@ public class MyReportingQueueItem {
   string PostingFrom;    // yyyy-MM-dd
   string PostingTo;      // yyyy-MM-dd
   int    AcrYear;
-  string Status;         // PENDING_REPORTING | PENDING_REPORTING2
+  string Status;         // always PENDING_REPORTING
   string ReportingRole;  // "RA1" | "RA2"
   bool   IsSubmitted;    // true if caller's submitted_at is not null
   string CreatedAt;      // ISO 8601
@@ -309,7 +309,7 @@ public class ReportingAcrDetailResponse {
 **GET** `/api/acr/reporting/my`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Returns ACR cycles where the caller is RA1 (`status = PENDING_REPORTING`) or RA2 (`status = PENDING_REPORTING2`).
+Returns ACR cycles where the caller is RA1 (`reporting_user_id`) or RA2 (`ra2_user_id`) and `status = PENDING_REPORTING`. Both authorities see the ACR in their queue simultaneously under the same status — `ReportingRole` tells the frontend which role the caller has on that ACR.
 
 ### Success `200`
 ```json
@@ -357,7 +357,7 @@ Returns full ACR data for the RA to fill in their assessment. Includes:
 - Officer's complete self-appraisal (read-only for RA)
 - Caller's own assessment draft (RA1 or RA2 fields depending on status)
 
-Access is restricted to the active RA for the current step — if you are RA1 you can only access when status is `PENDING_REPORTING`; RA2 only when `PENDING_REPORTING2`.
+Access is restricted to RA1 or RA2 on the ACR. Only accessible when `status = PENDING_REPORTING`. The server determines the caller's role by matching their user ID against `reporting_user_id` (RA1) or `ra2_user_id` (RA2).
 
 ### Success `200`
 ```json
@@ -455,8 +455,7 @@ Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
 Saves the RA's assessment without advancing the workflow. Repeatable — last save wins.
 
-- Status `PENDING_REPORTING` → caller must be RA1 → fields written to `ra1_*` columns.
-- Status `PENDING_REPORTING2` → caller must be RA2 → fields written to `ra2_*` columns.
+Both RA1 and RA2 can save drafts at any time while `status = PENDING_REPORTING`. The server identifies the caller's role from the FK columns: if `userId = reporting_user_id` → RA1, fields written to `ra1_*`; if `userId = ra2_user_id` → RA2, fields written to `ra2_*`.
 
 ### Request
 ```json
@@ -511,12 +510,12 @@ Saves the RA's assessment without advancing the workflow. Repeatable — last sa
 **POST** `/api/acr/{acrId}/reporting/submit`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Finalises the RA's assessment and advances `acr_cycles.status`.
+Finalises the RA's assessment. Both RA1 and RA2 call this endpoint independently.
 
 **State transitions:**
-- RA1 (A1a/A2): `PENDING_REPORTING` → `PENDING_REVIEWING`
-- RA1 (A1b): `PENDING_REPORTING` → `PENDING_REPORTING2`
-- RA2 (A1b): `PENDING_REPORTING2` → `PENDING_REVIEWING`
+- A1a / A2 (RA1 only): `PENDING_REPORTING` → `PENDING_REVIEWING` immediately on submit
+- A1b — first RA to submit: `PENDING_REPORTING` stays `PENDING_REPORTING` (other RA not yet done)
+- A1b — second RA to submit: `PENDING_REPORTING` → `PENDING_REVIEWING` (both now done)
 
 ### Success `200`
 ```json
