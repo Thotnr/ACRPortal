@@ -8,10 +8,13 @@ namespace ACRPortal.Application.port
     {
         List<CcaOfficerListItem> GetOfficers();
         List<CcaEmployeeDropdownItem> GetEmployeesForDropdown();
+
         bool IsUserActive(Guid userId);
         bool IsAcrDuplicate(Guid officerUserId, string department, DateTime postingFrom);
         bool IsAcrDuplicateExcluding(Guid acrId, Guid officerUserId, string department, DateTime postingFrom);
+
         DesignationLookupItem GetDesignationById(int dsgId);
+
         string CreateAcr(
             Guid officerUserId,
             Guid reportingUserId,
@@ -27,12 +30,18 @@ namespace ACRPortal.Application.port
             string designation,
             string formType,
             DateTime dateOfBirth,
+            DateTime? dateJoiningNigam,
+            DateTime? dateJoiningPresentRank,
+            DateTime? dateJoiningPresentStation,
             string academicQualification,
             string technicalQualification,
+            string departmentalExamPassed,
+            DateTime? propertyReturnDate,
+            DateTime? lastMedicalExamDate,
             string careerPostingSummary,
-            bool propertyReturnDone,
             string status
         );
+
         bool TryUpdateDraftAcr(
             Guid acrId,
             Guid ccaUserId,
@@ -49,13 +58,27 @@ namespace ACRPortal.Application.port
             string designation,
             string formType,
             DateTime dateOfBirth,
+            DateTime? dateJoiningNigam,
+            DateTime? dateJoiningPresentRank,
+            DateTime? dateJoiningPresentStation,
             string academicQualification,
             string technicalQualification,
+            string departmentalExamPassed,
+            DateTime? propertyReturnDate,
+            DateTime? lastMedicalExamDate,
             string careerPostingSummary,
-            bool propertyReturnDone,
             out string errorCode
         );
+
         bool TrySubmitDraftAcr(Guid acrId, Guid ccaUserId, out string errorCode);
+
+        /// <summary>
+        /// Fetches full Section I detail for a single ACR including resolved authority names.
+        /// Returns null when the ACR does not exist.
+        /// No CCA ownership check — any CCA can view any ACR.
+        /// </summary>
+        CcaAcrDetailResponse GetAcrDetail(Guid acrId);
+
         List<AcrListItem> GetAcrList();
     }
 }
