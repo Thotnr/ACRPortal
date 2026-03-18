@@ -2,7 +2,6 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Security.Claims;
-using System.Threading;
 using System.Web.Http;
 using ACRPortal.Application.usecase;
 using ACRPortal.Domain.DTOs.WebToApp;
@@ -19,6 +18,7 @@ namespace ACRPortal.Controllers
             _cca = cca;
         }
 
+        // GET /api/cca/officers
         [HttpGet]
         [Route("officers")]
         public HttpResponseMessage GetOfficers()
@@ -31,6 +31,7 @@ namespace ACRPortal.Controllers
             catch (Exception ex) { return Fail(ex.Message); }
         }
 
+        // GET /api/cca/employees
         [HttpGet]
         [Route("employees")]
         public HttpResponseMessage GetEmployeesForDropdown()
@@ -43,6 +44,7 @@ namespace ACRPortal.Controllers
             catch (Exception ex) { return Fail(ex.Message); }
         }
 
+        // POST /api/cca/acr
         [HttpPost]
         [Route("acr")]
         public HttpResponseMessage CreateAcr([FromBody] CreateAcrRequest request)
@@ -68,8 +70,40 @@ namespace ACRPortal.Controllers
             catch (Exception ex) { return Fail(ex.Message); }
         }
 
+        // GET /api/cca/acr
+        // Must be declared BEFORE /api/cca/acr/{acrId} to avoid route ambiguity
+        [HttpGet]
+        [Route("acr")]
+        public HttpResponseMessage GetAcrList()
+        {
+            try
+            {
+                var result = _cca.GetAcrList();
+                return Respond(result.Success ? HttpStatusCode.OK : HttpStatusCode.InternalServerError, result);
+            }
+            catch (Exception ex) { return Fail(ex.Message); }
+        }
+
+        // GET /api/cca/acr/{acrId}
+        [HttpGet]
+        [Route("acr/{acrId}")]
+        public HttpResponseMessage GetAcrDetail(string acrId)
+        {
+            try
+            {
+                var result = _cca.GetAcrDetail(acrId);
+                var status = result.Success ? HttpStatusCode.OK
+                    : result.ErrorCode == "BAD_REQUEST" ? HttpStatusCode.BadRequest
+                    : result.ErrorCode == "NOT_FOUND" ? HttpStatusCode.NotFound
+                    : result.ErrorCode == "TOKEN_INVALID" ? HttpStatusCode.Unauthorized
+                    : HttpStatusCode.InternalServerError;
+
+                return Respond(status, result);
+            }
+            catch (Exception ex) { return Fail(ex.Message); }
+        }
+
         // PATCH /api/cca/acr/{acrId}
-        // Saves changes to a drafted ACR (status must remain DRAFT).
         [HttpPatch]
         [Route("acr/{acrId}")]
         public HttpResponseMessage UpdateDraftAcr(string acrId, [FromBody] UpdateDraftAcrRequest request)
@@ -84,7 +118,6 @@ namespace ACRPortal.Controllers
                     return Fail("Unable to identify CCA from token", "TOKEN_INVALID", HttpStatusCode.Unauthorized);
 
                 var result = _cca.UpdateDraftAcr(acrId, ccaUserId, request);
-
                 var status = result.Success ? HttpStatusCode.OK
                     : result.ErrorCode == "BAD_REQUEST" ? HttpStatusCode.BadRequest
                     : result.ErrorCode == "DUPLICATE_ACR" ? HttpStatusCode.Conflict
@@ -100,7 +133,6 @@ namespace ACRPortal.Controllers
         }
 
         // POST /api/cca/acr/{acrId}/submit
-        // Submits a drafted ACR to the Officer step (DRAFT → PENDING_OFFICER).
         [HttpPost]
         [Route("acr/{acrId}/submit")]
         public HttpResponseMessage SubmitDraftAcr(string acrId)
@@ -112,7 +144,6 @@ namespace ACRPortal.Controllers
                     return Fail("Unable to identify CCA from token", "TOKEN_INVALID", HttpStatusCode.Unauthorized);
 
                 var result = _cca.SubmitDraftAcr(acrId, ccaUserId);
-
                 var status = result.Success ? HttpStatusCode.OK
                     : result.ErrorCode == "BAD_REQUEST" ? HttpStatusCode.BadRequest
                     : result.ErrorCode == "TOKEN_INVALID" ? HttpStatusCode.Unauthorized
@@ -126,21 +157,13 @@ namespace ACRPortal.Controllers
             catch (Exception ex) { return Fail(ex.Message); }
         }
 
-        [HttpGet]
-        [Route("acr")]
-        public HttpResponseMessage GetAcrList()
-        {
-            try
-            {
-                var result = _cca.GetAcrList();
-                return Respond(result.Success ? HttpStatusCode.OK : HttpStatusCode.InternalServerError, result);
-            }
-            catch (Exception ex) { return Fail(ex.Message); }
-        }
+        // ------------------------------------------------------------------ //
+        //  Helpers                                                            //
+        // ------------------------------------------------------------------ //
 
         private string GetCallerUserId()
         {
-            var principal = Thread.CurrentPrincipal as ClaimsPrincipal;
+            var principal = User as System.Security.Claims.ClaimsPrincipal;
             return principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
 
@@ -148,12 +171,8 @@ namespace ACRPortal.Controllers
             where T : class, new()
             => Request.CreateResponse(code, body);
 
-        private HttpResponseMessage Fail(string msg, string errorCode = "INTERNAL_ERROR",
-            HttpStatusCode code = default)
-        {
-            if (code == default) code = HttpStatusCode.InternalServerError;
-            return Request.CreateResponse(code,
-                ApiResponse<EmptyResponse>.Fail(msg, errorCode));
-        }
+        private HttpResponseMessage Fail(string message, string errorCode = "INTERNAL_ERROR",
+            HttpStatusCode code = HttpStatusCode.InternalServerError)
+            => Request.CreateResponse(code, ApiResponse<EmptyResponse>.Fail(message, errorCode));
     }
 }
