@@ -6,14 +6,15 @@
 ---
 
 ## Purpose
+
 These APIs cover the **Reporting Authority step** of the ACR workflow:
 
 - RA views ACRs pending for them.
-- RA saves their assessment as **draft** (repeatable).
-- RA submits their assessment to advance the ACR to the next step.
+- RA **saves** their assessment as draft (repeatable, idempotent).
+- RA **submits** their assessment to advance the ACR to the next step.
 
-**Draft behavior (RA step):**
-- `acr_cycles.status` remains `PENDING_REPORTING` (or `PENDING_REPORTING2` for RA2) while drafting.
+**Draft behaviour:**
+- `acr_cycles.status` stays `PENDING_REPORTING` while drafting — for both RA1 and RA2.
 - Draft is represented by the relevant submitted timestamp being `NULL`:
   - RA1 draft: `reporting_assessments.ra1_submitted_at = NULL`
   - RA2 draft (A1b only): `reporting_assessments.ra2_submitted_at = NULL`
@@ -22,36 +23,110 @@ These APIs cover the **Reporting Authority step** of the ACR workflow:
 ---
 
 ## Architecture
+
 ```
 ReportingApiController → IReportingUseCase → ReportingService → IReportingRepoPort → ReportingAdapter
 ```
 
 ---
 
-## Schema Reference (relevant columns)
+## Schema Reference
 
-### `dbo.acr_cycles`
+### `dbo.acr_cycles` (read-only for RA)
 ```sql
-[acr_id]            UNIQUEIDENTIFIER PK
-[officer_user_id]   UNIQUEIDENTIFIER NOT NULL
-[reporting_user_id] UNIQUEIDENTIFIER NOT NULL   -- RA1
-[ra2_user_id]       UNIQUEIDENTIFIER NULL       -- RA2 (A1b only)
-[form_type]         VARCHAR(5) NOT NULL          -- 'A1a' | 'A1b' | 'A2'
-[status]            VARCHAR(30) NOT NULL
+[acr_id]            UNIQUEIDENTIFIER  PK
+[officer_user_id]   UNIQUEIDENTIFIER  NOT NULL
+[reporting_user_id] UNIQUEIDENTIFIER  NOT NULL   -- RA1
+[ra2_user_id]       UNIQUEIDENTIFIER  NULL       -- RA2 (A1b only)
+[form_type]         VARCHAR(5)        NOT NULL   -- 'A1a' | 'A1b' | 'A2'
+[status]            VARCHAR(30)       NOT NULL
+[department]        NVARCHAR(200)     NOT NULL
+[location]          NVARCHAR(200)     NOT NULL
+[designation]       NVARCHAR(200)     NOT NULL
+[posting_from]      DATE              NOT NULL
+[posting_to]        DATE              NOT NULL
+[acr_year]          INT               NOT NULL
 ```
 
-### `dbo.reporting_assessments`
-One row per ACR: `UNIQUE(acr_id)`.
-
-This table stores three layers of assessment fields (as per your schema migrations):
-- **RA1 fields**: prefixed with `ra1_...`
-- **RA2 fields** (A1b only): prefixed with `ra2_...`
-- **RvA “preview” fields** (stored here in current schema): prefixed with `rva_...`
-
-**Key draft markers**
+### `dbo.self_appraisals` (read-only for RA — filled by Officer)
 ```sql
-[ra1_submitted_at] DATETIME NULL  -- NULL => RA1 draft
-[ra2_submitted_at] DATETIME NULL  -- NULL => RA2 draft
+[appraisal_id]           UNIQUEIDENTIFIER PK
+[acr_id]                 UNIQUEIDENTIFIER NOT NULL  UNIQUE
+
+-- Section II Item 1
+[leave_details]          NVARCHAR(MAX) NULL
+
+-- Section II Item 2
+[membership_bodies]      NVARCHAR(MAX) NULL
+
+-- Section II Item 3
+[training_details]       NVARCHAR(MAX) NULL
+
+-- Section II Item 4
+[awards_honours]         NVARCHAR(MAX) NULL
+
+-- Section II Item 5
+[duties_description]     NVARCHAR(MAX) NULL   -- 5(a)
+[targets_set]            NVARCHAR(MAX) NULL   -- 5(b)
+[targets_achieved]       NVARCHAR(MAX) NULL   -- 5(c)
+[shortfall_reasons]      NVARCHAR(MAX) NULL   -- 5(d)
+[major_achievements]     NVARCHAR(MAX) NULL   -- 5(e)
+
+-- Section II Item 6 (A1b only)
+[auditor_compliance]     BIT           NULL   -- NULL = not applicable (A1a/A2)
+
+-- Declaration
+[property_declared]      BIT           NOT NULL DEFAULT 0
+[property_declared_date] DATE          NULL
+[medical_compliance]     BIT           NOT NULL DEFAULT 0
+[medical_compliance_date] DATE         NULL
+
+[document_path]          NVARCHAR(500) NULL
+[submitted_at]           DATETIME      NULL   -- NULL = officer draft, NOT NULL = submitted
+[created_at]             DATETIME      NOT NULL
+```
+
+### `dbo.reporting_assessments` (written by RA)
+One row per ACR: `UNIQUE(acr_id)`. Row is created on first draft save.
+
+```sql
+[assessment_id]          UNIQUEIDENTIFIER PK
+[acr_id]                 UNIQUEIDENTIFIER NOT NULL  UNIQUE
+
+-- RA1 fields
+[ra1_submitted_at]       DATETIME NULL    -- NULL = RA1 draft
+[ra1_agree_with_self]    BIT NULL
+[ra1_disagree_details]   NVARCHAR(MAX) NULL
+[ra1_integrity_comments] NVARCHAR(MAX) NULL
+[ra1_remarks]            NVARCHAR(MAX) NULL
+[ra1_work_targets]       TINYINT NULL     -- 1-10
+[ra1_work_quality]       TINYINT NULL
+[ra1_work_exceptional]   TINYINT NULL
+[ra1_work_overall]       DECIMAL(4,2) NULL
+[ra1_attr_attitude]      TINYINT NULL
+[ra1_attr_responsibility] TINYINT NULL
+[ra1_attr_stability]     TINYINT NULL
+[ra1_attr_communication] TINYINT NULL
+[ra1_attr_moral_courage] TINYINT NULL
+[ra1_attr_leadership]    TINYINT NULL
+[ra1_attr_timeliness]    TINYINT NULL
+[ra1_attr_overall]       DECIMAL(4,2) NULL
+[ra1_comp_knowledge]     TINYINT NULL
+[ra1_comp_planning]      TINYINT NULL
+[ra1_comp_decision]      TINYINT NULL
+[ra1_comp_initiative]    TINYINT NULL
+[ra1_comp_teamwork]      TINYINT NULL
+[ra1_comp_overall]       DECIMAL(4,2) NULL
+[ra1_overall_grade]      DECIMAL(4,2) NULL
+
+-- RA2 fields (A1b only — same structure, ra2_ prefix)
+[ra2_submitted_at]       DATETIME NULL
+[ra2_agree_with_self]    BIT NULL
+[ra2_disagree_details]   NVARCHAR(MAX) NULL
+[ra2_integrity_comments] NVARCHAR(MAX) NULL
+[ra2_remarks]            NVARCHAR(MAX) NULL
+-- ... (same 15 grade columns as ra1_*, with ra2_ prefix)
+[ra2_overall_grade]      DECIMAL(4,2) NULL
 ```
 
 ---
@@ -60,15 +135,14 @@ This table stores three layers of assessment fields (as per your schema migratio
 
 | Status | Who can act | Meaning |
 |---|---|---|
-| `PENDING_REPORTING` | RA1 (`reporting_user_id`) | Waiting for RA1 assessment |
-| `PENDING_REPORTING2` | RA2 (`ra2_user_id`) | Waiting for RA2 assessment (A1b only) |
-| `PENDING_REVIEWING` | (next step) | RA step complete |
+| `PENDING_REPORTING` | RA1 **and** RA2 (concurrently) | Both authorities fill their assessment independently under one status |
+| `PENDING_REVIEWING` | RvA | RA step complete — advances here once **both** RA1 and RA2 have submitted (A1b), or immediately after RA1 submits (A1a/A2) |
 
-**Submit transitions**
-- **A1a / A2**: `PENDING_REPORTING` → `PENDING_REVIEWING`
-- **A1b (two reporting authorities)**:
-  - RA1 submits: `PENDING_REPORTING` → `PENDING_REPORTING2`
-  - RA2 submits: `PENDING_REPORTING2` → `PENDING_REVIEWING`
+**Submit transitions:**
+- A1a / A2 (single RA): `PENDING_REPORTING` → `PENDING_REVIEWING` when RA1 submits
+- A1b (two RAs): stays `PENDING_REPORTING` after first submit; transitions to `PENDING_REVIEWING` only when **both** `ra1_submitted_at` and `ra2_submitted_at` are set
+
+RA1 and RA2 can save drafts and submit in any order. The workflow gate is server-side: `TrySubmitReporting` marks the caller's `submitted_at`, then checks whether the other RA has already submitted before deciding whether to advance the status.
 
 ---
 
@@ -77,67 +151,155 @@ This table stores three layers of assessment fields (as per your schema migratio
 ### `MyReportingQueueItem`
 ```csharp
 public class MyReportingQueueItem {
-  public string AcrId          { get; set; }
-  public string OfficerName    { get; set; }
-  public string OfficerLoginId { get; set; }
-  public string FormType       { get; set; }   // A1a | A1b | A2
-  public string Department     { get; set; }
-  public string Location       { get; set; }
-  public string PostingFrom    { get; set; }   // yyyy-MM-dd
-  public string PostingTo      { get; set; }   // yyyy-MM-dd
-  public int    AcrYear        { get; set; }
-  public string Status         { get; set; }   // PENDING_REPORTING | PENDING_REPORTING2
-  public string ReportingRole  { get; set; }   // "RA1" or "RA2"
-  public bool   IsSubmitted    { get; set; }   // true if relevant submitted_at is not null
-  public string CreatedAt      { get; set; }   // ISO 8601
+  string AcrId;
+  string OfficerName;
+  string OfficerLoginId;
+  string FormType;       // 'A1a' | 'A1b' | 'A2'
+  string Department;
+  string Location;
+  string PostingFrom;    // yyyy-MM-dd
+  string PostingTo;      // yyyy-MM-dd
+  int    AcrYear;
+  string Status;         // always PENDING_REPORTING
+  string ReportingRole;  // "RA1" | "RA2"
+  bool   IsSubmitted;    // true if caller's submitted_at is not null
+  string CreatedAt;      // ISO 8601
 }
 ```
 
-### `MyReportingQueueResponse`
+### `SelfAppraisalView` (read-only for RA)
 ```csharp
-public class MyReportingQueueResponse {
-  public List<MyReportingQueueItem> AcrCycles { get; set; }
+public class SelfAppraisalView {
+  bool   Exists;
+  bool   IsSubmitted;
+  string SubmittedAt;            // ISO 8601 | null
+
+  // Section II Item 1
+  string LeaveDetails;           // nullable
+
+  // Section II Item 2
+  string MembershipBodies;       // nullable
+
+  // Section II Item 3
+  string TrainingDetails;        // nullable
+
+  // Section II Item 4
+  string AwardsHonours;          // nullable
+
+  // Section II Item 5
+  string DutiesDescription;      // nullable
+  string TargetsSet;             // nullable
+  string TargetsAchieved;        // nullable
+  string ShortfallReasons;       // nullable
+  string MajorAchievements;      // nullable
+
+  // Section II Item 6 (A1b only)
+  bool?  AuditorCompliance;      // null = not applicable (A1a/A2)
+
+  // Declaration
+  bool   PropertyDeclared;
+  string PropertyDeclaredDate;   // yyyy-MM-dd | null
+  bool   MedicalCompliance;
+  string MedicalComplianceDate;  // yyyy-MM-dd | null
+
+  string DocumentPath;           // nullable
 }
 ```
 
-### `ReportingDraftRequest` (shared shape; server maps to RA1 or RA2)
-The payload includes the currently used columns in `dbo.reporting_assessments`.
-You can send only the fields relevant to the current RA role (RA1 or RA2); nulls are stored as nulls.
+### `ReportingDraftRequest`
+Server maps fields to `ra1_*` or `ra2_*` columns based on caller role. All fields are optional — send only what is being filled; nulls are stored as-is.
 
 ```csharp
 public class ReportingDraftRequest {
-  // Agreement and narrative
-  public bool?   AgreeWithSelf     { get; set; }  // maps to ra1_agree_with_self / ra2_agree_with_self
-  public string  DisagreeDetails   { get; set; }  // maps to ra1_disagree_details / ra2_disagree_details
-  public string  IntegrityComments { get; set; }  // maps to ra1_integrity_comments / ra2_integrity_comments
-  public string  Remarks           { get; set; }  // maps to ra1_remarks / ra2_remarks
+  // Agreement
+  bool?    AgreeWithSelf;       // ra1_agree_with_self / ra2_agree_with_self
+  string   DisagreeDetails;     // ra1_disagree_details / ra2_disagree_details
+  string   IntegrityComments;   // ra1_integrity_comments / ra2_integrity_comments
+  string   Remarks;             // ra1_remarks / ra2_remarks
 
-  // Work factors
-  public byte?   WorkTargets       { get; set; }
-  public byte?   WorkQuality       { get; set; }
-  public byte?   WorkExceptional   { get; set; }
-  public decimal? WorkOverall      { get; set; }
+  // Work output (scale 1–10, whole numbers for individual items)
+  byte?    WorkTargets;
+  byte?    WorkQuality;
+  byte?    WorkExceptional;
+  decimal? WorkOverall;         // average to 2 decimal places
 
-  // Personal attributes
-  public byte?   AttrAttitude         { get; set; }
-  public byte?   AttrResponsibility   { get; set; }
-  public byte?   AttrStability        { get; set; }
-  public byte?   AttrCommunication    { get; set; }
-  public byte?   AttrMoralCourage     { get; set; }
-  public byte?   AttrLeadership       { get; set; }
-  public byte?   AttrTimeliness       { get; set; }
-  public decimal? AttrOverall         { get; set; }
+  // Personnel attributes (scale 1–10)
+  byte?    AttrAttitude;
+  byte?    AttrResponsibility;
+  byte?    AttrStability;
+  byte?    AttrCommunication;
+  byte?    AttrMoralCourage;
+  byte?    AttrLeadership;
+  byte?    AttrTimeliness;
+  decimal? AttrOverall;
 
-  // Functional competence
-  public byte?   CompKnowledge     { get; set; }
-  public byte?   CompPlanning      { get; set; }
-  public byte?   CompDecision      { get; set; }
-  public byte?   CompInitiative    { get; set; }
-  public byte?   CompTeamwork      { get; set; }
-  public decimal? CompOverall      { get; set; }
+  // Functional competency (scale 1–10)
+  byte?    CompKnowledge;
+  byte?    CompPlanning;
+  byte?    CompDecision;
+  byte?    CompInitiative;
+  byte?    CompTeamwork;
+  decimal? CompOverall;
 
-  // Overall grade
-  public decimal? OverallGrade     { get; set; }  // maps to ra1_overall_grade / ra2_overall_grade
+  // Overall grade — average of all 15 items, rounded to 2 decimal places
+  decimal? OverallGrade;
+}
+```
+
+### `ReportingAssessmentView`
+```csharp
+public class ReportingAssessmentView {
+  bool     Exists;
+  bool     IsSubmitted;
+  string   SubmittedAt;          // ISO 8601 | null
+
+  bool?    AgreeWithSelf;
+  string   DisagreeDetails;
+  string   IntegrityComments;
+  string   Remarks;
+
+  byte?    WorkTargets;
+  byte?    WorkQuality;
+  byte?    WorkExceptional;
+  decimal? WorkOverall;
+
+  byte?    AttrAttitude;
+  byte?    AttrResponsibility;
+  byte?    AttrStability;
+  byte?    AttrCommunication;
+  byte?    AttrMoralCourage;
+  byte?    AttrLeadership;
+  byte?    AttrTimeliness;
+  decimal? AttrOverall;
+
+  byte?    CompKnowledge;
+  byte?    CompPlanning;
+  byte?    CompDecision;
+  byte?    CompInitiative;
+  byte?    CompTeamwork;
+  decimal? CompOverall;
+
+  decimal? OverallGrade;
+}
+```
+
+### `ReportingAcrDetailResponse`
+```csharp
+public class ReportingAcrDetailResponse {
+  string AcrId;
+  string FormType;
+  string Status;
+  string Department;
+  string Location;
+  string Designation;
+  string PostingFrom;            // yyyy-MM-dd
+  string PostingTo;              // yyyy-MM-dd
+  int    AcrYear;
+
+  OfficerLite           Officer;            // { UserId, LoginId, DisplayName }
+  string                ReportingRole;      // "RA1" | "RA2"
+  SelfAppraisalView     SelfAppraisal;
+  ReportingAssessmentView ReportingAssessment;
 }
 ```
 
@@ -147,9 +309,7 @@ public class ReportingDraftRequest {
 **GET** `/api/acr/reporting/my`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Returns ACR cycles where the caller is either:
-- `reporting_user_id` and `status = PENDING_REPORTING` (RA1 queue)
-- `ra2_user_id` and `status = PENDING_REPORTING2` (RA2 queue, A1b only)
+Returns ACR cycles where the caller is RA1 (`reporting_user_id`) or RA2 (`ra2_user_id`) and `status = PENDING_REPORTING`. Both authorities see the ACR in their queue simultaneously under the same status — `ReportingRole` tells the frontend which role the caller has on that ACR.
 
 ### Success `200`
 ```json
@@ -159,19 +319,19 @@ Returns ACR cycles where the caller is either:
   "Data": {
     "AcrCycles": [
       {
-        "AcrId": "e5f6a7b8-c9d0-1234-efab-345678901234",
+        "AcrId": "uuid",
         "OfficerName": "Dheeraj Kumar",
-        "OfficerLoginId": "ASD2C6",
+        "OfficerLoginId": "EMP002",
         "FormType": "A1b",
-        "Department": "OP Division, Sirsa",
-        "Location": "Sirsa",
-        "PostingFrom": "2025-04-01",
-        "PostingTo": "2026-03-31",
-        "AcrYear": 2025,
-        "Status": "PENDING_REPORTING2",
-        "ReportingRole": "RA2",
+        "Department": "Operation Division Hisar",
+        "Location": "Hisar",
+        "PostingFrom": "2023-04-01",
+        "PostingTo": "2024-03-31",
+        "AcrYear": 2024,
+        "Status": "PENDING_REPORTING",
+        "ReportingRole": "RA1",
         "IsSubmitted": false,
-        "CreatedAt": "2026-03-17T11:45:00"
+        "CreatedAt": "2024-05-01T10:00:00.0000000Z"
       }
     ]
   },
@@ -183,19 +343,21 @@ Returns ACR cycles where the caller is either:
 | Scenario | ErrorCode | HTTP |
 |---|---|---|
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
-| Role not EMPLOYEE | `FORBIDDEN` | 403 |
 | Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
-## API 2 — Get ACR for Reporting (Officer + Self + Reporting draft)
+## API 2 — Get ACR for Reporting
 **GET** `/api/acr/{acrId}/reporting`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Returns:
-- ACR header fields (department, posting period, form type, status)
-- Officer’s self-appraisal (read-only for RA)
-- Reporting assessment (draft/submitted) relevant to the caller’s role (RA1 or RA2)
+Returns full ACR data for the RA to fill in their assessment. Includes:
+- ACR header (posting details, form type, status)
+- Officer identity
+- Officer's complete self-appraisal (read-only for RA)
+- Caller's own assessment draft (RA1 or RA2 fields depending on status)
+
+Access is restricted to RA1 or RA2 on the ACR. Only accessible when `status = PENDING_REPORTING`. The server determines the caller's role by matching their user ID against `reporting_user_id` (RA1) or `ra2_user_id` (RA2).
 
 ### Success `200`
 ```json
@@ -203,37 +365,39 @@ Returns:
   "Success": true,
   "Message": "Success",
   "Data": {
-    "AcrId": "e5f6a7b8-c9d0-1234-efab-345678901234",
+    "AcrId": "uuid",
     "FormType": "A1b",
-    "Status": "PENDING_REPORTING2",
-    "Department": "OP Division, Sirsa",
-    "Location": "Sirsa",
+    "Status": "PENDING_REPORTING",
+    "Department": "Operation Division Hisar",
+    "Location": "Hisar",
     "Designation": "Executive Engineer",
-    "PostingFrom": "2025-04-01",
-    "PostingTo": "2026-03-31",
-    "AcrYear": 2025,
+    "PostingFrom": "2023-04-01",
+    "PostingTo": "2024-03-31",
+    "AcrYear": 2024,
     "Officer": {
-      "UserId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-      "LoginId": "ASD2C6",
-      "DisplayName": "Dheeraj Kumar"
+      "UserId": "uuid-officer",
+      "LoginId": "EMP001",
+      "DisplayName": "Ramesh Kumar"
     },
-    "ReportingRole": "RA2",
+    "ReportingRole": "RA1",
     "SelfAppraisal": {
       "Exists": true,
       "IsSubmitted": true,
-      "SubmittedAt": "2026-03-18T10:05:00.0000000Z",
-      "DutiesDescription": "Worked as ...",
-      "TargetsSet": "Targets ...",
-      "TargetsAchieved": "Achieved ...",
-      "ShortfallReasons": null,
-      "MajorAchievements": "....",
-      "MembershipBodies": null,
-      "TrainingDetails": null,
+      "SubmittedAt": "2024-06-01T09:30:00.0000000Z",
+      "LeaveDetails": "On EL from 10-Jun-2023 to 20-Jun-2023",
+      "MembershipBodies": "IEEE",
+      "TrainingDetails": "Energy Audit Training, NPTI Faridabad, 15-Jan-2024 to 19-Jan-2024",
       "AwardsHonours": null,
-      "PropertyReturnDate": "2025-12-31",
-      "AuditorCompliance": null,
+      "DutiesDescription": "Managed 132 KV sub-station operations...",
+      "TargetsSet": "1. Reduce AT&C losses below 15%\n2. Commission new feeder",
+      "TargetsAchieved": "AT&C losses reduced to 14.2%...",
+      "ShortfallReasons": null,
+      "MajorAchievements": "Commissioned new 33 KV feeder ahead of schedule.",
+      "AuditorCompliance": true,
       "PropertyDeclared": true,
+      "PropertyDeclaredDate": "2023-06-30",
       "MedicalCompliance": true,
+      "MedicalComplianceDate": "2023-05-15",
       "DocumentPath": null
     },
     "ReportingAssessment": {
@@ -243,11 +407,11 @@ Returns:
       "AgreeWithSelf": true,
       "DisagreeDetails": null,
       "IntegrityComments": "Integrity is beyond doubt",
-      "Remarks": "Good performance",
+      "Remarks": "Good performance overall",
       "WorkTargets": 8,
       "WorkQuality": 8,
       "WorkExceptional": 7,
-      "WorkOverall": 7.75,
+      "WorkOverall": 7.67,
       "AttrAttitude": 8,
       "AttrResponsibility": 8,
       "AttrStability": 7,
@@ -255,19 +419,23 @@ Returns:
       "AttrMoralCourage": 8,
       "AttrLeadership": 7,
       "AttrTimeliness": 8,
-      "AttrOverall": 7.65,
+      "AttrOverall": 7.57,
       "CompKnowledge": 8,
       "CompPlanning": 7,
       "CompDecision": 7,
       "CompInitiative": 8,
       "CompTeamwork": 8,
       "CompOverall": 7.60,
-      "OverallGrade": 7.70
+      "OverallGrade": 7.61
     }
   },
   "ErrorCode": null
 }
 ```
+
+> `SelfAppraisal.AuditorCompliance` is `null` for A1a/A2 officers (field not applicable).  
+> `SelfAppraisal.PropertyDeclaredDate` and `MedicalComplianceDate` are `null` if the officer did not fill them in.  
+> `ReportingAssessment.Exists` is `false` if the RA has never saved a draft.
 
 ### Failure Cases
 | Scenario | ErrorCode | HTTP |
@@ -275,23 +443,19 @@ Returns:
 | `acrId` invalid | `BAD_REQUEST` | 400 |
 | ACR not found | `NOT_FOUND` | 404 |
 | Caller is not the active RA for this ACR | `FORBIDDEN` | 403 |
-| ACR not in Reporting step for this role | `INVALID_STATE` | 409 |
+| ACR not in reporting step for this role | `INVALID_STATE` | 409 |
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
 | Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
-## API 3 — Save Reporting Draft (repeatable)
+## API 3 — Save Reporting Draft
 **PATCH** `/api/acr/{acrId}/reporting/draft`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Saves RA assessment without advancing workflow.
+Saves the RA's assessment without advancing the workflow. Repeatable — last save wins.
 
-**Rules**
-- If status is `PENDING_REPORTING`, only RA1 may save; maps fields to `ra1_*` columns.
-- If status is `PENDING_REPORTING2`, only RA2 may save; maps fields to `ra2_*` columns.
-- Draft can be saved multiple times; last save wins.
-- Does not change `acr_cycles.status`.
+Both RA1 and RA2 can save drafts at any time while `status = PENDING_REPORTING`. The server identifies the caller's role from the FK columns: if `userId = reporting_user_id` → RA1, fields written to `ra1_*`; if `userId = ra2_user_id` → RA2, fields written to `ra2_*`.
 
 ### Request
 ```json
@@ -299,13 +463,11 @@ Saves RA assessment without advancing workflow.
   "AgreeWithSelf": true,
   "DisagreeDetails": null,
   "IntegrityComments": "Integrity is beyond doubt",
-  "Remarks": "Good performance",
-
+  "Remarks": "Good performance overall",
   "WorkTargets": 8,
   "WorkQuality": 8,
   "WorkExceptional": 7,
-  "WorkOverall": 7.75,
-
+  "WorkOverall": 7.67,
   "AttrAttitude": 8,
   "AttrResponsibility": 8,
   "AttrStability": 7,
@@ -313,18 +475,18 @@ Saves RA assessment without advancing workflow.
   "AttrMoralCourage": 8,
   "AttrLeadership": 7,
   "AttrTimeliness": 8,
-  "AttrOverall": 7.65,
-
+  "AttrOverall": 7.57,
   "CompKnowledge": 8,
   "CompPlanning": 7,
   "CompDecision": 7,
   "CompInitiative": 8,
   "CompTeamwork": 8,
   "CompOverall": 7.60,
-
-  "OverallGrade": 7.70
+  "OverallGrade": 7.61
 }
 ```
+
+**Grade computation:** `OverallGrade` is the average of all 15 individual items (3 work + 7 attr + 5 comp), rounded to 2 decimal places. The server does **not** compute this automatically — the frontend sends it. Individual items are whole numbers 1–10; averages are `DECIMAL(4,2)`.
 
 ### Success `200`
 ```json
@@ -338,21 +500,22 @@ Saves RA assessment without advancing workflow.
 | ACR not found | `NOT_FOUND` | 404 |
 | Caller not allowed for this ACR | `FORBIDDEN` | 403 |
 | ACR not in reporting step for caller | `INVALID_STATE` | 409 |
-| Caller already submitted their step | `ALREADY_SUBMITTED` | 409 |
+| Already submitted | `ALREADY_SUBMITTED` | 409 |
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
 | Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
-## API 4 — Submit Reporting Assessment (advance workflow)
+## API 4 — Submit Reporting Assessment
 **POST** `/api/acr/{acrId}/reporting/submit`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Submits the RA’s assessment and advances `acr_cycles.status`:
-- RA1 submit:
-  - A1b: `PENDING_REPORTING` → `PENDING_REPORTING2`
-  - A1a/A2: `PENDING_REPORTING` → `PENDING_REVIEWING`
-- RA2 submit (A1b only): `PENDING_REPORTING2` → `PENDING_REVIEWING`
+Finalises the RA's assessment. Both RA1 and RA2 call this endpoint independently.
+
+**State transitions:**
+- A1a / A2 (RA1 only): `PENDING_REPORTING` → `PENDING_REVIEWING` immediately on submit
+- A1b — first RA to submit: `PENDING_REPORTING` stays `PENDING_REPORTING` (other RA not yet done)
+- A1b — second RA to submit: `PENDING_REPORTING` → `PENDING_REVIEWING` (both now done)
 
 ### Success `200`
 ```json
@@ -366,8 +529,8 @@ Submits the RA’s assessment and advances `acr_cycles.status`:
 | ACR not found | `NOT_FOUND` | 404 |
 | Caller not allowed for this ACR | `FORBIDDEN` | 403 |
 | ACR not in reporting step for caller | `INVALID_STATE` | 409 |
-| Draft missing (never saved) | `BAD_REQUEST` | 400 |
-| Caller already submitted | `ALREADY_SUBMITTED` | 409 |
+| Draft never saved | `BAD_REQUEST` | 400 |
+| Already submitted | `ALREADY_SUBMITTED` | 409 |
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
 | Unexpected error | `INTERNAL_ERROR` | 500 |
 
@@ -378,7 +541,24 @@ Submits the RA’s assessment and advances `acr_cycles.status`:
 | Method | Route | Description |
 |---|---|---|
 | GET | `/api/acr/reporting/my` | List reporting queue for caller (RA1 + RA2) |
-| GET | `/api/acr/{acrId}/reporting` | Get ACR for reporting (includes self + RA draft) |
+| GET | `/api/acr/{acrId}/reporting` | Get ACR detail for reporting (self-appraisal + RA draft) |
 | PATCH | `/api/acr/{acrId}/reporting/draft` | Save reporting draft (repeatable) |
 | POST | `/api/acr/{acrId}/reporting/submit` | Submit reporting assessment (advance status) |
 
+---
+
+## `IReportingUseCase` — interface shape
+```csharp
+ApiResponse<MyReportingQueueResponse>    GetMyReportingQueue(string userId);
+ApiResponse<ReportingAcrDetailResponse>  GetReportingDetail(string acrId, string userId);
+ApiResponse<EmptyResponse>               SaveReportingDraft(string acrId, string userId, ReportingDraftRequest request);
+ApiResponse<EmptyResponse>               SubmitReporting(string acrId, string userId);
+```
+
+## `IReportingRepoPort` — interface shape
+```csharp
+MyReportingQueueResponse    GetMyReportingQueue(Guid userId);
+ReportingAcrDetailResponse  GetReportingDetail(Guid acrId, Guid userId, out string errorCode);
+bool TryUpsertReportingDraft(Guid acrId, Guid userId, ReportingDraftRequest request, out string errorCode);
+bool TrySubmitReporting(Guid acrId, Guid userId, out string errorCode);
+```

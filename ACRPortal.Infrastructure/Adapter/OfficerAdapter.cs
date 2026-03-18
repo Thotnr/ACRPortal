@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
@@ -12,9 +12,11 @@ namespace ACRPortal.Infrastructure.Adapter
         private readonly string _conn = ConfigurationManager
             .ConnectionStrings["ACRPortalContext"].ConnectionString;
 
+        // ================================================================== //
+        //  GetMyAcrs                                                          //
+        // ================================================================== //
         public MyAcrListResponse GetMyAcrs(Guid officerUserId, string status)
         {
-            // Hide CCA-only DRAFT records from officer list
             string statusFilter = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpper();
 
             string sql = @"
@@ -51,7 +53,6 @@ namespace ACRPortal.Infrastructure.Adapter
                 using (var r = cmd.ExecuteReader())
                 {
                     while (r.Read())
-                    {
                         resp.AcrCycles.Add(new MyAcrListItem
                         {
                             AcrId = r.GetGuid(0).ToString(),
@@ -63,18 +64,38 @@ namespace ACRPortal.Infrastructure.Adapter
                             PostingTo = r.IsDBNull(6) ? null : r.GetDateTime(6).ToString("yyyy-MM-dd"),
                             AcrYear = r.IsDBNull(7) ? 0 : r.GetInt32(7),
                             Status = r.IsDBNull(8) ? null : r.GetString(8),
-                            CreatedAt = r.IsDBNull(9) ? null : r.GetDateTime(9).ToString("yyyy-MM-ddTHH:mm:ss"),
+                            CreatedAt = r.IsDBNull(9) ? null : r.GetDateTime(9).ToString("o"),
                             SelfAppraisalSubmitted = !r.IsDBNull(10)
                         });
-                    }
                 }
             }
-
             return resp;
         }
 
+        // ================================================================== //
+        //  GetAcrDetail                                                       //
+        // ================================================================== //
         public AcrDetailResponse GetAcrDetail(Guid acrId, Guid officerUserId)
         {
+            // Column index map:
+            //  0  acr_id           8  acr_year
+            //  1  form_type        9  appraisal_id (NULL → no self-appraisal row)
+            //  2  status          10  submitted_at
+            //  3  department      11  leave_details          ← new
+            //  4  location        12  duties_description
+            //  5  designation     13  targets_set
+            //  6  posting_from    14  targets_achieved
+            //  7  posting_to      15  shortfall_reasons
+            //                     16  major_achievements
+            //                     17  membership_bodies
+            //                     18  training_details
+            //                     19  awards_honours
+            //                     20  auditor_compliance     ← BIT now
+            //                     21  property_declared
+            //                     22  property_declared_date ← new
+            //                     23  medical_compliance
+            //                     24  medical_compliance_date ← new
+            //                     25  document_path
             const string sql = @"
                 SELECT  ac.acr_id,
                         ac.form_type,
@@ -88,6 +109,7 @@ namespace ACRPortal.Infrastructure.Adapter
 
                         sa.appraisal_id,
                         sa.submitted_at,
+                        sa.leave_details,
                         sa.duties_description,
                         sa.targets_set,
                         sa.targets_achieved,
@@ -96,16 +118,17 @@ namespace ACRPortal.Infrastructure.Adapter
                         sa.membership_bodies,
                         sa.training_details,
                         sa.awards_honours,
-                        sa.property_return_date,
                         sa.auditor_compliance,
                         sa.property_declared,
+                        sa.property_declared_date,
                         sa.medical_compliance,
+                        sa.medical_compliance_date,
                         sa.document_path
                 FROM dbo.acr_cycles ac
                 LEFT JOIN dbo.self_appraisals sa ON sa.acr_id = ac.acr_id
-                WHERE ac.acr_id = @acrId
+                WHERE ac.acr_id         = @acrId
                   AND ac.officer_user_id = @uid
-                  AND ac.status <> 'DRAFT'";
+                  AND ac.status         <> 'DRAFT'";
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
@@ -127,46 +150,49 @@ namespace ACRPortal.Infrastructure.Adapter
                         Designation = r.IsDBNull(5) ? null : r.GetString(5),
                         PostingFrom = r.IsDBNull(6) ? null : r.GetDateTime(6).ToString("yyyy-MM-dd"),
                         PostingTo = r.IsDBNull(7) ? null : r.GetDateTime(7).ToString("yyyy-MM-dd"),
-                        AcrYear = r.IsDBNull(8) ? 0 : r.GetInt32(8),
+                        AcrYear = r.IsDBNull(8) ? 0 : r.GetInt32(8)
                     };
 
-                    // appraisal_id is null => no record
-                    bool hasSelf = !r.IsDBNull(9);
+                    bool hasSelf = !r.IsDBNull(9);   // appraisal_id
                     resp.SelfAppraisal.Exists = hasSelf;
                     if (!hasSelf) return resp;
 
                     DateTime? submittedAt = r.IsDBNull(10) ? (DateTime?)null : r.GetDateTime(10);
                     resp.SelfAppraisal.IsSubmitted = submittedAt.HasValue;
-                    resp.SelfAppraisal.SubmittedAt = submittedAt.HasValue ? submittedAt.Value.ToString("o") : null;
-                    resp.SelfAppraisal.DutiesDescription = r.IsDBNull(11) ? null : r.GetString(11);
-                    resp.SelfAppraisal.TargetsSet = r.IsDBNull(12) ? null : r.GetString(12);
-                    resp.SelfAppraisal.TargetsAchieved = r.IsDBNull(13) ? null : r.GetString(13);
-                    resp.SelfAppraisal.ShortfallReasons = r.IsDBNull(14) ? null : r.GetString(14);
-                    resp.SelfAppraisal.MajorAchievements = r.IsDBNull(15) ? null : r.GetString(15);
-                    resp.SelfAppraisal.MembershipBodies = r.IsDBNull(16) ? null : r.GetString(16);
-                    resp.SelfAppraisal.TrainingDetails = r.IsDBNull(17) ? null : r.GetString(17);
-                    resp.SelfAppraisal.AwardsHonours = r.IsDBNull(18) ? null : r.GetString(18);
-                    resp.SelfAppraisal.PropertyReturnDate = r.IsDBNull(19) ? null : r.GetDateTime(19).ToString("yyyy-MM-dd");
-                    resp.SelfAppraisal.AuditorCompliance = r.IsDBNull(20) ? null : r.GetString(20);
+                    resp.SelfAppraisal.SubmittedAt = submittedAt?.ToString("o");
+                    resp.SelfAppraisal.LeaveDetails = r.IsDBNull(11) ? null : r.GetString(11);
+                    resp.SelfAppraisal.DutiesDescription = r.IsDBNull(12) ? null : r.GetString(12);
+                    resp.SelfAppraisal.TargetsSet = r.IsDBNull(13) ? null : r.GetString(13);
+                    resp.SelfAppraisal.TargetsAchieved = r.IsDBNull(14) ? null : r.GetString(14);
+                    resp.SelfAppraisal.ShortfallReasons = r.IsDBNull(15) ? null : r.GetString(15);
+                    resp.SelfAppraisal.MajorAchievements = r.IsDBNull(16) ? null : r.GetString(16);
+                    resp.SelfAppraisal.MembershipBodies = r.IsDBNull(17) ? null : r.GetString(17);
+                    resp.SelfAppraisal.TrainingDetails = r.IsDBNull(18) ? null : r.GetString(18);
+                    resp.SelfAppraisal.AwardsHonours = r.IsDBNull(19) ? null : r.GetString(19);
+                    resp.SelfAppraisal.AuditorCompliance = r.IsDBNull(20) ? (bool?)null : r.GetBoolean(20);
                     resp.SelfAppraisal.PropertyDeclared = !r.IsDBNull(21) && r.GetBoolean(21);
-                    resp.SelfAppraisal.MedicalCompliance = !r.IsDBNull(22) && r.GetBoolean(22);
-                    resp.SelfAppraisal.DocumentPath = r.IsDBNull(23) ? null : r.GetString(23);
+                    resp.SelfAppraisal.PropertyDeclaredDate = r.IsDBNull(22) ? null : r.GetDateTime(22).ToString("yyyy-MM-dd");
+                    resp.SelfAppraisal.MedicalCompliance = !r.IsDBNull(23) && r.GetBoolean(23);
+                    resp.SelfAppraisal.MedicalComplianceDate = r.IsDBNull(24) ? null : r.GetDateTime(24).ToString("yyyy-MM-dd");
+                    resp.SelfAppraisal.DocumentPath = r.IsDBNull(25) ? null : r.GetString(25);
 
                     return resp;
                 }
             }
         }
 
-        public bool TryUpsertSelfAppraisalDraft(Guid acrId, Guid officerUserId, SelfAppraisalDraftRequest request, out string errorCode)
+        // ================================================================== //
+        //  TryUpsertSelfAppraisalDraft                                        //
+        // ================================================================== //
+        public bool TryUpsertSelfAppraisalDraft(
+            Guid acrId, Guid officerUserId,
+            SelfAppraisalDraftRequest request, out string errorCode)
         {
             // 1) Verify ACR ownership + state
-            const string acrCheck = @"
-                SELECT officer_user_id, status
-                FROM dbo.acr_cycles
-                WHERE acr_id = @acrId";
+            const string acrCheck = "SELECT officer_user_id, status FROM dbo.acr_cycles WHERE acr_id = @acrId";
 
-            string status;
             Guid owner;
+            string status;
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(acrCheck, con))
@@ -175,34 +201,18 @@ namespace ACRPortal.Infrastructure.Adapter
                 con.Open();
                 using (var r = cmd.ExecuteReader())
                 {
-                    if (!r.Read())
-                    {
-                        errorCode = "NOT_FOUND";
-                        return false;
-                    }
-
+                    if (!r.Read()) { errorCode = "NOT_FOUND"; return false; }
                     owner = r.GetGuid(0);
                     status = r.IsDBNull(1) ? null : r.GetString(1);
                 }
             }
 
-            if (owner != officerUserId)
-            {
-                errorCode = "FORBIDDEN";
-                return false;
-            }
-
+            if (owner != officerUserId) { errorCode = "FORBIDDEN"; return false; }
             if (!string.Equals(status, "PENDING_OFFICER", StringComparison.OrdinalIgnoreCase))
-            {
-                errorCode = "INVALID_STATE";
-                return false;
-            }
+            { errorCode = "INVALID_STATE"; return false; }
 
-            // 2) Block updates after submission
-            const string submittedCheck = @"
-                SELECT submitted_at
-                FROM dbo.self_appraisals
-                WHERE acr_id = @acrId";
+            // 2) Block if already submitted
+            const string submittedCheck = "SELECT submitted_at FROM dbo.self_appraisals WHERE acr_id = @acrId";
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(submittedCheck, con))
@@ -210,61 +220,70 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
                 con.Open();
                 var val = cmd.ExecuteScalar();
-                if (val != null && val != DBNull.Value)
-                {
-                    errorCode = "ALREADY_SUBMITTED";
-                    return false;
-                }
+                if (val != null && val != DBNull.Value) { errorCode = "ALREADY_SUBMITTED"; return false; }
             }
 
-            // 3) Upsert draft (submitted_at remains NULL)
+            // 3) Parse optional date fields
+            DateTime? propDeclaredDate = null;
+            if (!string.IsNullOrWhiteSpace(request.PropertyDeclaredDate) &&
+                DateTime.TryParse(request.PropertyDeclaredDate, out DateTime pdd))
+                propDeclaredDate = pdd.Date;
+
+            DateTime? medComplianceDate = null;
+            if (!string.IsNullOrWhiteSpace(request.MedicalComplianceDate) &&
+                DateTime.TryParse(request.MedicalComplianceDate, out DateTime mcd))
+                medComplianceDate = mcd.Date;
+
+            // 4) Upsert draft (submitted_at stays NULL)
             const string upsert = @"
                 MERGE dbo.self_appraisals AS target
                 USING (SELECT @acrId AS acr_id) AS src
                    ON target.acr_id = src.acr_id
                 WHEN MATCHED THEN
                     UPDATE SET
-                        duties_description   = @duties,
-                        targets_set          = @targetsSet,
-                        targets_achieved     = @targetsAchieved,
-                        shortfall_reasons    = @shortfall,
-                        major_achievements   = @majorAchievements,
-                        membership_bodies    = @membership,
-                        training_details     = @training,
-                        awards_honours       = @awards,
-                        property_return_date = @propReturnDate,
-                        auditor_compliance   = @auditor,
-                        property_declared    = @propDeclared,
-                        medical_compliance   = @medical,
-                        document_path        = @docPath,
-                        submitted_at         = NULL
+                        leave_details          = @leaveDetails,
+                        duties_description     = @duties,
+                        targets_set            = @targetsSet,
+                        targets_achieved       = @targetsAchieved,
+                        shortfall_reasons      = @shortfall,
+                        major_achievements     = @majorAchievements,
+                        membership_bodies      = @membership,
+                        training_details       = @training,
+                        awards_honours         = @awards,
+                        auditor_compliance     = @auditor,
+                        property_declared      = @propDeclared,
+                        property_declared_date = @propDeclaredDate,
+                        medical_compliance     = @medical,
+                        medical_compliance_date= @medComplianceDate,
+                        document_path          = @docPath,
+                        submitted_at           = NULL
                 WHEN NOT MATCHED THEN
                     INSERT (
                         appraisal_id, acr_id,
+                        leave_details,
                         duties_description, targets_set, targets_achieved, shortfall_reasons,
                         major_achievements, membership_bodies, training_details, awards_honours,
-                        property_return_date, auditor_compliance,
-                        property_declared, medical_compliance, document_path,
-                        submitted_at, created_at
+                        auditor_compliance,
+                        property_declared, property_declared_date,
+                        medical_compliance, medical_compliance_date,
+                        document_path, submitted_at, created_at
                     )
                     VALUES (
                         NEWID(), @acrId,
+                        @leaveDetails,
                         @duties, @targetsSet, @targetsAchieved, @shortfall,
                         @majorAchievements, @membership, @training, @awards,
-                        @propReturnDate, @auditor,
-                        @propDeclared, @medical, @docPath,
-                        NULL, GETDATE()
+                        @auditor,
+                        @propDeclared, @propDeclaredDate,
+                        @medical, @medComplianceDate,
+                        @docPath, NULL, GETDATE()
                     );";
-
-            DateTime? propReturnDate = null;
-            if (!string.IsNullOrWhiteSpace(request.PropertyReturnDate) &&
-                DateTime.TryParse(request.PropertyReturnDate, out DateTime parsed))
-                propReturnDate = parsed.Date;
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(upsert, con))
             {
                 cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
+                cmd.Parameters.Add("@leaveDetails", SqlDbType.NVarChar).Value = (object)request.LeaveDetails ?? DBNull.Value;
                 cmd.Parameters.Add("@duties", SqlDbType.NVarChar).Value = (object)request.DutiesDescription ?? DBNull.Value;
                 cmd.Parameters.Add("@targetsSet", SqlDbType.NVarChar).Value = (object)request.TargetsSet ?? DBNull.Value;
                 cmd.Parameters.Add("@targetsAchieved", SqlDbType.NVarChar).Value = (object)request.TargetsAchieved ?? DBNull.Value;
@@ -273,10 +292,15 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@membership", SqlDbType.NVarChar).Value = (object)request.MembershipBodies ?? DBNull.Value;
                 cmd.Parameters.Add("@training", SqlDbType.NVarChar).Value = (object)request.TrainingDetails ?? DBNull.Value;
                 cmd.Parameters.Add("@awards", SqlDbType.NVarChar).Value = (object)request.AwardsHonours ?? DBNull.Value;
-                cmd.Parameters.Add("@propReturnDate", SqlDbType.Date).Value = (object)propReturnDate ?? DBNull.Value;
-                cmd.Parameters.Add("@auditor", SqlDbType.NVarChar).Value = (object)request.AuditorCompliance ?? DBNull.Value;
+
+                // auditor_compliance is BIT NULL — null means not applicable
+                cmd.Parameters.Add("@auditor", SqlDbType.Bit).Value =
+                    request.AuditorCompliance.HasValue ? (object)(request.AuditorCompliance.Value ? 1 : 0) : DBNull.Value;
+
                 cmd.Parameters.Add("@propDeclared", SqlDbType.Bit).Value = request.PropertyDeclared ? 1 : 0;
+                cmd.Parameters.Add("@propDeclaredDate", SqlDbType.Date).Value = (object)propDeclaredDate ?? DBNull.Value;
                 cmd.Parameters.Add("@medical", SqlDbType.Bit).Value = request.MedicalCompliance ? 1 : 0;
+                cmd.Parameters.Add("@medComplianceDate", SqlDbType.Date).Value = (object)medComplianceDate ?? DBNull.Value;
                 cmd.Parameters.Add("@docPath", SqlDbType.NVarChar).Value = (object)request.DocumentPath ?? DBNull.Value;
 
                 con.Open();
@@ -287,6 +311,9 @@ namespace ACRPortal.Infrastructure.Adapter
             return true;
         }
 
+        // ================================================================== //
+        //  TrySubmitSelfAppraisal                                             //
+        // ================================================================== //
         public bool TrySubmitSelfAppraisal(Guid acrId, Guid officerUserId, out string errorCode)
         {
             using (var con = new SqlConnection(_conn))
@@ -294,11 +321,11 @@ namespace ACRPortal.Infrastructure.Adapter
                 con.Open();
                 using (var tx = con.BeginTransaction())
                 {
-                    // 1) Verify ACR exists, belongs to officer, and is in PENDING_OFFICER
+                    // 1) Verify ACR ownership + state
                     const string acrCheck = @"
                         SELECT officer_user_id, status
-                        FROM dbo.acr_cycles
-                        WHERE acr_id = @acrId";
+                        FROM   dbo.acr_cycles
+                        WHERE  acr_id = @acrId";
 
                     Guid owner;
                     string status;
@@ -308,36 +335,21 @@ namespace ACRPortal.Infrastructure.Adapter
                         cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
                         using (var r = cmd.ExecuteReader())
                         {
-                            if (!r.Read())
-                            {
-                                tx.Rollback();
-                                errorCode = "NOT_FOUND";
-                                return false;
-                            }
+                            if (!r.Read()) { tx.Rollback(); errorCode = "NOT_FOUND"; return false; }
                             owner = r.GetGuid(0);
                             status = r.IsDBNull(1) ? null : r.GetString(1);
                         }
                     }
 
                     if (owner != officerUserId)
-                    {
-                        tx.Rollback();
-                        errorCode = "FORBIDDEN";
-                        return false;
-                    }
+                    { tx.Rollback(); errorCode = "FORBIDDEN"; return false; }
 
                     if (!string.Equals(status, "PENDING_OFFICER", StringComparison.OrdinalIgnoreCase))
-                    {
-                        tx.Rollback();
-                        errorCode = "INVALID_STATE";
-                        return false;
-                    }
+                    { tx.Rollback(); errorCode = "INVALID_STATE"; return false; }
 
-                    // 2) Ensure self appraisal exists and not already submitted
+                    // 2) Ensure self-appraisal exists and not already submitted
                     const string selfCheck = @"
-                        SELECT submitted_at
-                        FROM dbo.self_appraisals
-                        WHERE acr_id = @acrId";
+                        SELECT submitted_at FROM dbo.self_appraisals WHERE acr_id = @acrId";
 
                     object submittedVal;
                     using (var cmd = new SqlCommand(selfCheck, con, tx))
@@ -347,25 +359,17 @@ namespace ACRPortal.Infrastructure.Adapter
                     }
 
                     if (submittedVal == null)
-                    {
-                        tx.Rollback();
-                        errorCode = "BAD_REQUEST";
-                        return false;
-                    }
+                    { tx.Rollback(); errorCode = "BAD_REQUEST"; return false; }       // never saved a draft
 
                     if (submittedVal != DBNull.Value)
-                    {
-                        tx.Rollback();
-                        errorCode = "ALREADY_SUBMITTED";
-                        return false;
-                    }
+                    { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }
 
                     // 3) Mark submitted
                     const string markSubmitted = @"
                         UPDATE dbo.self_appraisals
-                        SET submitted_at = GETDATE()
-                        WHERE acr_id = @acrId
-                          AND submitted_at IS NULL";
+                        SET    submitted_at = GETDATE()
+                        WHERE  acr_id      = @acrId
+                          AND  submitted_at IS NULL";
 
                     int updatedSelf;
                     using (var cmd = new SqlCommand(markSubmitted, con, tx))
@@ -374,33 +378,19 @@ namespace ACRPortal.Infrastructure.Adapter
                         updatedSelf = cmd.ExecuteNonQuery();
                     }
 
-                    if (updatedSelf == 0)
-                    {
-                        tx.Rollback();
-                        errorCode = "INTERNAL_ERROR";
-                        return false;
-                    }
+                    if (updatedSelf == 0) { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }
 
-                    // 4) Advance workflow
-                    const string advance = @"
+                    // 4) Advance ACR status
+                    const string advanceStatus = @"
                         UPDATE dbo.acr_cycles
-                        SET status = 'PENDING_REPORTING',
-                            updated_at = GETDATE()
-                        WHERE acr_id = @acrId
-                          AND status = 'PENDING_OFFICER'";
+                        SET    status     = 'PENDING_REPORTING',
+                               updated_at = GETDATE()
+                        WHERE  acr_id = @acrId";
 
-                    int updatedAcr;
-                    using (var cmd = new SqlCommand(advance, con, tx))
+                    using (var cmd = new SqlCommand(advanceStatus, con, tx))
                     {
                         cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
-                        updatedAcr = cmd.ExecuteNonQuery();
-                    }
-
-                    if (updatedAcr == 0)
-                    {
-                        tx.Rollback();
-                        errorCode = "INTERNAL_ERROR";
-                        return false;
+                        cmd.ExecuteNonQuery();
                     }
 
                     tx.Commit();
@@ -411,4 +401,3 @@ namespace ACRPortal.Infrastructure.Adapter
         }
     }
 }
-
