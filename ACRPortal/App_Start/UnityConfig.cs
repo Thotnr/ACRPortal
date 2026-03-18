@@ -45,6 +45,9 @@ namespace ACRPortal
             // Reporting Authority (RA1/RA2) flow
             container.RegisterType<IReportingRepoPort, ReportingAdapter>();
             container.RegisterType<IReportingUseCase, ReportingService>();
+
+            container.RegisterType<IReviewingRepoPort, ReviewingAdapter>();
+            container.RegisterType<IReviewingUseCase, ReviewingService>();
         }
     }
 }
