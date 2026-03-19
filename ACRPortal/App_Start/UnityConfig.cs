@@ -48,6 +48,9 @@ namespace ACRPortal
 
             container.RegisterType<IReviewingRepoPort, ReviewingAdapter>();
             container.RegisterType<IReviewingUseCase, ReviewingService>();
+
+            container.RegisterType<IAcceptingRepoPort, AcceptingAdapter>();
+            container.RegisterType<IAcceptingUseCase, AcceptingService>();
         }
     }
 }
