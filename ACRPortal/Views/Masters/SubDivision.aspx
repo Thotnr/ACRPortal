@@ -228,7 +228,7 @@ var currentPage=1
 
 var currentSortColumn=""
 var sortAsc=true
-
+var editingId = null
 
 
 $(document).ready(function(){
@@ -680,6 +680,104 @@ function loadDivisionsByCircle(zoneId, circleId){
         }
     })
 }
+
+function editSubDivision(id, zoneId, circleId, divisionId, name){
+
+    isEditMode = true
+    editingId = id
+
+    $("#modalTitle").text("Edit SubDivision")
+
+    $("#subDivisionId").val(id).prop("disabled", true)
+    $("#subDivisionName").val(name)
+
+    $("#zoneId").val(zoneId)
+
+    // Load dependent dropdowns
+    loadCirclesByZone(zoneId)
+
+    // Wait thoda for async (simple fix)
+    setTimeout(function(){
+
+        $("#circleId").val(circleId)
+
+        loadDivisionsByCircle(zoneId, circleId)
+
+        setTimeout(function(){
+            $("#divisionId").val(divisionId)
+        }, 300)
+
+    }, 300)
+
+    $("#subDivisionModal").modal("show")
+}
+
+$("#subDivisionForm").submit(function(e){
+
+    e.preventDefault()
+
+    var payload = {
+        ZoneId: $("#zoneId").val(),
+        CircleId: $("#circleId").val(),
+        DivisionId: $("#divisionId").val(),
+        SubDivisionId: parseInt($("#subDivisionId").val()),
+        SubDivision: $("#subDivisionName").val()
+    }
+
+    // Validation
+    if(!payload.ZoneId || !payload.CircleId || !payload.DivisionId || !payload.SubDivision){
+        alert("All fields are required")
+        return
+    }
+
+    var url = BASE_URL + "api/admin/masters/subdivisions"
+    var method = "POST"
+
+    // 👉 UPDATE CASE
+    if(isEditMode){
+        url += "/" + editingId   // assuming REST pattern
+        method = "PATCH"
+    }
+
+    $.ajax({
+
+        url: url,
+        method: method,
+        contentType: "application/json",
+        headers: { "Authorization": "Bearer " + token },
+
+        data: JSON.stringify(payload),
+
+        success: function(res){
+
+            if(res.Success){
+
+                alert(isEditMode ? "Updated Successfully" : "Created Successfully")
+
+                closeModal()
+                loadSubDivisions()
+
+            } else {
+                alert(res.Message || "Error")
+            }
+        },
+
+        error: function(err){
+
+            if(err.status === 400){
+                alert("Invalid Data (Zone/Circle/Division issue)")
+            }
+            else if(err.status === 401){
+                alert("Session Expired")
+            }
+            else{
+                alert("Server Error")
+            }
+        }
+
+    })
+
+})
 
 </script>
 
