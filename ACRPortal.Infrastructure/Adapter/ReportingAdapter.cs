@@ -38,7 +38,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 JOIN    dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
                 WHERE  (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
-                  AND   ac.status = 'PENDING_REPORTING'
+                  AND   ac.status <> 'DRAFT'
                 ORDER BY ac.created_at DESC";
 
             var resp = new MyReportingQueueResponse();

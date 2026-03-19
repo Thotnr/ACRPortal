@@ -35,7 +35,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 JOIN    dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.reviewing_assessments rv ON rv.acr_id = ac.acr_id
                 WHERE   ac.reviewing_user_id = @uid
-                  AND   ac.status = 'PENDING_REVIEWING'
+                  AND   ac.status <> 'DRAFT'
                 ORDER BY ac.created_at DESC";
 
             var resp = new MyReviewingQueueResponse();
