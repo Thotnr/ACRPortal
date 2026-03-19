@@ -42,23 +42,35 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class1.cs" />
+    <Compile Include="port\IAcceptingrepoport.cs" />
     <Compile Include="port\IAdminMastersRepoPort.cs" />
     <Compile Include="port\IAdminRepoPort.cs" />
     <Compile Include="port\IAuthRepoPort.cs" />
     <Compile Include="port\Iccarepoport.cs" />
+    <Compile Include="port\IOfficerRepoPort.cs" />
+    <Compile Include="port\IReportingRepoPort.cs" />
+    <Compile Include="port\Ireviewingrepoport.cs" />
     <Compile Include="port\IUserRepoPort.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="service\Acceptingservice.cs" />
     <Compile Include="service\AdminMastersService.cs" />
     <Compile Include="service\AdminService.cs" />
     <Compile Include="service\AuthService.cs" />
     <Compile Include="service\Ccaservice.cs" />
     <Compile Include="service\HelloUseCase.cs" />
+    <Compile Include="service\Reviewingservice.cs" />
+    <Compile Include="usecase\Iacceptingusecase.cs" />
+    <Compile Include="usecase\Ireviewingusecase.cs" />
+    <Compile Include="service\OfficerService.cs" />
+    <Compile Include="service\ReportingService.cs" />
     <Compile Include="service\UserService.cs" />
     <Compile Include="usecase\IAdminMastersUseCase.cs" />
     <Compile Include="usecase\IAdminUseCase.cs" />
     <Compile Include="usecase\IAuthUseCase.cs" />
     <Compile Include="usecase\Iccausecase.cs" />
+    <Compile Include="usecase\IOfficerUseCase.cs" />
     <Compile Include="usecase\IHelloUseCase.cs" />
+    <Compile Include="usecase\IReportingUseCase.cs" />
     <Compile Include="usecase\IUserUseCase.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -143,11 +143,15 @@
     <Compile Include="App_Start\UnityConfig.cs" />
     <Compile Include="App_Start\UnityWebApiActivator.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
+    <Compile Include="Controllers\Api\Acceptingapicontrolller.cs" />
     <Compile Include="Controllers\Api\AdminController.cs" />
     <Compile Include="Controllers\Api\AdminMastersController.cs" />
     <Compile Include="Controllers\Api\AuthController.cs" />
     <Compile Include="Controllers\Api\Ccaapicontroller.cs" />
+    <Compile Include="Controllers\Api\OfficerApiController.cs" />
+    <Compile Include="Controllers\Api\ReportingApiController.cs" />
     <Compile Include="Controllers\Api\HelloController.cs" />
+    <Compile Include="Controllers\Api\Reviewingapicontroller.cs" />
     <Compile Include="Controllers\Api\UserController.cs" />
     <Compile Include="Controllers\Web\DashboardController.cs" />
     <Compile Include="Controllers\Web\HomeController.cs" />
