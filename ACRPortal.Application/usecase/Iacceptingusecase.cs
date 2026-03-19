@@ -1,0 +1,11 @@
+﻿using ACRPortal.Domain.DTOs.WebToApp;
+
+namespace ACRPortal.Application.usecase
+{
+    public interface IAcceptingUseCase
+    {
+        ApiResponse<MyAcceptingQueueResponse> GetMyAcceptingQueue(string userId);
+        ApiResponse<AcceptingAcrDetailResponse> GetAcceptingDetail(string acrId, string userId);
+        ApiResponse<EmptyResponse> SubmitDecision(string acrId, string userId, AcceptingDecisionRequest request);
+    }
+}
