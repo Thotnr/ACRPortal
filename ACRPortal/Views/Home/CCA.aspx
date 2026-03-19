@@ -200,6 +200,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 </div>
 
 <div class="text-center mt-4">
+<button type="button" class="btn btn-secondary mr-2" id="btnSaveDraft">Save as Draft</button>
 <button type="submit" class="btn btn-success">Submit</button>
 </div>
 
@@ -215,6 +216,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 var BASE_URL = '<%= Url.Content("~/") %>';
 var formType = "";
 var designationsList = [];
+var isDraft = false;
 
 $(document).ready(function(){
     var token = localStorage.getItem("token");
@@ -316,7 +318,7 @@ function applyFormRules(){
     }
 
     if(formType === "A2"){
-        $("#technicalDiv").hide();
+        // $("#technicalDiv").hide();
     }
 
     bindAuthorityDropdowns();
@@ -544,7 +546,7 @@ var ddl = $("#placePosting");
     subDivisionList.forEach(function(s){
         ddl.append(`
             <option value="${s.SubDivisionId}">
-                ${s.SubDivision} (${s.SubDivisionId})
+                ${s.SubDivision}
             </option>
         `);
     });
@@ -575,54 +577,120 @@ var ddl = $("#placePosting");
     });
 }
 
+function formatDate(dateValue){
+
+    if(!dateValue) return null;
+
+    // Already yyyy-MM-dd hai to direct return
+    if(/^\d{4}-\d{2}-\d{2}$/.test(dateValue)){
+        return dateValue;
+    }
+
+    var d = new Date(dateValue);
+
+    if(isNaN(d)) return null;
+
+    var month = (d.getMonth() + 1).toString().padStart(2,'0');
+    var day = d.getDate().toString().padStart(2,'0');
+
+    return d.getFullYear() + "-" + month + "-" + day;
+}
+
+function buildPayload(isDraft){
+
+    var officerData = $("#officerName").select2('data') || [];
+    var postingData = $("#placePosting").select2('data') || [];
+
+    var location = "";
+
+    if (postingData.length) {
+        location = postingData[0].text
+            .trim()
+            .replace(/\s*\(.*?\)/, ''); // remove (101)
+    }
+
+    return {
+        PostingFrom: formatDate($("#periodFrom").val()),
+        PostingTo: formatDate($("#periodTo").val()),
+
+        DateOfBirth: formatDate($("#dob").val()),
+        DateJoiningNigam: formatDate($("#joiningNigam").val()),
+        DateJoiningPresentRank: formatDate($("#joiningRank").val()),
+        DateJoiningPresentStation: formatDate($("#joiningStation").val()),
+
+        PropertyReturnDate: formatDate($("#propertyReturnDate").val()),
+        LastMedicalExamDate: formatDate($("#medicalExamDate").val()),
+
+        OfficerUserId: $("#officerName").val() || null,
+        DesignationId: $("#designation").val(),
+
+        SaveAsDraft: isDraft,
+
+        Department: "",
+
+        Location: location,
+
+        AcademicQualification: $("#academicQualification").val(),
+        TechnicalQualification: formType === "A2"
+            ? null
+            : $("#technicalQualification").val(),
+
+        DepartmentalExamPassed: $("#deptExam").val(),
+
+        ReportingUserId: $("#reportingAuthority").val(),
+        ReportingUserId2: $("#reportingAuthority2").length
+            ? $("#reportingAuthority2").val()
+            : null,
+
+        ReviewingUserId: $("#reviewAuthority").val(),
+        AcceptingUserId: $("#acceptingAuthority").val(),
+
+        CareerPostingSummary: ""
+    };
+}
+
 $("#ccaForm").off("submit").on("submit", function(e){
     e.preventDefault();
     
-    var officerData = $("#officerName").select2('data') || [];
-    var postingData = $("#placePosting").select2('data') || [];
-    
-    console.log("📤 Form Submit - Officer:", officerData[0]?.text || "Empty");
-    console.log("📤 Form Submit - Posting:", postingData[0]?.text || "Empty");
-    console.log("📤 Form Submit - Values:", {
-        officerId: $("#officerName").val(),
-        postingId: $("#placePosting").val(),
-        designationId: $("#designation").val()
-    });
+    var payload = buildPayload(isDraft);
+debugger
+    // ✅ Strict validation only for final submit
+    if(!isDraft){
 
-    var formData = {
-        PeriodFrom: $("#periodFrom").val(),
-        PeriodTo: $("#periodTo").val(),
+        if(!payload.OfficerUserId){
+            alert("Officer is required");
+            return;
+        }
 
-        PlacePostingId: $("#placePosting").val() || null,
-        PlacePostingName: postingData.length ? postingData[0].text : "",
+        if(!payload.DesignationId){
+            alert("Designation is required");
+            return;
+        }
 
-        OfficerId: $("#officerName").val() || null,
-        OfficerName: officerData.length ? officerData[0].text : "",
+        if(!payload.PostingFrom || !payload.PostingTo){
+            alert("Posting period required");
+            return;
+        }
 
-        DesignationId: $("#designation").val(),
+        if(payload.PostingTo <= payload.PostingFrom){
+            alert("Posting To must be greater than From");
+            return;
+        }
 
-        DOB: $("#dob").val(),
-        JoiningNigam: $("#joiningNigam").val(),
+        if(formType === "A1b" && !payload.ReportingUserId2){
+            alert("Second Reporting Authority required");
+            return;
+        }
 
-        AcademicQualification: $("#academicQualification").val(),
-        TechnicalQualification: $("#technicalQualification").val(),
+        if((formType === "A1a" || formType === "A2") && payload.ReportingUserId2){
+            alert("Second Reporting Authority not allowed");
+            return;
+        }
+    }
 
-        JoiningRank: $("#joiningRank").val(),
-        JoiningStation: $("#joiningStation").val(),
+    submitAppraisal(payload);
 
-        DeptExam: $("#deptExam").val(),
-
-        ReportingAuthority: $("#reportingAuthority").val(),
-        ReviewAuthority: $("#reviewAuthority").val(),
-        AcceptingAuthority: $("#acceptingAuthority").val(),
-
-        SecondReportingAuthority: $("#reportingAuthority2").length ? $("#reportingAuthority2").val() : null,
-
-        PropertyReturnDate: $("#propertyReturnDate").val(),
-        MedicalExamDate: $("#medicalExamDate").val()
-    };
-
-    submitAppraisal(formData);
+    isDraft = false; // reset
 });
 
 function submitAppraisal(data){
@@ -630,7 +698,7 @@ function submitAppraisal(data){
     var token = localStorage.getItem("token");
 
     $.ajax({
-        url: BASE_URL + "api/appraisal/create",
+        url: BASE_URL + "api/cca/acr",
         method: "POST",
         headers:{ "Authorization":"Bearer "+token },
         contentType: "application/json",
@@ -638,18 +706,23 @@ function submitAppraisal(data){
 
         success:function(res){
             if(res.Success){
-                alert("Appraisal Submitted Successfully");
+                alert("ACR Submitted Successfully");
                 closeModal();
             }else{
                 alert(res.Message || "Error");
             }
         },
 
-        error:function(){
+        error:function(err){
             alert("Submission Failed");
         }
     });
 }
+
+$("#btnSaveDraft").click(function(){
+    isDraft = true;
+    $("#ccaForm").submit();
+});
 
 </script>
 
