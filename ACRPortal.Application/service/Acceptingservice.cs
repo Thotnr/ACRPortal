@@ -8,10 +8,12 @@ namespace ACRPortal.Application.service
     public class AcceptingService : IAcceptingUseCase
     {
         private readonly IAcceptingRepoPort _repo;
+        private readonly IDocumentRepoPort _docs;
 
-        public AcceptingService(IAcceptingRepoPort repo)
+        public AcceptingService(IAcceptingRepoPort repo, IDocumentRepoPort docs)
         {
             _repo = repo;
+            _docs = docs;
         }
 
         public ApiResponse<MyAcceptingQueueResponse> GetMyAcceptingQueue(string userId)
@@ -39,16 +41,22 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<AcceptingAcrDetailResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                var detail = _repo.GetAcceptingDetail(acrGuid, userGuid, out string errorCode);
-                if (detail != null)
-                    return ApiResponse<AcceptingAcrDetailResponse>.Ok(detail, "Success");
+                string errorCode;
+                var detail = _repo.GetAcceptingDetail(acrGuid, userGuid, out errorCode);
+                if (detail == null)
+                {
+                    return ApiResponse<AcceptingAcrDetailResponse>.Fail(
+                        errorCode == "NOT_FOUND" ? "ACR not found" :
+                        errorCode == "FORBIDDEN" ? "Caller is not the accepting authority for this ACR" :
+                        errorCode == "INVALID_STATE" ? "ACR is not in the accepting step" :
+                        "Unable to fetch ACR",
+                        errorCode ?? "INTERNAL_ERROR");
+                }
 
-                return ApiResponse<AcceptingAcrDetailResponse>.Fail(
-                    errorCode == "NOT_FOUND" ? "ACR not found" :
-                    errorCode == "FORBIDDEN" ? "Caller is not the accepting authority for this ACR" :
-                    errorCode == "INVALID_STATE" ? "ACR is not in the accepting step" :
-                    "Unable to fetch ACR",
-                    errorCode ?? "INTERNAL_ERROR");
+                // Attach AA's own documents
+                detail.Documents = _docs.GetDocuments(acrGuid, "AA");
+
+                return ApiResponse<AcceptingAcrDetailResponse>.Ok(detail, "Success");
             }
             catch (Exception ex)
             {
@@ -56,7 +64,8 @@ namespace ACRPortal.Application.service
             }
         }
 
-        public ApiResponse<EmptyResponse> SubmitDecision(string acrId, string userId, AcceptingDecisionRequest request)
+        public ApiResponse<EmptyResponse> SubmitDecision(string acrId, string userId,
+            AcceptingDecisionRequest request)
         {
             try
             {
@@ -67,7 +76,8 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<EmptyResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                if (_repo.TrySubmitDecision(acrGuid, userGuid, request, out string errorCode))
+                string errorCode;
+                if (_repo.TrySubmitDecision(acrGuid, userGuid, request, out errorCode))
                     return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Decision submitted successfully");
 
                 return ApiResponse<EmptyResponse>.Fail(

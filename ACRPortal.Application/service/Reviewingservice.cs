@@ -8,10 +8,12 @@ namespace ACRPortal.Application.service
     public class ReviewingService : IReviewingUseCase
     {
         private readonly IReviewingRepoPort _repo;
+        private readonly IDocumentRepoPort _docs;
 
-        public ReviewingService(IReviewingRepoPort repo)
+        public ReviewingService(IReviewingRepoPort repo, IDocumentRepoPort docs)
         {
             _repo = repo;
+            _docs = docs;
         }
 
         public ApiResponse<MyReviewingQueueResponse> GetMyReviewingQueue(string userId)
@@ -39,16 +41,22 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<ReviewingAcrDetailResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                var detail = _repo.GetReviewingDetail(acrGuid, userGuid, out string errorCode);
-                if (detail != null)
-                    return ApiResponse<ReviewingAcrDetailResponse>.Ok(detail, "Success");
+                string errorCode;
+                var detail = _repo.GetReviewingDetail(acrGuid, userGuid, out errorCode);
+                if (detail == null)
+                {
+                    return ApiResponse<ReviewingAcrDetailResponse>.Fail(
+                        errorCode == "NOT_FOUND" ? "ACR not found" :
+                        errorCode == "FORBIDDEN" ? "Caller is not the reviewing authority for this ACR" :
+                        errorCode == "INVALID_STATE" ? "ACR is not in the reviewing step" :
+                        "Unable to fetch ACR",
+                        errorCode ?? "INTERNAL_ERROR");
+                }
 
-                return ApiResponse<ReviewingAcrDetailResponse>.Fail(
-                    errorCode == "NOT_FOUND" ? "ACR not found" :
-                    errorCode == "FORBIDDEN" ? "Caller is not the reviewing authority for this ACR" :
-                    errorCode == "INVALID_STATE" ? "ACR is not in the reviewing step" :
-                    "Unable to fetch ACR",
-                    errorCode ?? "INTERNAL_ERROR");
+                // Attach RvA's own documents
+                detail.Documents = _docs.GetDocuments(acrGuid, "RVA");
+
+                return ApiResponse<ReviewingAcrDetailResponse>.Ok(detail, "Success");
             }
             catch (Exception ex)
             {
@@ -56,7 +64,8 @@ namespace ACRPortal.Application.service
             }
         }
 
-        public ApiResponse<EmptyResponse> SaveReviewingDraft(string acrId, string userId, ReviewingDraftRequest request)
+        public ApiResponse<EmptyResponse> SaveReviewingDraft(string acrId, string userId,
+            ReviewingDraftRequest request)
         {
             try
             {
@@ -67,7 +76,8 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<EmptyResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                if (_repo.TryUpsertReviewingDraft(acrGuid, userGuid, request, out string errorCode))
+                string errorCode;
+                if (_repo.TryUpsertReviewingDraft(acrGuid, userGuid, request, out errorCode))
                     return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Draft saved successfully");
 
                 return ApiResponse<EmptyResponse>.Fail(
@@ -93,8 +103,10 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<EmptyResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                if (_repo.TrySubmitReviewing(acrGuid, userGuid, out string errorCode))
-                    return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Reviewing assessment submitted successfully");
+                string errorCode;
+                if (_repo.TrySubmitReviewing(acrGuid, userGuid, out errorCode))
+                    return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(),
+                        "Reviewing assessment submitted successfully");
 
                 return ApiResponse<EmptyResponse>.Fail(
                     errorCode == "NOT_FOUND" ? "ACR not found" :

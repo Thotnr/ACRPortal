@@ -53,6 +53,7 @@
     <Compile Include="dtos\WebToApp\ApiResponse.cs" />
     <Compile Include="dtos\WebToApp\AuthDTOs.cs" />
     <Compile Include="dtos\WebToApp\Ccaacrdtos.cs" />
+    <Compile Include="dtos\WebToApp\Documentdtos.cs" />
     <Compile Include="dtos\WebToApp\LoginStep1Request.cs" />
     <Compile Include="dtos\WebToApp\MastersDTOs.cs" />
     <Compile Include="dtos\WebToApp\OfficerDTOs.cs" />

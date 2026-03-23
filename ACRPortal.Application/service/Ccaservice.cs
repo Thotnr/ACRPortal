@@ -8,15 +8,14 @@ namespace ACRPortal.Application.service
     public class CcaService : ICcaUseCase
     {
         private readonly ICcaRepoPort _repo;
+        private readonly IDocumentRepoPort _docs;
 
-        public CcaService(ICcaRepoPort repo)
+        public CcaService(ICcaRepoPort repo, IDocumentRepoPort docs)
         {
             _repo = repo;
+            _docs = docs;
         }
 
-        // ------------------------------------------------------------------ //
-        //  GET /api/cca/officers                                              //
-        // ------------------------------------------------------------------ //
         public ApiResponse<CcaOfficerListResponse> GetOfficers()
         {
             try
@@ -31,9 +30,6 @@ namespace ACRPortal.Application.service
             }
         }
 
-        // ------------------------------------------------------------------ //
-        //  GET /api/cca/employees                                             //
-        // ------------------------------------------------------------------ //
         public ApiResponse<CcaEmployeeDropdownResponse> GetEmployeesForDropdown()
         {
             try
@@ -48,9 +44,6 @@ namespace ACRPortal.Application.service
             }
         }
 
-        // ------------------------------------------------------------------ //
-        //  POST /api/cca/acr                                                  //
-        // ------------------------------------------------------------------ //
         public ApiResponse<CreateAcrResponse> CreateAcr(string ccaUserId, CreateAcrRequest request)
         {
             try
@@ -71,16 +64,11 @@ namespace ACRPortal.Application.service
                 if (string.IsNullOrWhiteSpace(request.AcceptingUserId))
                     return ApiResponse<CreateAcrResponse>.Fail("AcceptingUserId is required", "BAD_REQUEST");
 
-                if (!Guid.TryParse(ccaUserId, out Guid ccaGuid))
-                    return ApiResponse<CreateAcrResponse>.Fail("Invalid CCA session", "TOKEN_INVALID");
-                if (!Guid.TryParse(request.OfficerUserId, out Guid officerGuid))
-                    return ApiResponse<CreateAcrResponse>.Fail("OfficerUserId is not a valid ID", "BAD_REQUEST");
-                if (!Guid.TryParse(request.ReportingUserId, out Guid ra1Guid))
-                    return ApiResponse<CreateAcrResponse>.Fail("ReportingUserId is not a valid ID", "BAD_REQUEST");
-                if (!Guid.TryParse(request.ReviewingUserId, out Guid rvaGuid))
-                    return ApiResponse<CreateAcrResponse>.Fail("ReviewingUserId is not a valid ID", "BAD_REQUEST");
-                if (!Guid.TryParse(request.AcceptingUserId, out Guid aaGuid))
-                    return ApiResponse<CreateAcrResponse>.Fail("AcceptingUserId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(ccaUserId, out Guid ccaGuid)) return ApiResponse<CreateAcrResponse>.Fail("Invalid CCA session", "TOKEN_INVALID");
+                if (!Guid.TryParse(request.OfficerUserId, out Guid officerGuid)) return ApiResponse<CreateAcrResponse>.Fail("OfficerUserId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(request.ReportingUserId, out Guid ra1Guid)) return ApiResponse<CreateAcrResponse>.Fail("ReportingUserId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(request.ReviewingUserId, out Guid rvaGuid)) return ApiResponse<CreateAcrResponse>.Fail("ReviewingUserId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(request.AcceptingUserId, out Guid aaGuid)) return ApiResponse<CreateAcrResponse>.Fail("AcceptingUserId is not a valid ID", "BAD_REQUEST");
 
                 Guid? ra2Guid = null;
                 if (!string.IsNullOrWhiteSpace(request.ReportingUserId2))
@@ -117,16 +105,12 @@ namespace ACRPortal.Application.service
                 if (ra2Guid.HasValue && ra2Guid.Value == ra1Guid)
                     return ApiResponse<CreateAcrResponse>.Fail("RA1 and RA2 must be different persons", "BAD_REQUEST");
 
-                if (!_repo.IsUserActive(officerGuid))
-                    return ApiResponse<CreateAcrResponse>.Fail("Selected officer is not active", "INVALID_OFFICER");
-                if (!_repo.IsUserActive(ra1Guid))
-                    return ApiResponse<CreateAcrResponse>.Fail("Selected Reporting Authority is not active", "INVALID_RA");
+                if (!_repo.IsUserActive(officerGuid)) return ApiResponse<CreateAcrResponse>.Fail("Selected officer is not active", "INVALID_OFFICER");
+                if (!_repo.IsUserActive(ra1Guid)) return ApiResponse<CreateAcrResponse>.Fail("Selected Reporting Authority is not active", "INVALID_RA");
                 if (ra2Guid.HasValue && !_repo.IsUserActive(ra2Guid.Value))
                     return ApiResponse<CreateAcrResponse>.Fail("Selected 2nd Reporting Authority is not active", "INVALID_RA2");
-                if (!_repo.IsUserActive(rvaGuid))
-                    return ApiResponse<CreateAcrResponse>.Fail("Selected Reviewing Authority is not active", "INVALID_RVA");
-                if (!_repo.IsUserActive(aaGuid))
-                    return ApiResponse<CreateAcrResponse>.Fail("Selected Accepting Authority is not active", "INVALID_AA");
+                if (!_repo.IsUserActive(rvaGuid)) return ApiResponse<CreateAcrResponse>.Fail("Selected Reviewing Authority is not active", "INVALID_RVA");
+                if (!_repo.IsUserActive(aaGuid)) return ApiResponse<CreateAcrResponse>.Fail("Selected Accepting Authority is not active", "INVALID_AA");
 
                 int acrYear = postingTo.Month >= 4 ? postingTo.Year : postingTo.Year - 1;
 
@@ -174,9 +158,6 @@ namespace ACRPortal.Application.service
             }
         }
 
-        // ------------------------------------------------------------------ //
-        //  GET /api/cca/acr/{acrId}                                           //
-        // ------------------------------------------------------------------ //
         public ApiResponse<CcaAcrDetailResponse> GetAcrDetail(string acrId)
         {
             try
@@ -191,6 +172,9 @@ namespace ACRPortal.Application.service
                 if (detail == null)
                     return ApiResponse<CcaAcrDetailResponse>.Fail("ACR not found", "NOT_FOUND");
 
+                // Attach CCA documents (medical report, etc.)
+                detail.Documents = _docs.GetDocuments(acrGuid, "CCA");
+
                 return ApiResponse<CcaAcrDetailResponse>.Ok(detail);
             }
             catch (Exception ex)
@@ -199,10 +183,8 @@ namespace ACRPortal.Application.service
             }
         }
 
-        // ------------------------------------------------------------------ //
-        //  PATCH /api/cca/acr/{acrId}                                         //
-        // ------------------------------------------------------------------ //
-        public ApiResponse<EmptyResponse> UpdateDraftAcr(string acrId, string ccaUserId, UpdateDraftAcrRequest request)
+        public ApiResponse<EmptyResponse> UpdateDraftAcr(string acrId, string ccaUserId,
+            UpdateDraftAcrRequest request)
         {
             try
             {
@@ -210,32 +192,20 @@ namespace ACRPortal.Application.service
                     return ApiResponse<EmptyResponse>.Fail("AcrId is required", "BAD_REQUEST");
                 if (request == null)
                     return ApiResponse<EmptyResponse>.Fail("Request body is required", "BAD_REQUEST");
-                if (!Guid.TryParse(acrId, out Guid acrGuid))
-                    return ApiResponse<EmptyResponse>.Fail("AcrId is not a valid ID", "BAD_REQUEST");
-                if (!Guid.TryParse(ccaUserId, out Guid ccaGuid))
-                    return ApiResponse<EmptyResponse>.Fail("Invalid CCA session", "TOKEN_INVALID");
+                if (!Guid.TryParse(acrId, out Guid acrGuid)) return ApiResponse<EmptyResponse>.Fail("AcrId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(ccaUserId, out Guid ccaGuid)) return ApiResponse<EmptyResponse>.Fail("Invalid CCA session", "TOKEN_INVALID");
 
-                if (string.IsNullOrWhiteSpace(request.OfficerUserId))
-                    return ApiResponse<EmptyResponse>.Fail("OfficerUserId is required", "BAD_REQUEST");
-                if (string.IsNullOrWhiteSpace(request.Department))
-                    return ApiResponse<EmptyResponse>.Fail("Department is required", "BAD_REQUEST");
-                if (string.IsNullOrWhiteSpace(request.Location))
-                    return ApiResponse<EmptyResponse>.Fail("Location is required", "BAD_REQUEST");
-                if (string.IsNullOrWhiteSpace(request.ReportingUserId))
-                    return ApiResponse<EmptyResponse>.Fail("ReportingUserId is required", "BAD_REQUEST");
-                if (string.IsNullOrWhiteSpace(request.ReviewingUserId))
-                    return ApiResponse<EmptyResponse>.Fail("ReviewingUserId is required", "BAD_REQUEST");
-                if (string.IsNullOrWhiteSpace(request.AcceptingUserId))
-                    return ApiResponse<EmptyResponse>.Fail("AcceptingUserId is required", "BAD_REQUEST");
+                if (string.IsNullOrWhiteSpace(request.OfficerUserId)) return ApiResponse<EmptyResponse>.Fail("OfficerUserId is required", "BAD_REQUEST");
+                if (string.IsNullOrWhiteSpace(request.Department)) return ApiResponse<EmptyResponse>.Fail("Department is required", "BAD_REQUEST");
+                if (string.IsNullOrWhiteSpace(request.Location)) return ApiResponse<EmptyResponse>.Fail("Location is required", "BAD_REQUEST");
+                if (string.IsNullOrWhiteSpace(request.ReportingUserId)) return ApiResponse<EmptyResponse>.Fail("ReportingUserId is required", "BAD_REQUEST");
+                if (string.IsNullOrWhiteSpace(request.ReviewingUserId)) return ApiResponse<EmptyResponse>.Fail("ReviewingUserId is required", "BAD_REQUEST");
+                if (string.IsNullOrWhiteSpace(request.AcceptingUserId)) return ApiResponse<EmptyResponse>.Fail("AcceptingUserId is required", "BAD_REQUEST");
 
-                if (!Guid.TryParse(request.OfficerUserId, out Guid officerGuid))
-                    return ApiResponse<EmptyResponse>.Fail("OfficerUserId is not a valid ID", "BAD_REQUEST");
-                if (!Guid.TryParse(request.ReportingUserId, out Guid ra1Guid))
-                    return ApiResponse<EmptyResponse>.Fail("ReportingUserId is not a valid ID", "BAD_REQUEST");
-                if (!Guid.TryParse(request.ReviewingUserId, out Guid rvaGuid))
-                    return ApiResponse<EmptyResponse>.Fail("ReviewingUserId is not a valid ID", "BAD_REQUEST");
-                if (!Guid.TryParse(request.AcceptingUserId, out Guid aaGuid))
-                    return ApiResponse<EmptyResponse>.Fail("AcceptingUserId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(request.OfficerUserId, out Guid officerGuid)) return ApiResponse<EmptyResponse>.Fail("OfficerUserId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(request.ReportingUserId, out Guid ra1Guid)) return ApiResponse<EmptyResponse>.Fail("ReportingUserId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(request.ReviewingUserId, out Guid rvaGuid)) return ApiResponse<EmptyResponse>.Fail("ReviewingUserId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(request.AcceptingUserId, out Guid aaGuid)) return ApiResponse<EmptyResponse>.Fail("AcceptingUserId is not a valid ID", "BAD_REQUEST");
 
                 Guid? ra2Guid = null;
                 if (!string.IsNullOrWhiteSpace(request.ReportingUserId2))
@@ -272,16 +242,12 @@ namespace ACRPortal.Application.service
                 if (ra2Guid.HasValue && ra2Guid.Value == ra1Guid)
                     return ApiResponse<EmptyResponse>.Fail("RA1 and RA2 must be different persons", "BAD_REQUEST");
 
-                if (!_repo.IsUserActive(officerGuid))
-                    return ApiResponse<EmptyResponse>.Fail("Selected officer is not active", "INVALID_OFFICER");
-                if (!_repo.IsUserActive(ra1Guid))
-                    return ApiResponse<EmptyResponse>.Fail("Selected Reporting Authority is not active", "INVALID_RA");
+                if (!_repo.IsUserActive(officerGuid)) return ApiResponse<EmptyResponse>.Fail("Selected officer is not active", "INVALID_OFFICER");
+                if (!_repo.IsUserActive(ra1Guid)) return ApiResponse<EmptyResponse>.Fail("Selected Reporting Authority is not active", "INVALID_RA");
                 if (ra2Guid.HasValue && !_repo.IsUserActive(ra2Guid.Value))
                     return ApiResponse<EmptyResponse>.Fail("Selected 2nd Reporting Authority is not active", "INVALID_RA2");
-                if (!_repo.IsUserActive(rvaGuid))
-                    return ApiResponse<EmptyResponse>.Fail("Selected Reviewing Authority is not active", "INVALID_RVA");
-                if (!_repo.IsUserActive(aaGuid))
-                    return ApiResponse<EmptyResponse>.Fail("Selected Accepting Authority is not active", "INVALID_AA");
+                if (!_repo.IsUserActive(rvaGuid)) return ApiResponse<EmptyResponse>.Fail("Selected Reviewing Authority is not active", "INVALID_RVA");
+                if (!_repo.IsUserActive(aaGuid)) return ApiResponse<EmptyResponse>.Fail("Selected Accepting Authority is not active", "INVALID_AA");
 
                 int acrYear = postingTo.Month >= 4 ? postingTo.Year : postingTo.Year - 1;
 
@@ -305,6 +271,7 @@ namespace ACRPortal.Application.service
                         return ApiResponse<EmptyResponse>.Fail("ReportingUserId2 must be null for this form type", "BAD_REQUEST");
                 }
 
+                string errorCode;
                 if (_repo.TryUpdateDraftAcr(
                         acrGuid, ccaGuid, officerGuid, ra1Guid, ra2Guid, rvaGuid, aaGuid,
                         request.Department.Trim(), request.Location.Trim(),
@@ -315,7 +282,7 @@ namespace ACRPortal.Application.service
                         request.DepartmentalExamPassed?.Trim(),
                         parsed.PropertyReturnDate, parsed.LastMedicalExamDate,
                         request.CareerPostingSummary?.Trim(),
-                        out string errorCode))
+                        out errorCode))
                 {
                     return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Draft saved successfully");
                 }
@@ -333,21 +300,17 @@ namespace ACRPortal.Application.service
             }
         }
 
-        // ------------------------------------------------------------------ //
-        //  POST /api/cca/acr/{acrId}/submit                                   //
-        // ------------------------------------------------------------------ //
         public ApiResponse<EmptyResponse> SubmitDraftAcr(string acrId, string ccaUserId)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(acrId))
                     return ApiResponse<EmptyResponse>.Fail("AcrId is required", "BAD_REQUEST");
-                if (!Guid.TryParse(acrId, out Guid acrGuid))
-                    return ApiResponse<EmptyResponse>.Fail("AcrId is not a valid ID", "BAD_REQUEST");
-                if (!Guid.TryParse(ccaUserId, out Guid ccaGuid))
-                    return ApiResponse<EmptyResponse>.Fail("Invalid CCA session", "TOKEN_INVALID");
+                if (!Guid.TryParse(acrId, out Guid acrGuid)) return ApiResponse<EmptyResponse>.Fail("AcrId is not a valid ID", "BAD_REQUEST");
+                if (!Guid.TryParse(ccaUserId, out Guid ccaGuid)) return ApiResponse<EmptyResponse>.Fail("Invalid CCA session", "TOKEN_INVALID");
 
-                if (_repo.TrySubmitDraftAcr(acrGuid, ccaGuid, out string errorCode))
+                string errorCode;
+                if (_repo.TrySubmitDraftAcr(acrGuid, ccaGuid, out errorCode))
                     return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Draft submitted successfully");
 
                 return ApiResponse<EmptyResponse>.Fail(
@@ -363,9 +326,6 @@ namespace ACRPortal.Application.service
             }
         }
 
-        // ------------------------------------------------------------------ //
-        //  GET /api/cca/acr                                                   //
-        // ------------------------------------------------------------------ //
         public ApiResponse<AcrListResponse> GetAcrList()
         {
             try
@@ -383,11 +343,6 @@ namespace ACRPortal.Application.service
         //  Private helpers                                                    //
         // ------------------------------------------------------------------ //
 
-        /// <summary>
-        /// Parses all five optional date strings in one place.
-        /// Returns a result object: Error is non-null when any provided string
-        /// cannot be parsed, so callers just check result.Error != null.
-        /// </summary>
         private static ParsedOptionalDates ParseOptionalDates(
             string djNigam, string djRank, string djStation,
             string propReturn, string lastMed)

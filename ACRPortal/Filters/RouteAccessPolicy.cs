@@ -42,12 +42,12 @@ namespace ACRPortal.Filters
                         || path.EndsWith("/masters/addemployee");
 
                 case "CCA":
-                    return path.StartsWith("/api/cca")
+                    return path.StartsWith("/api/cca")   // covers /api/cca/acr/{id}/docs too
                         || path.StartsWith("/cca")
                         || path == "/api/admin/masters/designations";
 
                 case "EMPLOYEE":
-                    return path.StartsWith("/api/acr")
+                    return path.StartsWith("/api/acr")   // covers /api/acr/{id}/docs too
                         || path.StartsWith("/acr");
 
                 default:
