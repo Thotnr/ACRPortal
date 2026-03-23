@@ -34,7 +34,9 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     }
 
     // ------------------------------------------------------------------ //
-    //  Create / Update request DTOs                                        //
+    //  Create / Update request DTOs                                       //
+    //  No document URL fields — CCA uploads medical report via            //
+    //  POST /api/cca/acr/{acrId}/docs after the ACR is created.          //
     // ------------------------------------------------------------------ //
 
     public class CreateAcrRequest
@@ -101,14 +103,9 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     }
 
     // ------------------------------------------------------------------ //
-    //  GET /api/cca/acr/{acrId} — single ACR detail                       //
+    //  GET /api/cca/acr/{acrId} — single ACR detail                      //
     // ------------------------------------------------------------------ //
 
-    /// <summary>
-    /// Full Section I detail for a single ACR cycle — returned to the CCA.
-    /// Authority fields contain only the UserId stored on acr_cycles.
-    /// Does NOT include any assessment data.
-    /// </summary>
     public class CcaAcrDetailResponse
     {
         // Identity
@@ -159,10 +156,16 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         // Audit
         public string CreatedAt { get; set; }
         public string UpdatedAt { get; set; }
+
+        /// <summary>
+        /// Documents uploaded by the CCA for this ACR (section = 'CCA').
+        /// Typically the medical report (Annexure A).
+        /// </summary>
+        public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
     }
 
     // ------------------------------------------------------------------ //
-    //  Shared response DTOs                                               //
+    //  Shared response DTOs                                              //
     // ------------------------------------------------------------------ //
 
     public class CreateAcrResponse

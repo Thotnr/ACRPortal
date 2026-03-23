@@ -29,12 +29,15 @@ namespace ACRPortal
             container.RegisterType<IAuthRepoPort, AuthAdapter>();
             container.RegisterType<IAuthUseCase, AuthService>();
 
+            // Admin masters (designation, state, zone, circle, division, subdivision)
             container.RegisterType<IAdminMastersRepoPort, AdminMastersAdapter>();
             container.RegisterType<IAdminMastersUseCase, AdminMastersService>();
 
+            // Admin user management
             container.RegisterType<IAdminRepoPort, AdminAdapter>();
             container.RegisterType<IAdminUseCase, AdminService>();
 
+            // CCA (create/manage ACR cycles)
             container.RegisterType<ICcaUseCase, CcaService>();
             container.RegisterType<ICcaRepoPort, CcaAdapter>();
 
@@ -46,11 +49,18 @@ namespace ACRPortal
             container.RegisterType<IReportingRepoPort, ReportingAdapter>();
             container.RegisterType<IReportingUseCase, ReportingService>();
 
+            // Reviewing Authority flow
             container.RegisterType<IReviewingRepoPort, ReviewingAdapter>();
             container.RegisterType<IReviewingUseCase, ReviewingService>();
 
+            // Accepting Authority flow
             container.RegisterType<IAcceptingRepoPort, AcceptingAdapter>();
             container.RegisterType<IAcceptingUseCase, AcceptingService>();
+
+            // Document upload (shared across all ACR participants)
+            // Both DocumentApiController and CcaDocumentApiController inject IDocumentUseCase
+            container.RegisterType<IDocumentRepoPort, DocumentAdapter>();
+            container.RegisterType<IDocumentUseCase, DocumentService>();
         }
     }
 }

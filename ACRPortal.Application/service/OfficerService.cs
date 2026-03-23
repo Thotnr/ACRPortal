@@ -8,10 +8,12 @@ namespace ACRPortal.Application.service
     public class OfficerService : IOfficerUseCase
     {
         private readonly IOfficerRepoPort _repo;
+        private readonly IDocumentRepoPort _docs;
 
-        public OfficerService(IOfficerRepoPort repo)
+        public OfficerService(IOfficerRepoPort repo, IDocumentRepoPort docs)
         {
             _repo = repo;
+            _docs = docs;
         }
 
         public ApiResponse<MyAcrListResponse> GetMyAcrs(string officerUserId, string status)
@@ -21,7 +23,9 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(officerUserId, out Guid officerGuid))
                     return ApiResponse<MyAcrListResponse>.Fail("Invalid user id in token", "TOKEN_INVALID");
 
-                var result = _repo.GetMyAcrs(officerGuid, string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpper());
+                var result = _repo.GetMyAcrs(officerGuid,
+                    string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpper());
+
                 return ApiResponse<MyAcrListResponse>.Ok(result, "Success");
             }
             catch (Exception ex)
@@ -44,6 +48,9 @@ namespace ACRPortal.Application.service
                 if (detail == null)
                     return ApiResponse<AcrDetailResponse>.Fail("ACR not found", "NOT_FOUND");
 
+                // Attach officer's own documents (section = 'OFFICER')
+                detail.Documents = _docs.GetDocuments(acrGuid, "OFFICER");
+
                 return ApiResponse<AcrDetailResponse>.Ok(detail, "Success");
             }
             catch (Exception ex)
@@ -52,7 +59,8 @@ namespace ACRPortal.Application.service
             }
         }
 
-        public ApiResponse<EmptyResponse> SaveSelfAppraisalDraft(string acrId, string officerUserId, SelfAppraisalDraftRequest request)
+        public ApiResponse<EmptyResponse> SaveSelfAppraisalDraft(string acrId, string officerUserId,
+            SelfAppraisalDraftRequest request)
         {
             try
             {
@@ -65,7 +73,8 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<EmptyResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                if (_repo.TryUpsertSelfAppraisalDraft(acrGuid, officerGuid, request, out string errorCode))
+                string errorCode;
+                if (_repo.TryUpsertSelfAppraisalDraft(acrGuid, officerGuid, request, out errorCode))
                     return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Draft saved successfully");
 
                 return ApiResponse<EmptyResponse>.Fail(
@@ -92,8 +101,10 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<EmptyResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                if (_repo.TrySubmitSelfAppraisal(acrGuid, officerGuid, out string errorCode))
-                    return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Self-appraisal submitted successfully");
+                string errorCode;
+                if (_repo.TrySubmitSelfAppraisal(acrGuid, officerGuid, out errorCode))
+                    return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(),
+                        "Self-appraisal submitted successfully");
 
                 return ApiResponse<EmptyResponse>.Fail(
                     errorCode == "NOT_FOUND" ? "ACR not found" :
@@ -111,4 +122,3 @@ namespace ACRPortal.Application.service
         }
     }
 }
-

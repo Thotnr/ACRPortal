@@ -8,7 +8,8 @@
 ## Architecture
 
 ```
-CcaApiController → ICcaUseCase → CcaService → ICcaRepoPort → CcaAdapter
+CcaApiController         → ICcaUseCase        → CcaService        → ICcaRepoPort        → CcaAdapter
+CcaDocumentApiController → IDocumentUseCase   → DocumentService   → IDocumentRepoPort   → DocumentAdapter
 ```
 
 ---
@@ -19,35 +20,38 @@ CcaApiController → ICcaUseCase → CcaService → ICcaRepoPort → CcaAdapter
 [acr_id]                       UNIQUEIDENTIFIER  PK  DEFAULT NEWID()
 [officer_user_id]              UNIQUEIDENTIFIER  NOT NULL  FK → dbo.users(user_id)
 [reporting_user_id]            UNIQUEIDENTIFIER  NOT NULL  FK → dbo.users(user_id)   -- RA1
-[ra2_user_id]                  UNIQUEIDENTIFIER  NULL      FK → dbo.users(user_id)   -- A1b only
-[reviewing_user_id]            UNIQUEIDENTIFIER  NOT NULL  FK → dbo.users(user_id)
-[accepting_user_id]            UNIQUEIDENTIFIER  NOT NULL  FK → dbo.users(user_id)
-[cca_user_id]                  UNIQUEIDENTIFIER  NOT NULL  FK → dbo.users(user_id)
+[ra2_user_id]                  UNIQUEIDENTIFIER  NULL                                 -- A1b only
+[reviewing_user_id]            UNIQUEIDENTIFIER  NOT NULL
+[accepting_user_id]            UNIQUEIDENTIFIER  NOT NULL
+[cca_user_id]                  UNIQUEIDENTIFIER  NOT NULL
 [department]                   NVARCHAR(200)     NOT NULL
 [location]                     NVARCHAR(200)     NOT NULL
 [posting_from]                 DATE              NOT NULL
 [posting_to]                   DATE              NOT NULL
 [acr_year]                     INT               NOT NULL
-[designation]                  NVARCHAR(200)     NOT NULL   -- dsgDesc snapshot at creation time
+[designation]                  NVARCHAR(200)     NOT NULL   -- dsgDesc snapshot
 [form_type]                    VARCHAR(5)        NOT NULL   -- 'A1a' | 'A1b' | 'A2'
 [date_of_birth]                DATE              NULL
-[date_joining_nigam]           DATE              NULL       -- Sr.5
-[date_joining_present_rank]    DATE              NULL       -- Sr.6
-[date_joining_present_station] DATE              NULL       -- Sr.7
-[academic_qualification]       NVARCHAR(500)     NULL       -- Sr.4(a)
-[technical_qualification]      NVARCHAR(500)     NULL       -- Sr.4(b)
-[departmental_exam_passed]     NVARCHAR(500)     NULL       -- Sr.8
-[property_return_date]         DATE              NULL       -- Sr.10
-[last_medical_exam_date]       DATE              NULL       -- Sr.11
+[date_joining_nigam]           DATE              NULL
+[date_joining_present_rank]    DATE              NULL
+[date_joining_present_station] DATE              NULL
+[academic_qualification]       NVARCHAR(500)     NULL
+[technical_qualification]      NVARCHAR(500)     NULL
+[departmental_exam_passed]     NVARCHAR(500)     NULL
+[property_return_date]         DATE              NULL
+[last_medical_exam_date]       DATE              NULL
 [career_posting_summary]       NVARCHAR(MAX)     NULL
 [status]                       VARCHAR(30)       NOT NULL  DEFAULT 'PENDING_OFFICER'
 [created_at]                   DATETIME          NOT NULL  DEFAULT GETDATE()
 [updated_at]                   DATETIME          NOT NULL  DEFAULT GETDATE()
 ```
 
-**`acr_year`:** if `posting_to` month ≥ 4 → `posting_to.Year`; otherwise `posting_to.Year - 1`.  
-**`form_type` and `designation`:** resolved from `DesignationId` at INSERT — never sent by caller.  
-**Uniqueness:** `UNIQUE (officer_user_id, department, posting_from)`.
+### `dbo.acr_documents`
+```sql
+[section] VARCHAR(10)  -- 'CCA' for this role
+```
+
+> CCA section documents typically include the medical report (Annexure A) uploaded at ACR creation time, and any other supporting documents attached during setup.
 
 ---
 
@@ -59,92 +63,61 @@ Both share the same fields. `CreateAcrRequest` adds `SaveAsDraft`.
 
 ```csharp
 // Required
-string OfficerUserId    // GUID
-int    DesignationId    // tbDsg.dsgId — server resolves form_type and designation
+string OfficerUserId
+int    DesignationId
 string Department
 string Location
 string PostingFrom      // yyyy-MM-dd
 string PostingTo        // yyyy-MM-dd (must be > PostingFrom; gap ≥ 90 days)
 string DateOfBirth      // yyyy-MM-dd
 string ReportingUserId  // GUID of RA1
-string ReviewingUserId  // GUID of RvA
-string AcceptingUserId  // GUID of AA
+string ReviewingUserId
+string AcceptingUserId
 
 // Conditional
 string ReportingUserId2 // GUID of RA2 — required for A1b, must be null for A1a/A2
 
 // Optional
-string DateJoiningNigam            // yyyy-MM-dd  Sr.5
-string DateJoiningPresentRank      // yyyy-MM-dd  Sr.6
-string DateJoiningPresentStation   // yyyy-MM-dd  Sr.7
-string AcademicQualification       // Sr.4(a)
-string TechnicalQualification      // Sr.4(b)
-string DepartmentalExamPassed      // Sr.8  free text
-string PropertyReturnDate          // yyyy-MM-dd  Sr.10 — null if not yet filed
-string LastMedicalExamDate         // yyyy-MM-dd  Sr.11 — null if not applicable
+string DateJoiningNigam
+string DateJoiningPresentRank
+string DateJoiningPresentStation
+string AcademicQualification
+string TechnicalQualification
+string DepartmentalExamPassed
+string PropertyReturnDate       // yyyy-MM-dd
+string LastMedicalExamDate      // yyyy-MM-dd
 string CareerPostingSummary
 
 // CreateAcrRequest only
-bool   SaveAsDraft   // true → DRAFT; false (default) → PENDING_OFFICER
+bool   SaveAsDraft
+
+// DocumentPath removed — upload medical report / annexures separately via
+// POST /api/cca/acr/{acrId}/docs after the ACR has been created
 ```
 
 ### `CcaAcrDetailResponse`
-
-Returned by `GET /api/cca/acr/{acrId}`. Authority fields contain only the stored UUID — no name resolution.
-
 ```csharp
 public class CcaAcrDetailResponse {
-    // Identity
-    string AcrId    
-    string FormType    // 'A1a' | 'A1b' | 'A2'
-    string Status
-
-    // Officer (display info resolved from users JOIN)
-    string OfficerUserId
-    string OfficerLoginId
-    string OfficerName
-    int?   DsgId
-    string DsgDesc        // designation snapshot stored at creation time
-
-    // Posting
-    string Department
-    string Location
-    string PostingFrom    // yyyy-MM-dd
-    string PostingTo      // yyyy-MM-dd
-    int    AcrYear
-
-    // Section I
-    string DateOfBirth               // yyyy-MM-dd, nullable
-    string DateJoiningNigam          // yyyy-MM-dd, nullable
-    string DateJoiningPresentRank    // yyyy-MM-dd, nullable
-    string DateJoiningPresentStation // yyyy-MM-dd, nullable
-    string AcademicQualification     // nullable
-    string TechnicalQualification    // nullable
-    string DepartmentalExamPassed    // nullable
-    string PropertyReturnDate        // yyyy-MM-dd, nullable
-    string LastMedicalExamDate       // yyyy-MM-dd, nullable
-    string CareerPostingSummary      // nullable
-
-    // Authorities — UserId only (UUID string)
-    string ReportingAuthorityUserId   // RA1 — always present
-    string ReportingAuthority2UserId  // RA2 — null for A1a/A2
-    string ReviewingAuthorityUserId
-    string AcceptingAuthorityUserId
-
-    // Audit
-    string CreatedAt    // ISO 8601
-    string UpdatedAt    // ISO 8601
+  string AcrId; string FormType; string Status;
+  string OfficerUserId; string OfficerLoginId; string OfficerName;
+  int?   DsgId; string DsgDesc;
+  string Department; string Location; string PostingFrom; string PostingTo; int AcrYear;
+  string DateOfBirth;
+  string DateJoiningNigam; string DateJoiningPresentRank; string DateJoiningPresentStation;
+  string AcademicQualification; string TechnicalQualification; string DepartmentalExamPassed;
+  string PropertyReturnDate; string LastMedicalExamDate;
+  string CareerPostingSummary;
+  string ReportingAuthorityUserId;   // RA1
+  string ReportingAuthority2UserId;  // RA2 — null for A1a/A2
+  string ReviewingAuthorityUserId;
+  string AcceptingAuthorityUserId;
+  string CreatedAt; string UpdatedAt;
+  List<AcrDocumentItem> Documents;   // CCA's section docs (section='CCA')
 }
 ```
 
-### `AcrListItem`
-```csharp
-public class AcrListItem {
-    string AcrId; string OfficerName; string OfficerLoginId; string DsgDesc;
-    string FormType; string Department; string Location;
-    string PostingFrom; string PostingTo; int AcrYear; string Status; string CreatedAt;
-}
-```
+### `AcrDocumentItem` / `AddDocumentRequest`
+See Officer API Contract for field definitions — identical across all roles.
 
 ---
 
@@ -152,48 +125,19 @@ public class AcrListItem {
 **GET** `/api/cca/officers`  
 Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
-Populates the **"Select Officer"** dropdown when the CCA is creating an ACR. Returns `DsgCode`, `DsgDesc`, and `FormType` per officer — the frontend uses `FormType` to immediately know which form template applies and whether to show the RA2 field (`A1b` → show; `A1a` / `A2` → hide), without needing a separate designation lookup after officer selection.
-
-**Why this is different from `/api/cca/employees`:** this endpoint returns `DsgCode` and `FormType` which are only needed for officer selection logic. The employees endpoint omits those fields since authority dropdowns (RA, RvA, AA) don't need form-type awareness.
-
 ### Success `200`
 ```json
 {
-  "Success": true,
-  "Message": "Success",
+  "Success": true, "Message": "Success",
   "Data": {
     "Officers": [
-      {
-        "UserId": "uuid",
-        "LoginId": "EMP001",
-        "DisplayName": "Ramesh Kumar",
-        "DsgId": 1002,
-        "DsgCode": "XEN",
-        "DsgDesc": "Executive Engineer",
-        "FormType": "A1b"
-      },
-      {
-        "UserId": "uuid",
-        "LoginId": "EMP002",
-        "DisplayName": "Kuldeep Atri",
-        "DsgId": 1003,
-        "DsgCode": "SE",
-        "DsgDesc": "Superintending Engineer",
-        "FormType": "A1a"
-      }
+      { "UserId": "uuid", "LoginId": "EMP001", "DisplayName": "Ramesh Kumar", "DsgId": 1002, "DsgCode": "XEN", "DsgDesc": "Executive Engineer", "FormType": "A1b" },
+      { "UserId": "uuid", "LoginId": "EMP002", "DisplayName": "Kuldeep Atri", "DsgId": 1003, "DsgCode": "SE", "DsgDesc": "Superintending Engineer", "FormType": "A1a" }
     ]
   },
   "ErrorCode": null
 }
 ```
-
-> `DsgId`, `DsgCode`, `DsgDesc`, and `FormType` are `null` if the officer has no designation assigned yet. The CCA should not create an ACR for such officers until a designation is set.
-
-### Failure Cases
-| Scenario | ErrorCode | HTTP |
-|---|---|---|
-| Token missing / invalid | `TOKEN_INVALID` | 401 |
-| Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
@@ -201,50 +145,26 @@ Populates the **"Select Officer"** dropdown when the CCA is creating an ACR. Ret
 **GET** `/api/cca/employees`  
 Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
-Populates the **RA / RvA / AA authority dropdowns** when creating or editing an ACR. Returns the same active EMPLOYEE pool as `/api/cca/officers` but without `DsgCode` and `FormType` — those fields are irrelevant for authority selection and are omitted to keep the payload lean.
-
-**Why this is different from `/api/cca/officers`:** authority dropdowns only need to show name and designation description for identification. The form-type logic that drives the RA2 field is driven by the officer's designation (from API 1), not by the authority's.
-
 ### Success `200`
 ```json
 {
-  "Success": true,
-  "Message": "Success",
+  "Success": true, "Message": "Success",
   "Data": {
     "Employees": [
-      {
-        "UserId": "uuid",
-        "LoginId": "EMP010",
-        "DisplayName": "Suresh Singh",
-        "DsgId": 1005,
-        "DsgDesc": "Superintending Engineer"
-      },
-      {
-        "UserId": "uuid",
-        "LoginId": "EMP020",
-        "DisplayName": "Anita Sharma",
-        "DsgId": 1006,
-        "DsgDesc": "Chief Engineer"
-      }
+      { "UserId": "uuid", "LoginId": "EMP010", "DisplayName": "Suresh Singh", "DsgId": 1005, "DsgDesc": "Superintending Engineer" }
     ]
   },
   "ErrorCode": null
 }
 ```
 
-> `DsgId` and `DsgDesc` are `null` if the employee has no designation assigned.
-
-### Failure Cases
-| Scenario | ErrorCode | HTTP |
-|---|---|---|
-| Token missing / invalid | `TOKEN_INVALID` | 401 |
-| Unexpected error | `INTERNAL_ERROR` | 500 |
-
 ---
 
 ## API 3 — Create ACR
 **POST** `/api/cca/acr`  
 Requires: `Authorization: Bearer <token>` | Role: `CCA`
+
+Creates the ACR. Upload medical report or other annexures separately via `POST /api/cca/acr/{acrId}/docs` after creation.
 
 ### Request
 ```json
@@ -286,22 +206,19 @@ Requires: `Authorization: Bearer <token>` | Role: `CCA`
 | Scenario | ErrorCode | HTTP |
 |---|---|---|
 | Required field missing | `BAD_REQUEST` | 400 |
-| Any date field malformed | `BAD_REQUEST` | 400 |
+| Date field malformed | `BAD_REQUEST` | 400 |
 | PostingTo ≤ PostingFrom or gap < 90 days | `BAD_REQUEST` | 400 |
 | DesignationId not found / inactive | `INVALID_DESIGNATION` | 400 |
 | RA2 required but missing (A1b) | `BAD_REQUEST` | 400 |
 | RA2 provided but not allowed (A1a/A2) | `BAD_REQUEST` | 400 |
-| Officer is their own authority | `BAD_REQUEST` | 400 |
 | Any referenced user not active | `INVALID_OFFICER` / `INVALID_RA` / `INVALID_RA2` / `INVALID_RVA` / `INVALID_AA` | 400 |
 | Duplicate ACR | `DUPLICATE_ACR` | 409 |
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
-| Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
 ## API 4 — Get ACR List
 **GET** `/api/cca/acr`  
-Returns all ACR cycles ordered by creation date descending.
 
 ### Success `200`
 ```json
@@ -329,27 +246,18 @@ Returns all ACR cycles ordered by creation date descending.
 **GET** `/api/cca/acr/{acrId}`  
 Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
-Returns full Section I data for one ACR. Authority fields contain only the stored `UserId` — no name resolution. Any CCA can read any ACR (no ownership restriction on reads).
+Returns full Section I data plus CCA's uploaded documents.
 
 ### Success `200`
 ```json
 {
-  "Success": true,
-  "Message": "Success",
+  "Success": true, "Message": "Success",
   "Data": {
-    "AcrId": "uuid",
-    "FormType": "A1b",
-    "Status": "PENDING_REPORTING",
-    "OfficerUserId": "uuid-officer",
-    "OfficerLoginId": "EMP001",
-    "OfficerName": "Ramesh Kumar",
-    "DsgId": 1002,
-    "DsgDesc": "Executive Engineer",
-    "Department": "Operation Division Hisar",
-    "Location": "Hisar",
-    "PostingFrom": "2023-04-01",
-    "PostingTo": "2024-03-31",
-    "AcrYear": 2024,
+    "AcrId": "uuid", "FormType": "A1b", "Status": "PENDING_REPORTING",
+    "OfficerUserId": "uuid", "OfficerLoginId": "EMP001", "OfficerName": "Ramesh Kumar",
+    "DsgId": 1002, "DsgDesc": "Executive Engineer",
+    "Department": "Operation Division Hisar", "Location": "Hisar",
+    "PostingFrom": "2023-04-01", "PostingTo": "2024-03-31", "AcrYear": 2024,
     "DateOfBirth": "1982-06-15",
     "DateJoiningNigam": "2008-08-01",
     "DateJoiningPresentRank": "2020-03-10",
@@ -365,22 +273,28 @@ Returns full Section I data for one ACR. Authority fields contain only the store
     "ReviewingAuthorityUserId": "uuid-rva",
     "AcceptingAuthorityUserId": "uuid-aa",
     "CreatedAt": "2024-05-01T10:00:00.0000000Z",
-    "UpdatedAt": "2024-05-03T14:22:00.0000000Z"
+    "UpdatedAt": "2024-05-03T14:22:00.0000000Z",
+    "Documents": [
+      {
+        "DocumentId": "uuid", "Section": "CCA", "DocumentType": "MEDICAL_REPORT",
+        "FileUrl": "https://storage.example.com/acr/uuid/annexure_a.pdf",
+        "FileName": "Annexure_A_Medical.pdf", "UploadedAt": "2024-05-03T14:00:00.0000000Z"
+      }
+    ]
   },
   "ErrorCode": null
 }
 ```
 
-> `ReportingAuthority2UserId` is `null` for A1a/A2 form types.  
-> All optional date/text fields may be `null` if not yet populated by CCA.
+> `Documents` is `[]` if no CCA documents uploaded yet.  
+> `ReportingAuthority2UserId` is `null` for A1a/A2 form types.
 
 ### Failure Cases
 | Scenario | ErrorCode | HTTP |
 |---|---|---|
-| `acrId` missing or not a valid GUID | `BAD_REQUEST` | 400 |
+| `acrId` missing or invalid | `BAD_REQUEST` | 400 |
 | ACR not found | `NOT_FOUND` | 404 |
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
-| Unexpected error | `INTERNAL_ERROR` | 500 |
 
 ---
 
@@ -413,13 +327,88 @@ ACR must be in `DRAFT` status. Same body as `CreateAcrRequest` excluding `SaveAs
 { "Success": true, "Message": "Draft submitted successfully", "Data": {}, "ErrorCode": null }
 ```
 
+---
+
+## API 8 — Upload Document
+**POST** `/api/cca/acr/{acrId}/docs`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
+
+Attaches a document to the CCA section. Section `CCA` is resolved server-side. CCA can upload documents when the ACR is in any non-final status (DRAFT, PENDING_OFFICER, etc.).
+
+Typical use: upload the medical report (Annexure A) immediately after creating the ACR.
+
+### Request
+```json
+{
+  "FileUrl": "https://storage.example.com/acr/uuid/annexure_a.pdf",
+  "FileName": "Annexure_A_Medical.pdf",
+  "DocumentType": "MEDICAL_REPORT"
+}
+```
+
+> `DocumentType` is optional — defaults to `SUPPORTING_DOC` if omitted.
+
+### Success `201`
+```json
+{
+  "Success": true, "Message": "Document uploaded successfully",
+  "Data": { "DocumentId": "uuid" },
+  "ErrorCode": null
+}
+```
+
 ### Failure Cases
 | Scenario | ErrorCode | HTTP |
 |---|---|---|
-| `acrId` missing / invalid | `BAD_REQUEST` | 400 |
+| `FileUrl` or `FileName` missing | `BAD_REQUEST` | 400 |
 | ACR not found | `NOT_FOUND` | 404 |
-| ACR belongs to a different CCA | `FORBIDDEN` | 403 |
-| ACR is not in DRAFT status | `INVALID_STATE` | 409 |
+| Caller is not the CCA for this ACR | `FORBIDDEN` | 403 |
+| ACR in a status that does not permit CCA uploads | `INVALID_STATE` | 409 |
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
+
+---
+
+## API 9 — Get Documents
+**GET** `/api/cca/acr/{acrId}/docs`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
+
+Returns CCA section documents only.
+
+### Success `200`
+```json
+{
+  "Success": true, "Message": "Success",
+  "Data": {
+    "Documents": [
+      {
+        "DocumentId": "uuid", "Section": "CCA", "DocumentType": "MEDICAL_REPORT",
+        "FileUrl": "https://storage.example.com/acr/uuid/annexure_a.pdf",
+        "FileName": "Annexure_A_Medical.pdf", "UploadedAt": "2024-05-03T14:00:00.0000000Z"
+      }
+    ]
+  },
+  "ErrorCode": null
+}
+```
+
+---
+
+## API 10 — Delete Document
+**DELETE** `/api/cca/acr/{acrId}/docs/{documentId}`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
+
+Removes a document from the CCA section.
+
+### Success `200`
+```json
+{ "Success": true, "Message": "Document deleted successfully", "Data": {}, "ErrorCode": null }
+```
+
+### Failure Cases
+| Scenario | ErrorCode | HTTP |
+|---|---|---|
+| Document not found or belongs to a different section | `NOT_FOUND` | 404 |
+| Caller is not the CCA for this ACR | `FORBIDDEN` | 403 |
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
 
 ---
@@ -428,38 +417,26 @@ ACR must be in `DRAFT` status. Same body as `CreateAcrRequest` excluding `SaveAs
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/cca/officers` | Officer dropdown — includes `DsgCode` and `FormType` to drive RA2 visibility |
-| GET | `/api/cca/employees` | Authority dropdowns (RA/RvA/AA) — name + designation only, no form-type fields |
+| GET | `/api/cca/officers` | Officer dropdown (includes FormType) |
+| GET | `/api/cca/employees` | Authority dropdowns (RA/RvA/AA) |
 | POST | `/api/cca/acr` | Create a new ACR cycle |
 | GET | `/api/cca/acr` | List all ACR cycles |
-| GET | `/api/cca/acr/{acrId}` | Get full Section I detail for one ACR |
+| GET | `/api/cca/acr/{acrId}` | Get full Section I detail + documents |
 | PATCH | `/api/cca/acr/{acrId}` | Save changes to a DRAFT ACR |
 | POST | `/api/cca/acr/{acrId}/submit` | Submit DRAFT → PENDING_OFFICER |
+| POST | `/api/cca/acr/{acrId}/docs` | Upload a document (section=CCA) |
+| GET | `/api/cca/acr/{acrId}/docs` | List CCA's documents |
+| DELETE | `/api/cca/acr/{acrId}/docs/{documentId}` | Delete a document |
 
 ---
 
-## `ICcaUseCase` — interface shape
-```csharp
-ApiResponse<CcaOfficerListResponse>      GetOfficers();
-ApiResponse<CcaEmployeeDropdownResponse> GetEmployeesForDropdown();
-ApiResponse<CreateAcrResponse>           CreateAcr(string ccaUserId, CreateAcrRequest request);
-ApiResponse<CcaAcrDetailResponse>        GetAcrDetail(string acrId);
-ApiResponse<EmptyResponse>               UpdateDraftAcr(string acrId, string ccaUserId, UpdateDraftAcrRequest request);
-ApiResponse<EmptyResponse>               SubmitDraftAcr(string acrId, string ccaUserId);
-ApiResponse<AcrListResponse>             GetAcrList();
+## Document API — New Endpoint (CcaDocumentApiController)
+
+```
+CcaDocumentApiController [RoutePrefix: api/cca]
+  POST   /api/cca/acr/{acrId}/docs
+  GET    /api/cca/acr/{acrId}/docs
+  DELETE /api/cca/acr/{acrId}/docs/{documentId}
 ```
 
-## `ICcaRepoPort` — interface shape
-```csharp
-List<CcaOfficerListItem>      GetOfficers();
-List<CcaEmployeeDropdownItem> GetEmployeesForDropdown();
-bool IsUserActive(Guid userId);
-bool IsAcrDuplicate(Guid officerUserId, string department, DateTime postingFrom);
-bool IsAcrDuplicateExcluding(Guid acrId, Guid officerUserId, string department, DateTime postingFrom);
-DesignationLookupItem GetDesignationById(int dsgId);
-string CreateAcr(/* ... Section I params ... */ string status);
-bool   TryUpdateDraftAcr(/* ... Section I params ... */ out string errorCode);
-bool   TrySubmitDraftAcr(Guid acrId, Guid ccaUserId, out string errorCode);
-CcaAcrDetailResponse GetAcrDetail(Guid acrId);
-List<AcrListItem> GetAcrList();
-```
+This is a separate controller from `CcaApiController` but shares the same `IDocumentUseCase`. The section `CCA` is resolved automatically by `DocumentAdapter.ResolveCallerSection` using the caller's user ID matched against `acr_cycles.cca_user_id`.

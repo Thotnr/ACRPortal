@@ -18,7 +18,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string PostingTo { get; set; }   // yyyy-MM-dd
         public int AcrYear { get; set; }
         public string Status { get; set; }   // always PENDING_REVIEWING
-        public bool IsSubmitted { get; set; }   // true if submitted_at is not null
+        public bool IsSubmitted { get; set; }
         public string CreatedAt { get; set; }   // ISO 8601
     }
 
@@ -28,30 +28,24 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     }
 
     // ------------------------------------------------------------------ //
-    //  Draft request (Section IV — filled by RvA)                         //
-    //                                                                      //
-    //  The RvA fills two things:                                           //
-    //   1. reviewing_assessments: agree/disagree, comments, overall grade  //
-    //   2. reporting_assessments rva_* columns: override grades when       //
-    //      they disagree with the RA's numerical assessment                //
-    //      (same 15-item grid, only filled when RvA disagrees)             //
+    //  Draft request                                                      //
+    //  DocumentPath removed — documents go through /api/acr/{id}/docs    //
     // ------------------------------------------------------------------ //
 
     public class ReviewingDraftRequest
     {
         // Section IV Item 1
-        public bool? AgreeWithRa { get; set; }   // YES/NO
-        public string DisagreeDetails { get; set; }   // "In case of difference of opinion..."
+        public bool? AgreeWithRa { get; set; }
+        public string DisagreeDetails { get; set; }
 
         // Section IV Item 3
-        public string Comments { get; set; }   // "Comments of Reviewing Authority (if any)"
+        public string Comments { get; set; }
 
         // Section IV Item 4
         public decimal? OverallGrade { get; set; }   // 1-10, DECIMAL(4,2)
 
-        // RvA override grades — filled only when AgreeWithRa = false.
-        // These map to rva_* columns in reporting_assessments.
-        // Send null for any item the RvA agrees with; only override items they dispute.
+        // RvA override grades — rva_* columns in reporting_assessments
+        // Null = agrees with RA's score for that item
         public byte? WorkTargets { get; set; }
         public byte? WorkQuality { get; set; }
         public byte? WorkExceptional { get; set; }
@@ -72,11 +66,12 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     }
 
     // ------------------------------------------------------------------ //
-    //  Read-back views                                                     //
+    //  Read-back views                                                    //
     // ------------------------------------------------------------------ //
 
     /// <summary>
     /// RvA's own assessment stored in reviewing_assessments.
+    /// DocumentPath removed — documents returned via Documents list.
     /// </summary>
     public class ReviewingAssessmentView
     {
@@ -92,7 +87,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
 
     /// <summary>
     /// RvA's override grades stored in reporting_assessments (rva_* columns).
-    /// Only populated when RvA disagreed with the RA's numerical assessment.
+    /// Only populated when RvA disagreed with RA's numerical assessment.
     /// </summary>
     public class RvaOverrideGradesView
     {
@@ -116,12 +111,11 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     }
 
     // ------------------------------------------------------------------ //
-    //  Detail response                                                     //
+    //  Detail response                                                    //
     // ------------------------------------------------------------------ //
 
     public class ReviewingAcrDetailResponse
     {
-        // ACR header
         public string AcrId { get; set; }
         public string FormType { get; set; }
         public string Status { get; set; }
@@ -132,22 +126,16 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string PostingTo { get; set; }   // yyyy-MM-dd
         public int AcrYear { get; set; }
 
-        // Officer identity
         public OfficerLite Officer { get; set; } = new OfficerLite();
-
-        // Officer's self-appraisal (read-only for RvA)
         public SelfAppraisalView SelfAppraisal { get; set; } = new SelfAppraisalView();
-
-        // RA1 assessment (read-only for RvA)
         public ReportingAssessmentView Ra1Assessment { get; set; } = new ReportingAssessmentView();
-
-        // RA2 assessment (A1b only — read-only for RvA)
         public ReportingAssessmentView Ra2Assessment { get; set; } = new ReportingAssessmentView();
-
-        // RvA's own assessment (reviewing_assessments)
         public ReviewingAssessmentView ReviewingAssessment { get; set; } = new ReviewingAssessmentView();
-
-        // RvA's override grades (rva_* in reporting_assessments) — null values = agreed with RA
         public RvaOverrideGradesView RvaOverrideGrades { get; set; } = new RvaOverrideGradesView();
+
+        /// <summary>
+        /// Documents uploaded by the RvA for this ACR (section = 'RVA').
+        /// </summary>
+        public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
     }
 }

@@ -74,28 +74,29 @@ namespace ACRPortal.Infrastructure.Adapter
 
         // ================================================================== //
         //  GetAcrDetail                                                       //
+        //                                                                     //
+        //  Column index map (document_path removed vs. old version):          //
+        //   0  acr_id           8  acr_year                                   //
+        //   1  form_type        9  appraisal_id (NULL → no self-appraisal)   //
+        //   2  status          10  sa.submitted_at                            //
+        //   3  department      11  leave_details                              //
+        //   4  location        12  duties_description                         //
+        //   5  designation     13  targets_set                                //
+        //   6  posting_from    14  targets_achieved                           //
+        //   7  posting_to      15  shortfall_reasons                          //
+        //                      16  major_achievements                         //
+        //                      17  membership_bodies                          //
+        //                      18  training_details                           //
+        //                      19  awards_honours                             //
+        //                      20  auditor_compliance  (BIT)                  //
+        //                      21  property_declared                          //
+        //                      22  property_declared_date                     //
+        //                      23  medical_compliance                         //
+        //                      24  medical_compliance_date                    //
+        //  (document_path was col 25 in old schema — now gone)                //
         // ================================================================== //
         public AcrDetailResponse GetAcrDetail(Guid acrId, Guid officerUserId)
         {
-            // Column index map:
-            //  0  acr_id           8  acr_year
-            //  1  form_type        9  appraisal_id (NULL → no self-appraisal row)
-            //  2  status          10  submitted_at
-            //  3  department      11  leave_details          ← new
-            //  4  location        12  duties_description
-            //  5  designation     13  targets_set
-            //  6  posting_from    14  targets_achieved
-            //  7  posting_to      15  shortfall_reasons
-            //                     16  major_achievements
-            //                     17  membership_bodies
-            //                     18  training_details
-            //                     19  awards_honours
-            //                     20  auditor_compliance     ← BIT now
-            //                     21  property_declared
-            //                     22  property_declared_date ← new
-            //                     23  medical_compliance
-            //                     24  medical_compliance_date ← new
-            //                     25  document_path
             const string sql = @"
                 SELECT  ac.acr_id,
                         ac.form_type,
@@ -122,11 +123,10 @@ namespace ACRPortal.Infrastructure.Adapter
                         sa.property_declared,
                         sa.property_declared_date,
                         sa.medical_compliance,
-                        sa.medical_compliance_date,
-                        sa.document_path
+                        sa.medical_compliance_date
                 FROM dbo.acr_cycles ac
                 LEFT JOIN dbo.self_appraisals sa ON sa.acr_id = ac.acr_id
-                WHERE ac.acr_id         = @acrId
+                WHERE ac.acr_id          = @acrId
                   AND ac.officer_user_id = @uid
                   AND ac.status         <> 'DRAFT'";
 
@@ -153,33 +153,42 @@ namespace ACRPortal.Infrastructure.Adapter
                         AcrYear = r.IsDBNull(8) ? 0 : r.GetInt32(8)
                     };
 
-                    bool hasSelf = !r.IsDBNull(9);   // appraisal_id
+                    bool hasSelf = !r.IsDBNull(9);
                     resp.SelfAppraisal.Exists = hasSelf;
-                    if (!hasSelf) return resp;
-
-                    DateTime? submittedAt = r.IsDBNull(10) ? (DateTime?)null : r.GetDateTime(10);
-                    resp.SelfAppraisal.IsSubmitted = submittedAt.HasValue;
-                    resp.SelfAppraisal.SubmittedAt = submittedAt?.ToString("o");
-                    resp.SelfAppraisal.LeaveDetails = r.IsDBNull(11) ? null : r.GetString(11);
-                    resp.SelfAppraisal.DutiesDescription = r.IsDBNull(12) ? null : r.GetString(12);
-                    resp.SelfAppraisal.TargetsSet = r.IsDBNull(13) ? null : r.GetString(13);
-                    resp.SelfAppraisal.TargetsAchieved = r.IsDBNull(14) ? null : r.GetString(14);
-                    resp.SelfAppraisal.ShortfallReasons = r.IsDBNull(15) ? null : r.GetString(15);
-                    resp.SelfAppraisal.MajorAchievements = r.IsDBNull(16) ? null : r.GetString(16);
-                    resp.SelfAppraisal.MembershipBodies = r.IsDBNull(17) ? null : r.GetString(17);
-                    resp.SelfAppraisal.TrainingDetails = r.IsDBNull(18) ? null : r.GetString(18);
-                    resp.SelfAppraisal.AwardsHonours = r.IsDBNull(19) ? null : r.GetString(19);
-                    resp.SelfAppraisal.AuditorCompliance = r.IsDBNull(20) ? (bool?)null : r.GetBoolean(20);
-                    resp.SelfAppraisal.PropertyDeclared = !r.IsDBNull(21) && r.GetBoolean(21);
-                    resp.SelfAppraisal.PropertyDeclaredDate = r.IsDBNull(22) ? null : r.GetDateTime(22).ToString("yyyy-MM-dd");
-                    resp.SelfAppraisal.MedicalCompliance = !r.IsDBNull(23) && r.GetBoolean(23);
-                    resp.SelfAppraisal.MedicalComplianceDate = r.IsDBNull(24) ? null : r.GetDateTime(24).ToString("yyyy-MM-dd");
-                    resp.SelfAppraisal.DocumentPath = r.IsDBNull(25) ? null : r.GetString(25);
+                    if (hasSelf)
+                    {
+                        DateTime? submittedAt = r.IsDBNull(10) ? (DateTime?)null : r.GetDateTime(10);
+                        resp.SelfAppraisal.IsSubmitted = submittedAt.HasValue;
+                        resp.SelfAppraisal.SubmittedAt = submittedAt?.ToString("o");
+                        resp.SelfAppraisal.LeaveDetails = r.IsDBNull(11) ? null : r.GetString(11);
+                        resp.SelfAppraisal.DutiesDescription = r.IsDBNull(12) ? null : r.GetString(12);
+                        resp.SelfAppraisal.TargetsSet = r.IsDBNull(13) ? null : r.GetString(13);
+                        resp.SelfAppraisal.TargetsAchieved = r.IsDBNull(14) ? null : r.GetString(14);
+                        resp.SelfAppraisal.ShortfallReasons = r.IsDBNull(15) ? null : r.GetString(15);
+                        resp.SelfAppraisal.MajorAchievements = r.IsDBNull(16) ? null : r.GetString(16);
+                        resp.SelfAppraisal.MembershipBodies = r.IsDBNull(17) ? null : r.GetString(17);
+                        resp.SelfAppraisal.TrainingDetails = r.IsDBNull(18) ? null : r.GetString(18);
+                        resp.SelfAppraisal.AwardsHonours = r.IsDBNull(19) ? null : r.GetString(19);
+                        resp.SelfAppraisal.AuditorCompliance = r.IsDBNull(20) ? (bool?)null : r.GetBoolean(20);
+                        resp.SelfAppraisal.PropertyDeclared = !r.IsDBNull(21) && r.GetBoolean(21);
+                        resp.SelfAppraisal.PropertyDeclaredDate = r.IsDBNull(22) ? null : r.GetDateTime(22).ToString("yyyy-MM-dd");
+                        resp.SelfAppraisal.MedicalCompliance = !r.IsDBNull(23) && r.GetBoolean(23);
+                        resp.SelfAppraisal.MedicalComplianceDate = r.IsDBNull(24) ? null : r.GetDateTime(24).ToString("yyyy-MM-dd");
+                    }
 
                     return resp;
                 }
             }
         }
+
+        // ================================================================== //
+        //  LoadDocuments  (called by OfficerService after GetAcrDetail)       //
+        //  Kept as a separate method so the main query stays focused.         //
+        //  The service layer calls DocumentAdapter.GetDocuments instead —     //
+        //  OfficerAdapter does NOT duplicate document fetching.               //
+        //  The AcrDetailResponse.Documents list is populated in               //
+        //  OfficerService.GetAcrDetail by injecting IDocumentRepoPort.        //
+        // ================================================================== //
 
         // ================================================================== //
         //  TryUpsertSelfAppraisalDraft                                        //
@@ -234,29 +243,28 @@ namespace ACRPortal.Infrastructure.Adapter
                 DateTime.TryParse(request.MedicalComplianceDate, out DateTime mcd))
                 medComplianceDate = mcd.Date;
 
-            // 4) Upsert draft (submitted_at stays NULL)
+            // 4) Upsert draft — document_path column removed
             const string upsert = @"
                 MERGE dbo.self_appraisals AS target
                 USING (SELECT @acrId AS acr_id) AS src
                    ON target.acr_id = src.acr_id
                 WHEN MATCHED THEN
                     UPDATE SET
-                        leave_details          = @leaveDetails,
-                        duties_description     = @duties,
-                        targets_set            = @targetsSet,
-                        targets_achieved       = @targetsAchieved,
-                        shortfall_reasons      = @shortfall,
-                        major_achievements     = @majorAchievements,
-                        membership_bodies      = @membership,
-                        training_details       = @training,
-                        awards_honours         = @awards,
-                        auditor_compliance     = @auditor,
-                        property_declared      = @propDeclared,
-                        property_declared_date = @propDeclaredDate,
-                        medical_compliance     = @medical,
-                        medical_compliance_date= @medComplianceDate,
-                        document_path          = @docPath,
-                        submitted_at           = NULL
+                        leave_details           = @leaveDetails,
+                        duties_description      = @duties,
+                        targets_set             = @targetsSet,
+                        targets_achieved        = @targetsAchieved,
+                        shortfall_reasons       = @shortfall,
+                        major_achievements      = @majorAchievements,
+                        membership_bodies       = @membership,
+                        training_details        = @training,
+                        awards_honours          = @awards,
+                        auditor_compliance      = @auditor,
+                        property_declared       = @propDeclared,
+                        property_declared_date  = @propDeclaredDate,
+                        medical_compliance      = @medical,
+                        medical_compliance_date = @medComplianceDate,
+                        submitted_at            = NULL
                 WHEN NOT MATCHED THEN
                     INSERT (
                         appraisal_id, acr_id,
@@ -266,7 +274,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         auditor_compliance,
                         property_declared, property_declared_date,
                         medical_compliance, medical_compliance_date,
-                        document_path, submitted_at, created_at
+                        submitted_at, created_at
                     )
                     VALUES (
                         NEWID(), @acrId,
@@ -276,7 +284,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         @auditor,
                         @propDeclared, @propDeclaredDate,
                         @medical, @medComplianceDate,
-                        @docPath, NULL, GETDATE()
+                        NULL, GETDATE()
                     );";
 
             using (var con = new SqlConnection(_conn))
@@ -293,15 +301,15 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@training", SqlDbType.NVarChar).Value = (object)request.TrainingDetails ?? DBNull.Value;
                 cmd.Parameters.Add("@awards", SqlDbType.NVarChar).Value = (object)request.AwardsHonours ?? DBNull.Value;
 
-                // auditor_compliance is BIT NULL — null means not applicable
                 cmd.Parameters.Add("@auditor", SqlDbType.Bit).Value =
-                    request.AuditorCompliance.HasValue ? (object)(request.AuditorCompliance.Value ? 1 : 0) : DBNull.Value;
+                    request.AuditorCompliance.HasValue
+                        ? (object)(request.AuditorCompliance.Value ? 1 : 0)
+                        : DBNull.Value;
 
                 cmd.Parameters.Add("@propDeclared", SqlDbType.Bit).Value = request.PropertyDeclared ? 1 : 0;
                 cmd.Parameters.Add("@propDeclaredDate", SqlDbType.Date).Value = (object)propDeclaredDate ?? DBNull.Value;
                 cmd.Parameters.Add("@medical", SqlDbType.Bit).Value = request.MedicalCompliance ? 1 : 0;
                 cmd.Parameters.Add("@medComplianceDate", SqlDbType.Date).Value = (object)medComplianceDate ?? DBNull.Value;
-                cmd.Parameters.Add("@docPath", SqlDbType.NVarChar).Value = (object)request.DocumentPath ?? DBNull.Value;
 
                 con.Open();
                 cmd.ExecuteNonQuery();
@@ -359,7 +367,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     }
 
                     if (submittedVal == null)
-                    { tx.Rollback(); errorCode = "BAD_REQUEST"; return false; }       // never saved a draft
+                    { tx.Rollback(); errorCode = "BAD_REQUEST"; return false; }
 
                     if (submittedVal != DBNull.Value)
                     { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }

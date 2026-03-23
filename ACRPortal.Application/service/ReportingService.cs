@@ -8,10 +8,12 @@ namespace ACRPortal.Application.service
     public class ReportingService : IReportingUseCase
     {
         private readonly IReportingRepoPort _repo;
+        private readonly IDocumentRepoPort _docs;
 
-        public ReportingService(IReportingRepoPort repo)
+        public ReportingService(IReportingRepoPort repo, IDocumentRepoPort docs)
         {
             _repo = repo;
+            _docs = docs;
         }
 
         public ApiResponse<MyReportingQueueResponse> GetMyReportingQueue(string userId)
@@ -40,16 +42,23 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<ReportingAcrDetailResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                var detail = _repo.GetReportingDetail(acrGuid, userGuid, out string errorCode);
-                if (detail != null)
-                    return ApiResponse<ReportingAcrDetailResponse>.Ok(detail, "Success");
+                string errorCode;
+                var detail = _repo.GetReportingDetail(acrGuid, userGuid, out errorCode);
+                if (detail == null)
+                {
+                    return ApiResponse<ReportingAcrDetailResponse>.Fail(
+                        errorCode == "NOT_FOUND" ? "ACR not found" :
+                        errorCode == "FORBIDDEN" ? "Caller is not the active reporting authority for this ACR" :
+                        errorCode == "INVALID_STATE" ? "ACR not in reporting step for this role" :
+                        "Unable to fetch ACR",
+                        errorCode ?? "INTERNAL_ERROR");
+                }
 
-                return ApiResponse<ReportingAcrDetailResponse>.Fail(
-                    errorCode == "NOT_FOUND" ? "ACR not found" :
-                    errorCode == "FORBIDDEN" ? "Caller is not the active reporting authority for this ACR" :
-                    errorCode == "INVALID_STATE" ? "ACR not in reporting step for this role" :
-                    "Unable to fetch ACR",
-                    errorCode ?? "INTERNAL_ERROR");
+                // Attach only the caller's documents (RA1 or RA2 depending on their role)
+                string section = detail.ReportingRole == "RA2" ? "RA2" : "RA1";
+                detail.Documents = _docs.GetDocuments(acrGuid, section);
+
+                return ApiResponse<ReportingAcrDetailResponse>.Ok(detail, "Success");
             }
             catch (Exception ex)
             {
@@ -57,7 +66,8 @@ namespace ACRPortal.Application.service
             }
         }
 
-        public ApiResponse<EmptyResponse> SaveReportingDraft(string acrId, string userId, ReportingDraftRequest request)
+        public ApiResponse<EmptyResponse> SaveReportingDraft(string acrId, string userId,
+            ReportingDraftRequest request)
         {
             try
             {
@@ -70,7 +80,8 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<EmptyResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                if (_repo.TryUpsertReportingDraft(acrGuid, userGuid, request, out string errorCode))
+                string errorCode;
+                if (_repo.TryUpsertReportingDraft(acrGuid, userGuid, request, out errorCode))
                     return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Draft saved successfully");
 
                 return ApiResponse<EmptyResponse>.Fail(
@@ -97,8 +108,10 @@ namespace ACRPortal.Application.service
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
                     return ApiResponse<EmptyResponse>.Fail("Invalid acrId format", "BAD_REQUEST");
 
-                if (_repo.TrySubmitReporting(acrGuid, userGuid, out string errorCode))
-                    return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "Reporting assessment submitted successfully");
+                string errorCode;
+                if (_repo.TrySubmitReporting(acrGuid, userGuid, out errorCode))
+                    return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(),
+                        "Reporting assessment submitted successfully");
 
                 return ApiResponse<EmptyResponse>.Fail(
                     errorCode == "NOT_FOUND" ? "ACR not found" :
@@ -116,4 +129,3 @@ namespace ACRPortal.Application.service
         }
     }
 }
-
