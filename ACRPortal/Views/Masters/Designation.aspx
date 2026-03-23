@@ -67,15 +67,6 @@ margin-bottom:10px;
 
 <div class="row mb-3">
 
-<!-- <div class="col-md-3">
-
-<select id="activeFilter" class="form-control" onchange="loadDesignations()">
-<option value="true" selected>Active Only</option>
-<option value="false">All</option>
-</select>
-
-</div> -->
-
 <div class="col-md-3">
 
 <input type="text"
@@ -124,8 +115,7 @@ entries
 <th onclick="sortTable('DsgId')">ID</th>
 <th onclick="sortTable('Dsg')">Designation</th>
 <th onclick="sortTable('DsgDesc')">Description</th>
-<!-- <th onclick="sortTable('DsgLevel')">Level</th> -->
-<!-- <th onclick="sortTable('IsActive')">Active</th> -->
+<th onclick="sortTable('FormType')">Form Type</th>
 <th width="80">Action</th>
 
 </tr>
@@ -178,10 +168,15 @@ entries
 <input type="text" id="dsgDesc" class="form-control">
 </div>
 
-<!-- <div class="form-group">
-<label>Level</label>
-<input type="number" id="dsgLevel" class="form-control" required>
-</div> -->
+<div class="form-group">
+<label>Form Type</label>
+<select id="formType" class="form-control" required>
+<option value="" selected disabled>Select Form Type</option>
+<option value="A1a">A1a - SE and above</option>
+<option value="A1b">A1b - AE upto XEN</option>
+<option value="A2">A2 - General and Accounts Wing</option>
+</select>
+</div>
 
 <div class="text-center mt-3">
 <button type="submit" class="btn btn-success btn-sm">Save</button>
@@ -249,7 +244,12 @@ success:function(res){
 if(res.Success){
 
 designations=res.Data.Designations || [];
+designations.sort(function(a,b){
+return a.DsgId - b.DsgId;
+});
 filteredDesignations=[...designations];
+currentSortColumn = "DsgId";
+sortAsc = true;
 
 currentPage=1;
 renderTable();
@@ -298,11 +298,11 @@ body.append(`
 <td>${d.DsgId}</td>
 <td>${d.Dsg}</td>
 <td>${d.DsgDesc || ""}</td>
-
+<td>${getFormTypeText(d.FormType || "")}</td>
 <td class="text-center">
 
 <button class="action-btn"
-onclick="editDesignation(${d.DsgId},'${d.Dsg}','${d.DsgDesc || ""}')">
+onclick="editDesignation(${d.DsgId},'${d.Dsg}','${d.DsgDesc || ""}','${d.FormType || ""}')">
 
 <i class="fa fa-pen"></i>
 
@@ -451,21 +451,17 @@ MODAL
 ========================= */
 
 function openDesignationModal(){
-
 isEditMode=false;
-
 $("#modalTitle").text("Add Designation");
-
 $("#dsg").val("");
 $("#dsgDesc").val("");
-// $("#dsgLevel").val("");
-
+// ✅ IMPORTANT FIX
+$("#formType").val("");   // reset dropdown
 $("#designationModal").modal("show");
-
 }
 
 
-function editDesignation(id,code,desc){
+function editDesignation(id,code,desc, formType){
 
 isEditMode=true;
 editId=id;
@@ -474,9 +470,10 @@ $("#modalTitle").text("Update Designation");
 
 $("#dsg").val(code);
 $("#dsgDesc").val(desc);
-// $("#dsgLevel").val(level);
+$("#formType").val(formType);
 
 $("#designationModal").modal("show");
+
 
 }
 
@@ -497,18 +494,17 @@ e.preventDefault();
 
 var dsg=$("#dsg").val().trim();
 var dsgDesc=$("#dsgDesc").val().trim();
-// var dsgLevel=parseInt($("#dsgLevel").val());
+var formType=$("#formType").val();
+
+if(!formType){
+alert("Select Form Type");
+return;
+}
 
 if(!dsg){
 alert("Enter designation");
 return;
 }
-
-// if(!dsgLevel || dsgLevel<=0){
-// alert("Level must be greater than 0");
-// return;
-// }
-
 
 /* CREATE */
 
@@ -527,7 +523,8 @@ headers:{
 data:JSON.stringify({
 Dsg:dsg,
 DsgDesc:dsgDesc,
-DsgLevel:1
+DsgLevel:1,
+FormType:formType
 }),
 
 success:function(res){
@@ -565,7 +562,8 @@ else{
 var body={
 Dsg:dsg,
 DsgDesc:dsgDesc,
-DsgLevel:1
+DsgLevel:1,
+FormType:formType
 };
 
 $.ajax({
@@ -647,6 +645,14 @@ alert(xhr.responseJSON.Message);
 alert("Server error occurred");
 }
 
+}
+function getFormTypeText(val){
+
+if(val==="A1a") return "SE and above";
+if(val==="A1b") return "AE upto XEN";
+if(val==="A2") return "General and Accounts Wing";
+
+return val || "";
 }
 
 </script>

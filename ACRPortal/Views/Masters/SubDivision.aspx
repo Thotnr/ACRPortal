@@ -228,7 +228,7 @@ var currentPage=1
 
 var currentSortColumn=""
 var sortAsc=true
-
+var editingId = null
 
 
 $(document).ready(function(){
@@ -248,6 +248,7 @@ loadSubDivisions()
 
 $("#zoneFilter").change(function(){
 loadCircles()
+$("#divisionFilter").html(`<option value="">All Divisions</option>`)
 })
 
 $("#circleFilter").change(function(){
@@ -262,6 +263,18 @@ $("#pageSizeSelect").change(function(){
 pageSize=parseInt($(this).val())
 currentPage=1
 renderTable()
+})
+
+$("#zoneId").change(function(){
+    var zoneId = $(this).val()
+    loadCirclesByZone(zoneId)
+})
+
+// Modal Circle Change
+$("#circleId").change(function(){
+    var zoneId = $("#zoneId").val()
+    var circleId = $(this).val()
+    loadDivisionsByCircle(zoneId, circleId)
 })
 
 })
@@ -330,7 +343,7 @@ $("#circleFilter").append(`<option value="${c.CircleId}">${c.Circle || c.CircleN
 
 }
 
-loadSubDivisions()
+// loadSubDivisions()
 
 }
 
@@ -373,7 +386,7 @@ $("#divisionFilter").append(`<option value="${d.DivisionId}">${d.Division}</opti
 
 }
 
-loadSubDivisions()
+// loadSubDivisions()
 
 }
 
@@ -585,14 +598,18 @@ renderTable()
 
 function openSubDivisionModal(){
 
-isEditMode=false
+    isEditMode=false
 
-$("#modalTitle").text("Add SubDivision")
+    $("#modalTitle").text("Add SubDivision")
 
-$("#subDivisionId").prop("disabled",false).val("")
-$("#subDivisionName").val("")
+    $("#subDivisionId").prop("disabled",false).val("")
+    $("#subDivisionName").val("")
 
-$("#subDivisionModal").modal("show")
+    $("#zoneId").val("")
+    $("#circleId").html(`<option value="">Select Circle</option>`)
+    $("#divisionId").html(`<option value="">Select Division</option>`)
+
+    $("#subDivisionModal").modal("show")
 
 }
 
@@ -601,6 +618,166 @@ $("#subDivisionModal").modal("show")
 function closeModal(){
 $("#subDivisionModal").modal("hide")
 }
+
+function loadCirclesByZone(zoneId){
+
+    $("#circleId").html(`<option value="">Select Circle</option>`)
+    $("#divisionId").html(`<option value="">Select Division</option>`)
+
+    var url = BASE_URL + "api/admin/masters/circles"
+    if(zoneId) url += "?zoneId=" + zoneId
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        headers: { "Authorization": "Bearer " + token },
+
+        success: function(res){
+
+            if(res.Success){
+
+                var list = res.Data.Circles || []
+
+                list.forEach(function(c){
+                    $("#circleId").append(
+                        `<option value="${c.CircleId}">${c.Circle || c.CircleName}</option>`
+                    )
+                })
+            }
+        }
+    })
+}
+
+function loadDivisionsByCircle(zoneId, circleId){
+
+    $("#divisionId").html(`<option value="">Select Division</option>`)
+
+    var url = BASE_URL + "api/admin/masters/divisions"
+
+    var params = []
+    if(zoneId) params.push("zoneId=" + zoneId)
+    if(circleId) params.push("circleId=" + circleId)
+
+    if(params.length) url += "?" + params.join("&")
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        headers: { "Authorization": "Bearer " + token },
+
+        success: function(res){
+
+            if(res.Success){
+
+                var list = res.Data.Divisions || []
+
+                list.forEach(function(d){
+                    $("#divisionId").append(
+                        `<option value="${d.DivisionId}">${d.Division}</option>`
+                    )
+                })
+            }
+        }
+    })
+}
+
+function editSubDivision(id, zoneId, circleId, divisionId, name){
+
+    isEditMode = true
+    editingId = id
+
+    $("#modalTitle").text("Edit SubDivision")
+
+    $("#subDivisionId").val(id).prop("disabled", true)
+    $("#subDivisionName").val(name)
+
+    $("#zoneId").val(zoneId)
+
+    // Load dependent dropdowns
+    loadCirclesByZone(zoneId)
+
+    // Wait thoda for async (simple fix)
+    setTimeout(function(){
+
+        $("#circleId").val(circleId)
+
+        loadDivisionsByCircle(zoneId, circleId)
+
+        setTimeout(function(){
+            $("#divisionId").val(divisionId)
+        }, 300)
+
+    }, 300)
+
+    $("#subDivisionModal").modal("show")
+}
+
+$("#subDivisionForm").submit(function(e){
+
+    e.preventDefault()
+
+    var payload = {
+        ZoneId: $("#zoneId").val(),
+        CircleId: $("#circleId").val(),
+        DivisionId: $("#divisionId").val(),
+        SubDivisionId: parseInt($("#subDivisionId").val()),
+        SubDivision: $("#subDivisionName").val()
+    }
+
+    // Validation
+    if(!payload.ZoneId || !payload.CircleId || !payload.DivisionId || !payload.SubDivision){
+        alert("All fields are required")
+        return
+    }
+
+    var url = BASE_URL + "api/admin/masters/subdivisions"
+    var method = "POST"
+
+    // 👉 UPDATE CASE
+    if(isEditMode){
+        url += "/" + editingId   // assuming REST pattern
+        method = "PATCH"
+    }
+
+    $.ajax({
+
+        url: url,
+        method: method,
+        contentType: "application/json",
+        headers: { "Authorization": "Bearer " + token },
+
+        data: JSON.stringify(payload),
+
+        success: function(res){
+
+            if(res.Success){
+
+                alert(isEditMode ? "Updated Successfully" : "Created Successfully")
+
+                closeModal()
+                loadSubDivisions()
+
+            } else {
+                alert(res.Message || "Error")
+            }
+        },
+
+        error: function(err){
+
+            if(err.status === 400){
+                alert("Invalid Data (Zone/Circle/Division issue)")
+            }
+            else if(err.status === 401){
+                alert("Session Expired")
+            }
+            else{
+                alert("Server Error")
+            }
+        }
+
+    })
+
+})
 
 </script>
 
