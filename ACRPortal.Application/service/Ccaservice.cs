@@ -44,6 +44,42 @@ namespace ACRPortal.Application.service
             }
         }
 
+        public ApiResponse<CcaAuthoritySuggestionResponse> GetAuthoritySuggestions(string officerUserId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(officerUserId))
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("OfficerUserId is required", "BAD_REQUEST");
+
+                if (!Guid.TryParse(officerUserId, out Guid officerGuid))
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("OfficerUserId is not a valid ID", "BAD_REQUEST");
+
+                string errorCode;
+                var suggestion = _repo.GetAuthoritySuggestions(officerGuid, out errorCode);
+                if (suggestion != null)
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Ok(suggestion);
+
+                if (errorCode == "NOT_FOUND")
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("Officer not found", "NOT_FOUND");
+                if (errorCode == "INVALID_OFFICER")
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("Selected user is not an active employee", "INVALID_OFFICER");
+                if (errorCode == "MISSING_RA")
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("Reporting authority cannot be resolved from manager chain", "MISSING_RA");
+                if (errorCode == "INVALID_RA")
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("Resolved reporting authority is not an active employee", "INVALID_RA");
+                if (errorCode == "MISSING_RVA")
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("Reviewing authority cannot be resolved from manager chain", "MISSING_RVA");
+                if (errorCode == "INVALID_RVA")
+                    return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("Resolved reviewing authority is not an active employee", "INVALID_RVA");
+
+                return ApiResponse<CcaAuthoritySuggestionResponse>.Fail("Unable to resolve authority suggestions", "INTERNAL_ERROR");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<CcaAuthoritySuggestionResponse>.Fail(ex.Message, "INTERNAL_ERROR");
+            }
+        }
+
         public ApiResponse<CreateAcrResponse> CreateAcr(string ccaUserId, CreateAcrRequest request)
         {
             try
@@ -172,8 +208,10 @@ namespace ACRPortal.Application.service
                 if (detail == null)
                     return ApiResponse<CcaAcrDetailResponse>.Fail("ACR not found", "NOT_FOUND");
 
-                // Attach CCA documents (medical report, etc.)
-                detail.Documents = _docs.GetDocuments(acrGuid, "CCA");
+                // Attach CCA documents (medical report, etc.) — excludes OFFICER_PHOTO
+                var allCcaDocs = _docs.GetDocuments(acrGuid, "CCA");
+                detail.Documents = allCcaDocs.FindAll(d => d.DocumentType != "OFFICER_PHOTO");
+                detail.OfficerPhoto = allCcaDocs.Find(d => d.DocumentType == "OFFICER_PHOTO");
 
                 return ApiResponse<CcaAcrDetailResponse>.Ok(detail);
             }

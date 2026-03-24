@@ -82,6 +82,93 @@ namespace ACRPortal.Infrastructure.Adapter
         }
 
         // ================================================================== //
+        //  GetAuthoritySuggestions                                             //
+        // ================================================================== //
+        public CcaAuthoritySuggestionResponse GetAuthoritySuggestions(Guid officerUserId, out string errorCode)
+        {
+            const string sql = @"
+                SELECT
+                    o.user_id         AS officer_user_id,
+                    o.system_role     AS officer_role,
+                    o.user_status     AS officer_status,
+                    o.manager_id      AS officer_manager_login,
+                    ra.user_id        AS reporting_user_id,
+                    ra.system_role    AS reporting_role,
+                    ra.user_status    AS reporting_status,
+                    ra.manager_id     AS reporting_manager_login,
+                    rva.user_id       AS reviewing_user_id,
+                    rva.system_role   AS reviewing_role,
+                    rva.user_status   AS reviewing_status
+                FROM dbo.users o
+                LEFT JOIN dbo.users ra  ON ra.login_id  = o.manager_id
+                LEFT JOIN dbo.users rva ON rva.login_id = ra.manager_id
+                WHERE o.user_id = @officerId";
+
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.Add("@officerId", SqlDbType.UniqueIdentifier).Value = officerUserId;
+                con.Open();
+
+                using (var r = cmd.ExecuteReader())
+                {
+                    if (!r.Read())
+                    {
+                        errorCode = "NOT_FOUND";
+                        return null;
+                    }
+
+                    string officerRole = r.IsDBNull(1) ? null : r.GetString(1);
+                    string officerStatus = r.IsDBNull(2) ? null : r.GetString(2);
+                    if (!string.Equals(officerRole, "EMPLOYEE", StringComparison.OrdinalIgnoreCase)
+                        || !string.Equals(officerStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        errorCode = "INVALID_OFFICER";
+                        return null;
+                    }
+
+                    if (r.IsDBNull(4))
+                    {
+                        errorCode = "MISSING_RA";
+                        return null;
+                    }
+
+                    string reportingRole = r.IsDBNull(5) ? null : r.GetString(5);
+                    string reportingStatus = r.IsDBNull(6) ? null : r.GetString(6);
+                    if (!string.Equals(reportingRole, "EMPLOYEE", StringComparison.OrdinalIgnoreCase)
+                        || !string.Equals(reportingStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        errorCode = "INVALID_RA";
+                        return null;
+                    }
+
+                    if (r.IsDBNull(8))
+                    {
+                        errorCode = "MISSING_RVA";
+                        return null;
+                    }
+
+                    string reviewingRole = r.IsDBNull(9) ? null : r.GetString(9);
+                    string reviewingStatus = r.IsDBNull(10) ? null : r.GetString(10);
+                    if (!string.Equals(reviewingRole, "EMPLOYEE", StringComparison.OrdinalIgnoreCase)
+                        || !string.Equals(reviewingStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        errorCode = "INVALID_RVA";
+                        return null;
+                    }
+
+                    errorCode = null;
+                    return new CcaAuthoritySuggestionResponse
+                    {
+                        OfficerUserId = officerUserId.ToString(),
+                        ReportingUserId = r.GetGuid(4).ToString(),
+                        ReviewingUserId = r.GetGuid(8).ToString()
+                    };
+                }
+            }
+        }
+
+        // ================================================================== //
         //  IsUserActive                                                       //
         // ================================================================== //
         public bool IsUserActive(Guid userId)

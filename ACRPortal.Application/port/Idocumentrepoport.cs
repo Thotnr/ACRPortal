@@ -50,5 +50,13 @@ namespace ACRPortal.Application.port
         /// Returns false if not found or section mismatch.
         /// </summary>
         bool DeleteDocument(Guid documentId, Guid acrId, string section);
+
+        /// <summary>
+        /// Atomically replaces any existing document of the given type+section for an ACR
+        /// with a new one. Used for the officer photo — ensures only one photo exists at a time.
+        /// Returns the new document_id as a string.
+        /// </summary>
+        string ReplaceDocumentByType(Guid acrId, string section, string documentType,
+            string fileUrl, string fileName);
     }
 }

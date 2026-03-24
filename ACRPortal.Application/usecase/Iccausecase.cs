@@ -6,6 +6,7 @@ namespace ACRPortal.Application.usecase
     {
         ApiResponse<CcaOfficerListResponse> GetOfficers();
         ApiResponse<CcaEmployeeDropdownResponse> GetEmployeesForDropdown();
+        ApiResponse<CcaAuthoritySuggestionResponse> GetAuthoritySuggestions(string officerUserId);
         ApiResponse<CreateAcrResponse> CreateAcr(string ccaUserId, CreateAcrRequest request);
         ApiResponse<CcaAcrDetailResponse> GetAcrDetail(string acrId);
         ApiResponse<EmptyResponse> UpdateDraftAcr(string acrId, string ccaUserId, UpdateDraftAcrRequest request);
