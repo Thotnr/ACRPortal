@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ACRPortal.Domain.DTOs.WebToApp
@@ -31,6 +31,13 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     public class CcaEmployeeDropdownResponse
     {
         public List<CcaEmployeeDropdownItem> Employees { get; set; } = new List<CcaEmployeeDropdownItem>();
+    }
+
+    public class CcaAuthoritySuggestionResponse
+    {
+        public string OfficerUserId { get; set; }
+        public string ReportingUserId { get; set; }
+        public string ReviewingUserId { get; set; }
     }
 
     // ------------------------------------------------------------------ //

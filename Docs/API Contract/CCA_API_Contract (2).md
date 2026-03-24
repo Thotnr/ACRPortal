@@ -161,6 +161,42 @@ Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
 ---
 
+## API 2A — Suggest Authority Chain From Officer
+**GET** `/api/cca/officers/{officerUserId}/authorities/suggestions`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
+
+Resolves default authority chain from the selected officer's manager hierarchy:
+
+- `ReportingUserId` = officer's direct manager (`users.manager_id`)
+- `ReviewingUserId` = reporting authority's direct manager
+
+### Success `200`
+```json
+{
+  "Success": true, "Message": "Success",
+  "Data": {
+    "OfficerUserId": "uuid-officer",
+    "ReportingUserId": "uuid-ra1",
+    "ReviewingUserId": "uuid-rva"
+  },
+  "ErrorCode": null
+}
+```
+
+### Failure Cases
+| Scenario | ErrorCode | HTTP |
+|---|---|---|
+| `officerUserId` missing/invalid GUID | `BAD_REQUEST` | 400 |
+| Officer not found | `NOT_FOUND` | 404 |
+| Officer is not active EMPLOYEE | `INVALID_OFFICER` | 400 |
+| Officer has no manager mapped | `MISSING_RA` | 409 |
+| Resolved reporting authority is not active EMPLOYEE | `INVALID_RA` | 409 |
+| Reporting authority has no manager mapped | `MISSING_RVA` | 409 |
+| Resolved reviewing authority is not active EMPLOYEE | `INVALID_RVA` | 409 |
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
+
+---
+
 ## API 3 — Create ACR
 **POST** `/api/cca/acr`  
 Requires: `Authorization: Bearer <token>` | Role: `CCA`
@@ -460,6 +496,7 @@ The photograph is returned as `OfficerPhoto` in `GET /api/cca/acr/{acrId}` (sepa
 |---|---|---|
 | GET | `/api/cca/officers` | Officer dropdown (includes FormType) |
 | GET | `/api/cca/employees` | Authority dropdowns (RA/RvA/AA) |
+| GET | `/api/cca/officers/{officerUserId}/authorities/suggestions` | Suggest RA/RvA from manager chain |
 | POST | `/api/cca/acr` | Create a new ACR cycle |
 | GET | `/api/cca/acr` | List all ACR cycles |
 | GET | `/api/cca/acr/{acrId}` | Get full Section I detail + photo + documents |
