@@ -201,7 +201,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <div class="text-center mt-4">
 <button type="button" class="btn btn-secondary mr-2" id="btnSaveDraft">Save as Draft</button>
-<button type="submit" class="btn btn-success">Submit</button>
+<button type="submit" class="btn btn-success" id="btnSubmit">Submit</button>
 </div>
 
 </form>
@@ -217,20 +217,27 @@ var BASE_URL = '<%= Url.Content("~/") %>';
 var formType = "";
 var designationsList = [];
 var isDraft = false;
+var currentAcrId = null;
+var isEditMode = false;
+var isSubmitting = false;
 
 $(document).ready(function(){
     var token = localStorage.getItem("token");
     if(!token){
         window.location = BASE_URL + "Login/UserAuth";
     }else{
+        var today = new Date().toISOString().split('T')[0];
+        // 🔥 Apply max=today to ALL date inputs
+        $("input[type='date']").each(function () {
+            $(this).attr("max", today);
+        });
         loadCurrentUser(token);   
         // ✅ SEQUENTIAL loading - पहले सब load हो जाएं
         loadDesignations()
             .then(() => loadSubDivisionsForDropdown())
             .then(() => loadEmployees())
-            .then(() => {
-                console.log("All dropdowns loaded successfully");
-            });
+            .then(() => loadOfficers())
+            .then(() => loadAcrList());
     }
     sortTable(0);
 });
@@ -289,7 +296,15 @@ function bindDesignationDropdown(){
 function onDesignationChange(){
 
     var selected = $("#designation option:selected");
-    formType = selected.data("formtype");
+    var newFormType = selected.data("formtype");
+
+    if(!newFormType){
+        formType = "";
+        $("#formTitle").text("CCA Officer Appraisal");
+        return;
+    }
+
+    formType = newFormType; // ✅ MAIN SOURCE
 
     $("#formTitle").text(getFormTitle(formType));
 
@@ -318,7 +333,8 @@ function applyFormRules(){
     }
 
     if(formType === "A2"){
-        // $("#technicalDiv").hide();
+        $("#technicalDiv").hide();
+        $("#technicalQualification").val(""); // clear value
     }
 
     bindAuthorityDropdowns();
@@ -332,6 +348,21 @@ function getFormTitle(type){
 }
 
 function openAppraisalModal(){
+    var today = new Date().toISOString().split('T')[0];
+    $("input[type='date']").each(function () {
+        $(this).attr("max", today);
+    });
+    $("#ccaForm")[0].reset();
+    $("#btnSubmit").hide();
+    setFormReadonly(false);
+    $("#officerName, #designation, #placePosting").val(null).trigger("change");
+    formType = "";
+    isDraft = false;
+    currentAcrId = null;
+    isEditMode = false;
+    $("#formTitle").text("CCA Officer Appraisal");
+    $("#reportingAuthority2Div").remove();
+    bindAuthorityDropdowns();
     $('#appraisalModal').modal('show');
 }
 
@@ -365,26 +396,37 @@ function sortTable(col){
 var employeesList = [];
 
 function loadEmployees(){
-    return new Promise((resolve) => {
-        var token = localStorage.getItem("token");
-        $.ajax({
-            url: BASE_URL + "api/admin/users?role=EMPLOYEE",
-            method: "GET",
-            headers:{ "Authorization":"Bearer "+token },
-            success:function(res){
-                if(res.Success){
-                    employeesList = res.Data.Users || [];
-                    bindEmployeeDropdown();
-                    bindAuthorityDropdowns(); // ✅ Authorities भी load हों
-                }
-                resolve();
-            },
-            error: () => {
-                alert("Failed to load employees");
-                resolve();
-            }
-        });
-    });
+
+var token = localStorage.getItem("token");
+
+$.ajax({
+
+url: BASE_URL + "api/cca/employees",
+method:"GET",
+
+headers:{
+"Authorization":"Bearer "+token
+},
+
+success:function(res){
+
+if(res.Success){
+
+var list = res.Data.Employees;
+employeesList = list;
+// bindEmployeeDropdown("#ddlRA", list);
+// bindEmployeeDropdown("#ddlRvA", list);
+// bindEmployeeDropdown("#ddlAA", list);
+bindEmployeeDropdown("#reportingAuthority", list);
+bindEmployeeDropdown("#reviewAuthority", list);
+bindEmployeeDropdown("#acceptingAuthority", list);
+
+}
+
+}
+
+});
+
 }
 
 function bindAuthorityDropdowns(){
@@ -405,10 +447,10 @@ function bindAuthorityDropdowns(){
         employeesList.forEach(function(emp){
 
             // ❌ remove selected officer
-            if(emp.LoginId === selectedOfficer) return;
+            if(emp.UserId  === selectedOfficer) return;
 
             ddl.append(`
-                <option value="${emp.LoginId}">
+                <option value="${emp.UserId}">
                     ${emp.DisplayName} (${emp.LoginId})
                 </option>
             `);
@@ -448,24 +490,21 @@ function preventReportingDuplicate(){
     });
 }
 
-function bindEmployeeDropdown(){
-    var ddl = $("#officerName");
-
+function bindEmployeeDropdown(id, list){
+    var ddl = $(id);
     if (ddl.hasClass("select2-hidden-accessible")) {
         ddl.select2("destroy");
     }
-
     ddl.empty();
-    ddl.append('<option value="">Select Employee</option>');
+    ddl.append('<option value="">Select</option>');
+    $.each(list,function(i,e){
 
-    employeesList.forEach(function(emp){
         ddl.append(`
-            <option 
-                value="${emp.LoginId}" 
-                data-dsgid="${emp.DsgId}">
-                ${emp.DisplayName} (${emp.LoginId})
-            </option>
+        <option value="${e.UserId}">
+            ${e.DisplayName} (${e.DsgDesc || 'No Designation'})
+        </option>
         `);
+
     });
 
     ddl.select2({
@@ -473,42 +512,6 @@ function bindEmployeeDropdown(){
         placeholder: "Search employee",
         allowClear: true,
         dropdownParent: $('#appraisalModal')
-    });
-
-    // ✅ IMPROVED change handler - designation properly bind होता है
-    ddl.off("change.officer").on("change.officer", function(){
-        var data = $(this).select2('data');
-        var loginId = $(this).val();
-        var dsgId = null;
-        
-        console.log("🔍 Officer Selection Triggered");
-        console.log("Full Selected Data:", data);
-        
-        if(data && data.length && loginId){
-            var selectedItem = data[0];
-            console.log("✅ Selected Officer ID:", loginId);
-            console.log("✅ Selected Officer Name:", selectedItem.text);
-
-            // ✅ Get dsgId from option data attribute
-            dsgId = $(this).find(`option[value="${loginId}"]`).data("dsgid");
-            console.log("✅ Found DsgId:", dsgId);
-        }
-
-        // ✅ Designation auto-select with proper trigger
-        if(dsgId){
-            console.log("🔗 Setting designation:", dsgId);
-            $("#designation").val(dsgId).trigger("change");
-            onDesignationChange(); // ✅ Form rules apply करें
-        } else {
-            console.log("⚠️ No designation found for officer");
-            $("#designation").empty().append('<option value="">No Designation</option>');
-        }
-
-        // ✅ Rebind authorities WITHOUT selected officer
-        bindAuthorityDropdowns();
-        
-        // ✅ Form input event trigger
-        $("#ccaForm")[0].dispatchEvent(new Event('input', { bubbles: true }));
     });
 }
 
@@ -626,7 +629,7 @@ function buildPayload(isDraft){
 
         SaveAsDraft: isDraft,
 
-        Department: "",
+        Department: "--",
 
         Location: location,
 
@@ -651,11 +654,50 @@ function buildPayload(isDraft){
 
 $("#ccaForm").off("submit").on("submit", function(e){
     e.preventDefault();
-    
+
+    // 🔴 STOP multiple calls
+    if(isSubmitting){
+        console.warn("🚫 Already submitting...");
+        return;
+    }
+
+    var file = $("#medicalReport")[0].files[0];
+
+    // ✅ FILE VALIDATION
+    if(file){
+        var allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
+
+        if(!allowedTypes.includes(file.type)){
+            alert("Only PDF, PNG, JPG allowed");
+            return;
+        }
+
+        if(file.size > 5 * 1024 * 1024){
+            alert("Max file size is 5MB");
+            return;
+        }
+    }
+
     var payload = buildPayload(isDraft);
-debugger
-    // ✅ Strict validation only for final submit
+
+    // 🔴 BLOCK: Completed record edit attempt
+    if(isEditMode && !currentAcrId){
+        alert("Invalid edit state");
+        return;
+    }
+
+    // 🔴 STRICT VALIDATION (FINAL SUBMIT ONLY)
     if(!isDraft){
+
+        if(!payload.PostingFrom || !payload.PostingTo){
+            alert("Posting period required");
+            return;
+        }
+
+        if(!$("#placePosting").val()){
+            alert("Place of Posting required");
+            return;
+        }
 
         if(!payload.OfficerUserId){
             alert("Officer is required");
@@ -667,16 +709,62 @@ debugger
             return;
         }
 
-        if(!payload.PostingFrom || !payload.PostingTo){
-            alert("Posting period required");
+        if(!payload.DateOfBirth){
+            alert("Date of Birth is required");
             return;
         }
 
-        if(payload.PostingTo <= payload.PostingFrom){
+        if(!payload.DateJoiningNigam){
+            alert("Date of Joining in Nigam is required");
+            return;
+        }
+
+        if(!payload.AcademicQualification){
+            alert("Academic Qualification is required");
+            return;
+        }
+
+        if(!payload.DateJoiningPresentRank){
+            alert("Joining Present Rank is required");
+            return;
+        }
+
+        if(!payload.DateJoiningPresentStation){
+            alert("Joining Present Station is required");
+            return;
+        }
+
+        if(!payload.ReportingUserId){
+            alert("Reporting Authority is required");
+            return;
+        }
+
+        if(!payload.ReviewingUserId){
+            alert("Review Authority is required");
+            return;
+        }
+
+        if(!payload.AcceptingUserId){
+            alert("Accepting Authority is required");
+            return;
+        }
+
+        // ✅ DATE VALIDATION
+        var fromDate = new Date(payload.PostingFrom);
+        var toDate = new Date(payload.PostingTo);
+        var todayDate = new Date();
+
+        if(fromDate > todayDate || toDate > todayDate){
+            alert("Future dates are not allowed");
+            return;
+        }
+
+        if(toDate < fromDate){
             alert("Posting To must be greater than From");
             return;
         }
 
+        // ✅ FormType rules
         if(formType === "A1b" && !payload.ReportingUserId2){
             alert("Second Reporting Authority required");
             return;
@@ -688,40 +776,409 @@ debugger
         }
     }
 
-    submitAppraisal(payload);
+    // ✅ LOCK SUBMIT
+    isSubmitting = true;
 
-    isDraft = false; // reset
+    submitAppraisal(payload, file);
+
+    // 🔓 UNLOCK after delay
+    setTimeout(() => {
+        isSubmitting = false;
+    }, 2000);
+
+    isDraft = false;
 });
 
-function submitAppraisal(data){
-
+function submitDraftAcr(acrId){
     var token = localStorage.getItem("token");
-
     $.ajax({
-        url: BASE_URL + "api/cca/acr",
+        url: BASE_URL + "api/cca/acr/" + acrId + "/submit",
         method: "POST",
         headers:{ "Authorization":"Bearer "+token },
-        contentType: "application/json",
-        data: JSON.stringify(data),
 
         success:function(res){
             if(res.Success){
-                alert("ACR Submitted Successfully");
-                closeModal();
+                afterSuccess();
             }else{
-                alert(res.Message || "Error");
+                alert(res.Message || "Submit failed");
             }
-        },
-
-        error:function(err){
-            alert("Submission Failed");
         }
     });
 }
 
+function setFormReadonly(flag){
+    $("#ccaForm :input").prop("disabled", flag);
+}
+
+function submitAppraisal(data, file){
+
+    var token = localStorage.getItem("token");
+
+    // 🔴 HARD GUARD
+    if(!data || !data.OfficerUserId){
+        console.warn("❌ Invalid payload");
+        return;
+    }
+
+    // 🔥 EDIT MODE
+    if(isEditMode){
+
+        if(!currentAcrId){
+            console.warn("❌ Missing ACR ID");
+            return;
+        }
+
+        $.ajax({
+            url: BASE_URL + "api/cca/acr/" + currentAcrId,
+            method: "PATCH",
+            headers:{
+                "Authorization":"Bearer "+token,
+                "Content-Type":"application/json"
+            },
+            data: JSON.stringify(data),
+
+            success:function(res){
+                if(res.Success){
+                    // var acrId = res.Data.AcrId;
+                    if(isDraft){
+                        alert("Draft saved successfully");
+                        closeModal();
+                        loadAcrList();
+                        return;
+                    }
+                    if(file){
+                        uploadMedicalReport(currentAcrId, file);
+                    }else{
+                        submitDraftAcr(currentAcrId); // 🔥 FINAL SUBMIT CALL
+                    }
+                }else{
+                    alert(res.Message || "Error");
+                }
+            }
+        });
+
+        return;
+    }
+
+    // 🟢 CREATE NEW
+    $.ajax({
+        url: BASE_URL + "api/cca/acr",
+        method: "POST",
+        headers:{
+            "Authorization":"Bearer "+token,
+            "Content-Type":"application/json"
+        },
+        data: JSON.stringify(data),
+
+        success:function(res){
+            if(res.Success){
+                console.log("CREATE RESPONSE:", res);
+                // var acrId = res?.Data?.AcrId;
+                // if(!acrId){
+                //     alert("AcrId not received");
+                //     console.error(res);
+                //     return;
+                // }
+                // ✅ DRAFT
+                if(isDraft){
+                    alert("Draft saved successfully");
+                    closeModal();
+                    loadAcrList();
+                    return;
+                }
+                // ✅ FINAL SUBMIT FLOW
+                if(file){
+                    uploadMedicalReport(currentAcrId, file);
+                }else{
+                    submitDraftAcr(currentAcrId); // ✅ PROBLEM: currentAcrId is still null
+                }
+
+            }else{
+                alert(res.Message || "Error");
+            }
+        }
+    });
+}
+
+function uploadMedicalReport(acrId, file){
+
+     var token = localStorage.getItem("token");
+
+    var formData = new FormData();
+    formData.append("file", file);
+
+    $.ajax({
+        url: BASE_URL + "api/cca/acr/" + acrId + "/upload-medical",
+        method: "POST",
+        headers:{ "Authorization":"Bearer "+token },
+        data: formData,
+        processData: false,
+        contentType: false,
+
+        success:function(res){
+            if(res.Success){
+                afterSuccess(); // ✅ FINAL SUCCESS
+            }else{
+                alert("File upload failed");
+            }
+        }
+    });
+}
+
+function afterSuccess(msg){
+    alert(msg || "ACR Submitted Successfully");
+    closeModal();
+    loadAcrList();
+}
+
+function loadOfficers(){
+
+var token = localStorage.getItem("token");
+
+$.ajax({
+
+url: BASE_URL + "api/cca/officers",
+method:"GET",
+
+headers:{
+"Authorization":"Bearer "+token
+},
+
+success:function(res){
+
+if(res.Success){
+
+var list = res.Data.Officers;
+
+var ddl = $("#officerName");
+ddl.empty();
+
+ddl.append('<option value="">-- Select Officer --</option>');
+
+$.each(list,function(i,o){
+
+// ❗ skip if no designation
+if(!o.DsgId){
+    console.warn("Officer skipped due to missing designation:", o.DisplayName);
+    return;
+}
+
+ddl.append(`
+<option 
+value="${o.UserId}" 
+data-formtype="${o.FormType}"
+data-dsgid="${o.DsgId}">
+${o.DisplayName} (${o.DsgDesc})
+</option>
+`);
+
+});
+
+$("#officerName").select2({
+    width: '100%',
+    placeholder: "Search Officer",
+    allowClear: true,
+    dropdownParent: $('#appraisalModal')
+});
+
+}
+
+}
+
+});
+
+}
+
+$("#officerName").off("change").on("change", function(){
+    var selected = $(this).find(":selected");
+    var dsgId = selected.data("dsgid");
+
+    // if(!dsgId){
+    //     alert("Officer has no designation");
+    //     return;
+    // }
+
+    // ✅ Only set designation
+    $("#designation").val(dsgId).trigger("change");
+
+    // ❌ DO NOT set formType here
+
+    bindAuthorityDropdowns();
+});
+
+function loadAcrList(){
+
+var token = localStorage.getItem("token");
+
+$.ajax({
+
+url: BASE_URL + "api/cca/acr",
+method:"GET",
+
+headers:{
+"Authorization":"Bearer "+token
+},
+
+success:function(res){
+
+if(res.Success){
+
+var list = res.Data.AcrCycles;
+
+var tbody = $("#ccaTableBody");
+tbody.empty();
+
+$.each(list,function(i,a){
+
+tbody.append(`
+<tr>
+<td>${a.OfficerName}</td>
+<td>${a.DsgDesc}</td>
+<td>${a.Location}</td>
+<td>${a.PostingFrom}</td>
+<td>${a.PostingTo}</td>
+<td>
+<span class="status-badge ${a.Status === 'Completed' ? 'status-completed' : 'status-pending'}">
+${a.Status}
+</span>
+</td>
+<td>
+<button class="btn btn-sm btn-info" onclick="viewAcr('${a.AcrId}')">View</button>
+</td>
+</tr>
+`);
+
+});
+
+}
+
+}
+
+});
+
+}
+
+function setSelect2ByText(selector, text){
+
+    var ddl = $(selector);
+
+    ddl.find("option").each(function(){
+
+        if($(this).text().trim() === text){
+            ddl.val($(this).val()).trigger("change");
+        }
+
+    });
+}
+
+function bindAcrDetail(data){
+
+    // 🔹 Dates
+    $("#periodFrom").val(formatDate(data.PostingFrom));
+    $("#periodTo").val(formatDate(data.PostingTo));
+
+    $("#dob").val(formatDate(data.DateOfBirth));
+    $("#joiningNigam").val(formatDate(data.DateJoiningNigam));
+    $("#joiningRank").val(formatDate(data.DateJoiningPresentRank));
+    $("#joiningStation").val(formatDate(data.DateJoiningPresentStation));
+
+    // 🔹 Text
+    $("#academicQualification").val(data.AcademicQualification);
+    $("#technicalQualification").val(data.TechnicalQualification);
+    $("#deptExam").val(data.DepartmentalExamPassed);
+
+    $("#propertyReturnDate").val(formatDate(data.PropertyReturnDate));
+    $("#medicalExamDate").val(formatDate(data.LastMedicalExamDate));
+
+    // 🔹 Officer
+    $("#officerName").val(data.OfficerUserId).trigger("change");
+
+    // 🔹 Designation
+    $("#designation").val(data.DsgId).trigger("change");
+
+    // 🔹 Posting (text based match)
+    setSelect2ByText("#placePosting", data.Location);
+
+    // 🔥 WAIT for dropdowns
+    setTimeout(function(){
+
+        $("#reportingAuthority").val(data.ReportingAuthorityUserId).trigger("change");
+
+        if(data.ReportingAuthority2UserId){
+            $("#reportingAuthority2").val(data.ReportingAuthority2UserId).trigger("change");
+        }
+
+        $("#reviewAuthority").val(data.ReviewingAuthorityUserId).trigger("change");
+        $("#acceptingAuthority").val(data.AcceptingAuthorityUserId).trigger("change");
+
+    }, 500);
+}
+
+function viewAcr(acrId){
+
+    var token = localStorage.getItem("token");
+
+    $.ajax({
+        url: BASE_URL + "api/cca/acr/" + acrId,
+        method: "GET",
+        headers:{ "Authorization":"Bearer "+token },
+
+        success:function(res){
+
+            if(res.Success){
+
+                var data = res.Data; // ✅ FIRST define
+
+                openAppraisalModal(); // modal open
+
+                currentAcrId = data.AcrId; // ✅ now safe
+                isEditMode = (data.Status === "DRAFT");
+                $("#btnSubmit").toggle(isEditMode);
+                setFormReadonly(!isEditMode);
+                // if(data.Status !== "DRAFT"){
+                //     setFormReadonly(true); // ❌ no edit allowed
+                // }
+                formType = data.FormType;
+
+                $("#formTitle").text(getFormTitle(formType));
+
+                applyFormRules();
+
+                bindAcrDetail(data);
+
+            }else{
+                alert(res.Message || "Error");
+            }
+        }
+    });
+}
+
+$("#periodFrom").on("change", function(){
+    var from = $(this).val();
+    if(!from) return;
+    var today = new Date().toISOString().split('T')[0];
+    $("#periodTo").attr("min", from);
+    $("#periodTo").attr("max", today); // ✅ only today limit
+});
+
+
 $("#btnSaveDraft").click(function(){
+    if(isSubmitting) return;
+
     isDraft = true;
-    $("#ccaForm").submit();
+    isSubmitting = true;
+
+    var payload = buildPayload(true);
+    submitAppraisal(payload, null);
+
+    setTimeout(() => {
+        isSubmitting = false;
+        $("#ccaForm button[type='submit']").prop("disabled", false);
+    }, 1500);
+    // isDraft = true;
+    // $("#ccaForm button[type='submit']").prop("disabled", true);
+    // var payload = buildPayload(true); // force draft
+    // submitAppraisal(payload, null); // direct call (NO form submit)
 });
 
 </script>

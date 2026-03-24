@@ -363,7 +363,27 @@ if(!token){
 window.location = BASE_URL + "Login/UserAuth";
 return;
 }
+var role = localStorage.getItem("role");
 
+$("#mastersToggle").hide();
+$("#mastersSubmenu").hide();
+$("#menuCCA").hide();
+$("#menuReports").hide();
+
+if(role === "ADMIN"){
+    // show everything
+    $("#mastersToggle").show();
+    $("#menuCCA").show();
+    $("#menuReports").show();
+}
+
+else if(role === "CCA"){
+    $("#menuCCA").show();
+}
+
+else if(role === "EMPLOYEE"){
+    // only dashboard (already visible by default)
+}
 /* username */
 
 var name = localStorage.getItem("displayName");

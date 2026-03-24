@@ -46,12 +46,13 @@
                         || path.StartsWith("/cca")
                         || path.EndsWith("/home/cca")         // ← fixes unauthorized access
                         || path.EndsWith("/home/dashboard")   // ← CCA dashboard access
-                        || path == "/api/admin/masters/designations"
+                        || path.StartsWith("/api/admin/masters/designations")
                         || path.StartsWith("/api/admin/masters/zones")
                         || path.StartsWith("/api/admin/masters/circles")
                         || path.StartsWith("/api/admin/masters/divisions")
                         || path.StartsWith("/api/admin/masters/subdivisions")
-                        || path.StartsWith("/api/admin/users");  // for employee/officer dropdowns
+                        || path.StartsWith("/api/admin/users")  // for employee/officer dropdowns
+                        || path.EndsWith("/home/cca");
 
                 case "EMPLOYEE":
                     return path.StartsWith("/api/acr")
