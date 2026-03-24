@@ -60,12 +60,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <tbody id="ccaTableBody">
 <tr>
-<td>Rahul Sharma</td>
-<td>Manager</td>
-<td>Gurgaon</td>
-<td>01-04-2024</td>
-<td>31-03-2025</td>
-<td><span class="status-badge status-pending">Pending</span></td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td><span class="status-badge status-pending">--</span></td>
 <td><button class="btn btn-sm btn-info" onclick="openAppraisalModal()">View</button></td>
 </tr>
 </tbody>

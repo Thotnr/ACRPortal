@@ -39,7 +39,8 @@
                         || path.EndsWith("/masters/circle")
                         || path.EndsWith("/masters/division")
                         || path.EndsWith("/masters/subdivision")
-                        || path.EndsWith("/masters/addemployee");
+                        || path.EndsWith("/masters/addemployee")
+                        || path.EndsWith("/home/officer");
 
                 case "CCA":
                     return path.StartsWith("/api/cca")
@@ -56,7 +57,8 @@
 
                 case "EMPLOYEE":
                     return path.StartsWith("/api/acr")
-                        || path.StartsWith("/acr");
+                        || path.StartsWith("/acr")
+                        || path.EndsWith("/home/officer");
 
                 default:
                     return false;

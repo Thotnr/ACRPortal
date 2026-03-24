@@ -1,0 +1,386 @@
+<%@ Page Language="C#" 
+Inherits="System.Web.Mvc.ViewPage"
+MasterPageFile="~/Views/Shared/Site.Master" %>
+
+<asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Bootstrap JS (bundle includes Popper, required for modal & tabs) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery (optional, if using your AJAX scripts) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<div class="container-fluid px-0" id="employeeACRDiv" style="display:none;">
+    <h2 class="mb-4">Officer ACR Portal</h2>
+
+    <!-- ACR List Table -->
+    <table class="table table-striped table-hover table-bordered" id="acrListTable">
+        <thead class="table-primary">
+            <tr>
+                <th>Form Type</th>
+                <th>Location</th>
+                <th>Designation</th>
+                <th>Posting From</th>
+                <th>Posting To</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="acrListBody"></tbody>
+    </table>
+
+    <!-- ACR Detail Modal -->
+    <div class="modal fade" id="acrDetailModal" tabindex="-1" aria-labelledby="acrDetailLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="acrDetailLabel"><i class="bi bi-person-lines-fill"></i> ACR Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Tabs -->
+                <ul class="nav nav-tabs" id="acrTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="view-tab" data-bs-toggle="tab" data-bs-target="#viewTab" type="button" role="tab">ACR Info</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="self-tab" data-bs-toggle="tab" data-bs-target="#selfTab" type="button" role="tab">Self-Appraisal</button>
+                </li>
+                </ul>
+
+                <div class="tab-content mt-3">
+                <!-- View-Only Tab -->
+                <div class="tab-pane fade show active" id="viewTab" role="tabpanel">
+                    <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="viewFormType" class="form-control" readonly></div>
+                    <div class="col-md-6"><label class="form-label fw-bold">Status</label><input type="text" id="viewStatus" class="form-control" readonly></div>
+                    <div class="col-md-6"><label class="form-label fw-bold">Location</label><input type="text" id="viewLocation" class="form-control" readonly></div>
+                    <div class="col-md-6"><label class="form-label fw-bold">Designation</label><input type="text" id="viewDesignation" class="form-control" readonly></div>
+                    <div class="col-md-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="viewPostingFrom" class="form-control" readonly></div>
+                    <div class="col-md-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="viewPostingTo" class="form-control" readonly></div>
+                    <div class="col-md-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="viewAcrYear" class="form-control" readonly></div>
+                    <div class="col-12">
+                        <h6>Documents</h6>
+                        <ul id="viewDocList" class="list-group"></ul>
+                    </div>
+                    </div>
+                </div>
+
+                <!-- Self-Appraisal Tab -->
+                <div class="tab-pane fade" id="selfTab" role="tabpanel">
+                    <div class="row g-3">
+                    <div class="col-md-6"><label for="leaveDetails" class="form-label">Leave Details</label><textarea id="leaveDetails" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="membershipBodies" class="form-label">Membership Bodies</label><textarea id="membershipBodies" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="trainingDetails" class="form-label">Training Details</label><textarea id="trainingDetails" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="awardsHonours" class="form-label">Awards / Honours</label><textarea id="awardsHonours" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="dutiesDescription" class="form-label">Duties Description</label><textarea id="dutiesDescription" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="targetsSet" class="form-label">Targets Set</label><textarea id="targetsSet" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="targetsAchieved" class="form-label">Targets Achieved</label><textarea id="targetsAchieved" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="shortfallReasons" class="form-label">Shortfall Reasons</label><textarea id="shortfallReasons" class="form-control" rows="2"></textarea></div>
+                    <div class="col-12"><label for="majorAchievements" class="form-label">Major Achievements</label><textarea id="majorAchievements" class="form-control" rows="2"></textarea></div>
+
+                    <!-- Compliance -->
+                    <div class="row mt-3">
+                        <div class="col-md-4"><div class="form-check"><input type="checkbox" class="form-check-input" id="auditorCompliance"><label class="form-check-label" for="auditorCompliance">Auditor Compliance</label></div></div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="propertyDeclared">
+                                <label class="form-check-label" for="propertyDeclared">Property Declared</label>
+                            </div>
+                            <!-- Wrap date input in a div for toggling -->
+                            <div id="propertyDeclaredDateDiv" class="mt-1" style="display:none;">
+                                <label for="propertyDeclaredDate" class="form-label">Property Declared Date</label>
+                                <input type="date" class="form-control" id="propertyDeclaredDate">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="medicalCompliance">
+                                <label class="form-check-label" for="medicalCompliance">Medical Compliance</label>
+                            </div>
+
+                            <!-- Wrap date input in a div for toggling -->
+                            <div id="medicalComplianceDateDiv" class="mt-1" style="display:none;">
+                                <label for="medicalComplianceDate" class="form-label">Medical Compliance Date</label>
+                                <input type="date" class="form-control" id="medicalComplianceDate">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button class="btn btn-primary" id="saveDraftBtn"><i class="bi bi-save"></i> Save Draft</button>
+                        <button class="btn btn-success" id="submitBtn"><i class="bi bi-send"></i> Submit Self-Appraisal</button>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Close</button>
+            </div> -->
+            </div>
+        </div>
+    </div>
+</div>
+    <script>
+
+        let draftSaved = false;
+        // Check Role from localStorage
+        $(document).ready(function () {
+            const role = localStorage.getItem('role');
+            if(role !== "EMPLOYEE"){
+                alert("Access denied. Only EMPLOYEE can access this page.");
+                window.location.href = BASE_URL + "Home/Dashboard";
+                return;
+            }
+            $("#employeeACRDiv").show();
+            loadAcrList();
+        });
+
+        let selectedAcrId = null;
+
+        function loadAcrList() {
+            $.ajax({
+                url: '/api/acr/my?status=PENDING_OFFICER',
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                success: function (res) {
+                    if (res.Success) {
+                        let rows = '';
+                        res.Data.AcrCycles.forEach(a => {
+                            // Determine badge color based on status
+                            let statusBadge = '';
+                            switch(a.Status) {
+                                case 'PENDING_OFFICER':
+                                    statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                                    break;
+                                case 'APPROVED':
+                                    statusBadge = '<span class="badge bg-success">Approved</span>';
+                                    break;
+                                case 'REJECTED':
+                                    statusBadge = '<span class="badge bg-danger">Rejected</span>';
+                                    break;
+                                default:
+                                    statusBadge = `<span class="badge bg-secondary">${a.Status}</span>`;
+                            }
+
+                            rows += `<tr>
+                                <td>${a.FormType}</td>
+                                <td>${a.Location}</td>
+                                <td>${a.Designation}</td>
+                                <td>${a.PostingFrom}</td>
+                                <td>${a.PostingTo}</td>
+                                <td>${statusBadge}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="viewAcr('${a.AcrId}')">
+                                        <i class="bi bi-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>`;
+                        });
+                        $('#acrListBody').html(rows);
+                    } else alert(res.Message);
+                }
+            });
+        }
+
+        let acrModal = new bootstrap.Modal(document.getElementById('acrDetailModal'));
+
+        function viewAcr(acrId){
+            selectedAcrId = acrId;
+            $.ajax({
+                url: `/api/acr/${acrId}`,
+                headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
+                success: function(res){
+                    if(res.Success){
+                        const data = res.Data;
+
+                        // --- Populate ACR Info tab ---
+                        $('#viewFormType').val(data.FormType || '');
+                        $('#viewStatus').val(data.Status || '');
+                        $('#viewLocation').val(data.Location || '');
+                        $('#viewDesignation').val(data.Designation || '');
+                        $('#viewPostingFrom').val(data.PostingFrom || '');
+                        $('#viewPostingTo').val(data.PostingTo || '');
+                        $('#viewAcrYear').val(data.AcrYear || '');
+
+                        let docs = '';
+                        (data.Documents || []).forEach(d=>{
+                            docs += `<li class="list-group-item">${d.FileName} (${d.DocumentType})</li>`;
+                        });
+                        $('#viewDocList').html(docs);
+
+                        // --- Populate Self-Appraisal tab if data exists, else keep default empty ---
+                        const s = data.SelfAppraisal || {};
+                        $('#leaveDetails').val(s.LeaveDetails || '');
+                        $('#membershipBodies').val(s.MembershipBodies || '');
+                        $('#trainingDetails').val(s.TrainingDetails || '');
+                        $('#awardsHonours').val(s.AwardsHonours || '');
+                        $('#dutiesDescription').val(s.DutiesDescription || '');
+                        $('#targetsSet').val(s.TargetsSet || '');
+                        $('#targetsAchieved').val(s.TargetsAchieved || '');
+                        $('#shortfallReasons').val(s.ShortfallReasons || '');
+                        $('#majorAchievements').val(s.MajorAchievements || '');
+                        $('#auditorCompliance').prop('checked', s.AuditorCompliance || false);
+                        $('#propertyDeclared').prop('checked', s.PropertyDeclared || false);
+                        $('#propertyDeclaredDate').val(s.PropertyDeclaredDate || '');
+                        $('#medicalCompliance').prop('checked', s.MedicalCompliance || false);
+                        $('#medicalComplianceDate').val(s.MedicalComplianceDate || '');
+
+                        // Show/hide dates
+                        togglePropertyDeclaredDate(s);
+                        toggleMedicalComplianceDate(s);
+
+                        // --- Always activate the first tab (ACR Info) ---
+                        const firstTab = new bootstrap.Tab(document.querySelector('#view-tab'));
+                        firstTab.show();
+
+                        acrModal.show();
+                    } else alert(res.Message);
+                }
+            });
+        }
+
+        $('#backBtn').click(function () {
+            $('#acrDetailDiv').hide();
+            $('#acrListDiv').show();
+        });
+
+        $('#saveDraftBtn').click(function () {
+            const draft = {
+                LeaveDetails: $('#leaveDetails').val(),
+                MembershipBodies: $('#membershipBodies').val(),
+                TrainingDetails: $('#trainingDetails').val(),
+                AwardsHonours: $('#awardsHonours').val(),
+                DutiesDescription: $('#dutiesDescription').val(),
+                TargetsSet: $('#targetsSet').val(),
+                TargetsAchieved: $('#targetsAchieved').val(),
+                ShortfallReasons: $('#shortfallReasons').val(),
+                MajorAchievements: $('#majorAchievements').val(),
+                AuditorCompliance: $('#auditorCompliance').is(':checked'),
+                PropertyDeclared: $('#propertyDeclared').is(':checked'),
+                PropertyDeclaredDate: $('#propertyDeclaredDate').val(),
+                MedicalCompliance: $('#medicalCompliance').is(':checked'),
+                MedicalComplianceDate: $('#medicalComplianceDate').val()
+            };
+
+            $.ajax({
+                url: `/api/acr/${selectedAcrId}/self-appraisal/draft`,
+                type: 'PATCH',
+                contentType: 'application/json',
+                data: JSON.stringify(draft),
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                success: function (res) {
+                    alert(res.Message);
+                    draftSaved = true; // Set flag true once draft is saved
+                },
+                error: function() {
+                    alert('Error saving draft. Please try again.');
+                    draftSaved = false; // Ensure flag stays false if save failed
+                }
+            });
+        });
+
+        $('#submitBtn').click(function () {
+            if (!draftSaved) {
+                alert("You must save the draft before submitting the self-appraisal!");
+                return; // Prevent submission
+            }
+
+            $.ajax({
+                url: `/api/acr/${selectedAcrId}/self-appraisal/submit`,
+                type: 'POST',
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                success: function (res) {
+                    alert(res.Message);
+                    draftSaved = false; // Reset flag after submission
+                    loadAcrList();
+                    $('#acrDetailDiv').hide();
+                    $('#acrListDiv').show();
+                }
+            });
+        });
+
+        // ---------------- Document Upload ----------------
+        $('#uploadDocBtn').click(function () {
+            var fileInput = $('#docFile')[0].files[0];
+            if (!fileInput) { alert('Select a file'); return; }
+
+            var docType = $('#docType').val() || 'SUPPORTING_DOC';
+            var formData = new FormData();
+            formData.append('docFile', fileInput);
+            formData.append('docType', docType);
+
+            $.ajax({
+                url: 'ACROfficer.aspx/UploadDocument',  // call backend handler
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (res) {
+                    $('#uploadResult').html('Uploaded: ' + res.d);
+                    loadDocuments();
+                }
+            });
+        });
+
+        function loadDocuments() {
+            $.ajax({
+                url: `/api/acr/${selectedAcrId}/docs`,
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                success: function (res) {
+                    if (res.Success) {
+                        let list = '';
+                        res.Data.Documents.forEach(d => {
+                            list += `<li>${d.FileName} (${d.DocumentType})</li>`;
+                        });
+                        $('#docList').html(list);
+                    }
+                }
+            });
+        }
+
+        // Show/Hide Property Declared date
+        $('#propertyDeclared').change(function() {
+            if($(this).is(':checked')){
+                $('#propertyDeclaredDateDiv').show();
+            } else {
+                $('#propertyDeclaredDateDiv').hide();
+                $('#propertyDeclaredDate').val(''); // optional: clear date
+            }
+        });
+
+        // Optional: On modal open, set initial state
+        function togglePropertyDeclaredDate(s) {
+            if(s.PropertyDeclared){
+                $('#propertyDeclared').prop('checked', true);
+                $('#propertyDeclaredDateDiv').show();
+            } else {
+                $('#propertyDeclared').prop('checked', false);
+                $('#propertyDeclaredDateDiv').hide();
+            }
+        }
+
+        $('#medicalCompliance').change(function() {
+            if($(this).is(':checked')){
+                $('#medicalComplianceDateDiv').show();
+            } else {
+                $('#medicalComplianceDateDiv').hide();
+                $('#medicalComplianceDate').val(''); // clear date when unchecked
+            }
+        });
+
+        // Optional: Set initial state when loading data
+        function toggleMedicalComplianceDate(s) {
+            if(s.MedicalCompliance){
+                $('#medicalCompliance').prop('checked', true);
+                $('#medicalComplianceDateDiv').show();
+            } else {
+                $('#medicalCompliance').prop('checked', false);
+                $('#medicalComplianceDateDiv').hide();
+            }
+        }
+    </script>
+</asp:Content>
