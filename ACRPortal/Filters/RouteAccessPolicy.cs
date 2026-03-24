@@ -58,7 +58,9 @@
                 case "EMPLOYEE":
                     return path.StartsWith("/api/acr")
                         || path.StartsWith("/acr")
-                        || path.EndsWith("/home/officer");
+                        || path.EndsWith("/home/officer")
+                        || path.EndsWith("/home/dashboard")  // ← Officer dashboard access
+                        || path.EndsWith("/home/reporting"); // ← Reporting dashboard access
 
                 default:
                     return false;

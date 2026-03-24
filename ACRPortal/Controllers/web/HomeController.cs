@@ -30,5 +30,11 @@ namespace ACRPortal.Controllers
             ViewBag.Title = "Officer Dashboard";
             return View();
         }
+
+        public ActionResult Reporting()
+        {
+            ViewBag.Title = "Reporting Dashboard";
+            return View();
+        }
     }
 }
