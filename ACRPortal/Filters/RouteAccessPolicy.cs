@@ -1,4 +1,4 @@
-namespace ACRPortal.Filters
+﻿namespace ACRPortal.Filters
 {
     internal static class RouteAccessPolicy
     {
@@ -42,12 +42,19 @@ namespace ACRPortal.Filters
                         || path.EndsWith("/masters/addemployee");
 
                 case "CCA":
-                    return path.StartsWith("/api/cca")   // covers /api/cca/acr/{id}/docs too
+                    return path.StartsWith("/api/cca")
                         || path.StartsWith("/cca")
-                        || path == "/api/admin/masters/designations";
+                        || path.EndsWith("/home/cca")         // ← fixes unauthorized access
+                        || path.EndsWith("/home/dashboard")   // ← CCA dashboard access
+                        || path == "/api/admin/masters/designations"
+                        || path.StartsWith("/api/admin/masters/zones")
+                        || path.StartsWith("/api/admin/masters/circles")
+                        || path.StartsWith("/api/admin/masters/divisions")
+                        || path.StartsWith("/api/admin/masters/subdivisions")
+                        || path.StartsWith("/api/admin/users");  // for employee/officer dropdowns
 
                 case "EMPLOYEE":
-                    return path.StartsWith("/api/acr")   // covers /api/acr/{id}/docs too
+                    return path.StartsWith("/api/acr")
                         || path.StartsWith("/acr");
 
                 default:
