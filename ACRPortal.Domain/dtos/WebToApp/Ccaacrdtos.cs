@@ -162,6 +162,12 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         /// Typically the medical report (Annexure A).
         /// </summary>
         public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
+
+        /// <summary>
+        /// Officer photograph uploaded by CCA. Null if not yet uploaded.
+        /// document_type = 'OFFICER_PHOTO'
+        /// </summary>
+        public AcrDocumentItem OfficerPhoto { get; set; }
     }
 
     // ------------------------------------------------------------------ //

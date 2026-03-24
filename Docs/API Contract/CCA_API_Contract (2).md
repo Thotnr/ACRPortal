@@ -112,7 +112,8 @@ public class CcaAcrDetailResponse {
   string ReviewingAuthorityUserId;
   string AcceptingAuthorityUserId;
   string CreatedAt; string UpdatedAt;
-  List<AcrDocumentItem> Documents;   // CCA's section docs (section='CCA')
+  List<AcrDocumentItem> Documents;   // CCA's section docs (section='CCA') — excludes photo
+  AcrDocumentItem OfficerPhoto;      // null if not yet uploaded
 }
 ```
 
@@ -397,7 +398,7 @@ Returns CCA section documents only.
 **DELETE** `/api/cca/acr/{acrId}/docs/{documentId}`  
 Requires: `Authorization: Bearer <token>` | Role: `CCA`
 
-Removes a document from the CCA section.
+Removes a document from the CCA section. Also used to delete the officer photograph (use the `DocumentId` from the `OfficerPhoto` field in the ACR detail response).
 
 ### Success `200`
 ```json
@@ -409,6 +410,46 @@ Removes a document from the CCA section.
 |---|---|---|
 | Document not found or belongs to a different section | `NOT_FOUND` | 404 |
 | Caller is not the CCA for this ACR | `FORBIDDEN` | 403 |
+| ACR is `APPROVED` or `REJECTED` | `INVALID_STATE` | 409 |
+| Token missing / invalid | `TOKEN_INVALID` | 401 |
+
+---
+
+## API 11 — Upload Officer Photograph
+**POST** `/api/cca/acr/{acrId}/photo`  
+Requires: `Authorization: Bearer <token>` | Role: `CCA`
+
+Uploads the officer's photograph. If a photo already exists it is **replaced atomically** — no need to delete first.
+
+`DocumentType` is fixed to `OFFICER_PHOTO` regardless of what the caller sends.
+
+The photograph is returned as `OfficerPhoto` in `GET /api/cca/acr/{acrId}` (separate from the `Documents` list). The `Documents` list never contains the photo.
+
+### Request
+```json
+{
+  "FileUrl": "https://storage.example.com/acr/uuid/officer_photo.jpg",
+  "FileName": "Ramesh_Kumar_Photo.jpg"
+}
+```
+
+### Success `201`
+```json
+{
+  "Success": true,
+  "Message": "Officer photo uploaded successfully",
+  "Data": { "DocumentId": "uuid" },
+  "ErrorCode": null
+}
+```
+
+### Failure Cases
+| Scenario | ErrorCode | HTTP |
+|---|---|---|
+| `FileUrl` missing | `BAD_REQUEST` | 400 |
+| ACR not found | `NOT_FOUND` | 404 |
+| Caller is not the CCA for this ACR | `FORBIDDEN` | 403 |
+| ACR is `APPROVED` or `REJECTED` | `INVALID_STATE` | 409 |
 | Token missing / invalid | `TOKEN_INVALID` | 401 |
 
 ---
@@ -421,12 +462,13 @@ Removes a document from the CCA section.
 | GET | `/api/cca/employees` | Authority dropdowns (RA/RvA/AA) |
 | POST | `/api/cca/acr` | Create a new ACR cycle |
 | GET | `/api/cca/acr` | List all ACR cycles |
-| GET | `/api/cca/acr/{acrId}` | Get full Section I detail + documents |
+| GET | `/api/cca/acr/{acrId}` | Get full Section I detail + photo + documents |
 | PATCH | `/api/cca/acr/{acrId}` | Save changes to a DRAFT ACR |
 | POST | `/api/cca/acr/{acrId}/submit` | Submit DRAFT → PENDING_OFFICER |
+| POST | `/api/cca/acr/{acrId}/photo` | Upload (or replace) officer photograph |
 | POST | `/api/cca/acr/{acrId}/docs` | Upload a document (section=CCA) |
-| GET | `/api/cca/acr/{acrId}/docs` | List CCA's documents |
-| DELETE | `/api/cca/acr/{acrId}/docs/{documentId}` | Delete a document |
+| GET | `/api/cca/acr/{acrId}/docs` | List CCA's documents (excludes photo) |
+| DELETE | `/api/cca/acr/{acrId}/docs/{documentId}` | Delete a document or photo |
 
 ---
 
@@ -434,6 +476,7 @@ Removes a document from the CCA section.
 
 ```
 CcaDocumentApiController [RoutePrefix: api/cca]
+  POST   /api/cca/acr/{acrId}/photo
   POST   /api/cca/acr/{acrId}/docs
   GET    /api/cca/acr/{acrId}/docs
   DELETE /api/cca/acr/{acrId}/docs/{documentId}

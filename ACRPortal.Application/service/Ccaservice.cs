@@ -172,8 +172,10 @@ namespace ACRPortal.Application.service
                 if (detail == null)
                     return ApiResponse<CcaAcrDetailResponse>.Fail("ACR not found", "NOT_FOUND");
 
-                // Attach CCA documents (medical report, etc.)
-                detail.Documents = _docs.GetDocuments(acrGuid, "CCA");
+                // Attach CCA documents (medical report, etc.) — excludes OFFICER_PHOTO
+                var allCcaDocs = _docs.GetDocuments(acrGuid, "CCA");
+                detail.Documents = allCcaDocs.FindAll(d => d.DocumentType != "OFFICER_PHOTO");
+                detail.OfficerPhoto = allCcaDocs.Find(d => d.DocumentType == "OFFICER_PHOTO");
 
                 return ApiResponse<CcaAcrDetailResponse>.Ok(detail);
             }

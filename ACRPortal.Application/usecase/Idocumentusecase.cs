@@ -15,6 +15,17 @@ namespace ACRPortal.Application.usecase
             AddDocumentRequest request);
 
         /// <summary>
+        /// Uploads (or replaces) the officer's photograph for an ACR.
+        /// Only the CCA who owns the ACR can call this.
+        /// If a photo already exists it is replaced atomically — no separate delete needed.
+        /// DocumentType is fixed to 'OFFICER_PHOTO'.
+        /// </summary>
+        ApiResponse<AddDocumentResponse> UploadOfficerPhoto(
+            string acrId,
+            string ccaUserId,
+            AddDocumentRequest request);
+
+        /// <summary>
         /// Returns all documents for the given ACR that the caller is allowed to see.
         /// Any participant in the ACR chain (CCA, Officer, RA1, RA2, RvA, AA) can read
         /// all documents once the ACR has passed that section.
