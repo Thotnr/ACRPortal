@@ -143,8 +143,29 @@ public class AcrDetailResponse {
   string              PostingFrom;     // yyyy-MM-dd
   string              PostingTo;       // yyyy-MM-dd
   int                 AcrYear;
+
+  // ------------------------------------------------------------------ //
+  //  Section I (CCA) — visible to all authorities                      //
+  // ------------------------------------------------------------------ //
+  string DateOfBirth;
+  string DateJoiningNigam;
+  string DateJoiningPresentRank;
+  string DateJoiningPresentStation;
+  string AcademicQualification;
+  string TechnicalQualification;
+  string DepartmentalExamPassed;
+  string PropertyReturnDate;
+  string LastMedicalExamDate;
+  string CareerPostingSummary;
+
   SelfAppraisalView   SelfAppraisal;
-  List<AcrDocumentItem> Documents;     // officer's own documents (section='OFFICER')
+
+  // CCA docs/photo for modal reuse across authorities
+  List<AcrDocumentItem> Documents;     // section='CCA' (excludes OFFICER_PHOTO)
+  AcrDocumentItem OfficerPhoto;         // section='CCA', document_type='OFFICER_PHOTO'
+
+  // Documents for the caller's current step (section='OFFICER')
+  List<AcrDocumentItem> RoleDocuments;
 }
 ```
 
@@ -152,7 +173,7 @@ public class AcrDetailResponse {
 ```csharp
 public class AcrDocumentItem {
   string DocumentId;    // GUID
-  string Section;       // always 'OFFICER' in this context
+  string Section;       // 'CCA' for Documents, 'OFFICER' for RoleDocuments
   string DocumentType;  // e.g. 'MEDICAL_REPORT' | 'SUPPORTING_DOC'
   string FileUrl;       // cloud storage URL
   string FileName;      // original filename
@@ -208,7 +229,7 @@ Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 **GET** `/api/acr/{acrId}`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Returns posting info, current self-appraisal draft, and the officer's uploaded documents.
+Returns posting info, current self-appraisal draft, the officer's step attachments (`RoleDocuments`), and the CCA section I attachments for modal reuse (`Documents` / `OfficerPhoto`).
 
 ### Success `200`
 ```json
@@ -225,6 +246,16 @@ Returns posting info, current self-appraisal draft, and the officer's uploaded d
     "PostingFrom": "2023-04-01",
     "PostingTo": "2024-03-31",
     "AcrYear": 2024,
+    "DateOfBirth": "1982-06-15",
+    "DateJoiningNigam": "2008-08-01",
+    "DateJoiningPresentRank": "2020-03-10",
+    "DateJoiningPresentStation": "2022-07-01",
+    "AcademicQualification": "B.Tech (Electrical)",
+    "TechnicalQualification": "AMIE, Section B",
+    "DepartmentalExamPassed": "Accounts Test 2015",
+    "PropertyReturnDate": "2023-06-30",
+    "LastMedicalExamDate": "2023-05-15",
+    "CareerPostingSummary": "15 years in distribution operations.",
     "SelfAppraisal": {
       "Exists": true,
       "IsSubmitted": false,
@@ -244,22 +275,27 @@ Returns posting info, current self-appraisal draft, and the officer's uploaded d
       "MedicalCompliance": true,
       "MedicalComplianceDate": "2023-05-15"
     },
+    // Medical/Annexure docs from CCA section (section='CCA')
     "Documents": [
       {
         "DocumentId": "uuid",
-        "Section": "OFFICER",
+        "Section": "CCA",
         "DocumentType": "MEDICAL_REPORT",
         "FileUrl": "https://storage.example.com/acr/uuid/medical.pdf",
         "FileName": "Annexure_A_Medical.pdf",
         "UploadedAt": "2024-06-01T09:00:00.0000000Z"
       }
-    ]
+    ],
+    // Officer photograph uploaded by CCA (null if not yet uploaded)
+    "OfficerPhoto": null,
+    // Officer step documents (section='OFFICER')
+    "RoleDocuments": []
   },
   "ErrorCode": null
 }
 ```
 
-> `Documents` is an empty array `[]` if no documents have been uploaded yet.  
+> `Documents` is an empty array `[]` if no CCA documents have been uploaded yet.  
 > `SelfAppraisal.AuditorCompliance` is `null` for A1a/A2 officers.
 
 ### Failure Cases

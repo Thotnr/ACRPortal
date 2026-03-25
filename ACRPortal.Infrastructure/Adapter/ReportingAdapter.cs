@@ -202,7 +202,19 @@ namespace ACRPortal.Infrastructure.Adapter
                         ra.ra2_comp_initiative,
                         ra.ra2_comp_teamwork,
                         ra.ra2_comp_overall,
-                        ra.ra2_overall_grade
+                        ra.ra2_overall_grade,
+
+                        -- CCA (Section I) fields — returned to all authorities
+                        ac.date_of_birth                 AS cca_date_of_birth,
+                        ac.date_joining_nigam          AS cca_date_joining_nigam,
+                        ac.date_joining_present_rank  AS cca_date_joining_present_rank,
+                        ac.date_joining_present_station AS cca_date_joining_present_station,
+                        ac.academic_qualification       AS cca_academic_qualification,
+                        ac.technical_qualification      AS cca_technical_qualification,
+                        ac.departmental_exam_passed    AS cca_departmental_exam_passed,
+                        ac.property_return_date        AS cca_property_return_date,
+                        ac.last_medical_exam_date      AS cca_last_medical_exam_date,
+                        ac.career_posting_summary      AS cca_career_posting_summary
 
                 FROM dbo.acr_cycles ac
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
@@ -356,6 +368,37 @@ namespace ACRPortal.Infrastructure.Adapter
                             resp.ReportingAssessment.OverallGrade = r.IsDBNull(baseIdx + 22) ? (decimal?)null : r.GetDecimal(baseIdx + 22);
                         }
                     }
+
+                    // CCA (Section I) — always mapped for reporting authorities
+                    int ccaDobIdx = r.GetOrdinal("cca_date_of_birth");
+                    resp.DateOfBirth = r.IsDBNull(ccaDobIdx) ? null : r.GetDateTime(ccaDobIdx).ToString("yyyy-MM-dd");
+
+                    int ccaDjNigamIdx = r.GetOrdinal("cca_date_joining_nigam");
+                    resp.DateJoiningNigam = r.IsDBNull(ccaDjNigamIdx) ? null : r.GetDateTime(ccaDjNigamIdx).ToString("yyyy-MM-dd");
+
+                    int ccaDjRankIdx = r.GetOrdinal("cca_date_joining_present_rank");
+                    resp.DateJoiningPresentRank = r.IsDBNull(ccaDjRankIdx) ? null : r.GetDateTime(ccaDjRankIdx).ToString("yyyy-MM-dd");
+
+                    int ccaDjStationIdx = r.GetOrdinal("cca_date_joining_present_station");
+                    resp.DateJoiningPresentStation = r.IsDBNull(ccaDjStationIdx) ? null : r.GetDateTime(ccaDjStationIdx).ToString("yyyy-MM-dd");
+
+                    int ccaAcademicIdx = r.GetOrdinal("cca_academic_qualification");
+                    resp.AcademicQualification = r.IsDBNull(ccaAcademicIdx) ? null : r.GetString(ccaAcademicIdx);
+
+                    int ccaTechnicalIdx = r.GetOrdinal("cca_technical_qualification");
+                    resp.TechnicalQualification = r.IsDBNull(ccaTechnicalIdx) ? null : r.GetString(ccaTechnicalIdx);
+
+                    int ccaDeptExamIdx = r.GetOrdinal("cca_departmental_exam_passed");
+                    resp.DepartmentalExamPassed = r.IsDBNull(ccaDeptExamIdx) ? null : r.GetString(ccaDeptExamIdx);
+
+                    int ccaPropReturnIdx = r.GetOrdinal("cca_property_return_date");
+                    resp.PropertyReturnDate = r.IsDBNull(ccaPropReturnIdx) ? null : r.GetDateTime(ccaPropReturnIdx).ToString("yyyy-MM-dd");
+
+                    int ccaLastMedIdx = r.GetOrdinal("cca_last_medical_exam_date");
+                    resp.LastMedicalExamDate = r.IsDBNull(ccaLastMedIdx) ? null : r.GetDateTime(ccaLastMedIdx).ToString("yyyy-MM-dd");
+
+                    int ccaSummaryIdx = r.GetOrdinal("cca_career_posting_summary");
+                    resp.CareerPostingSummary = r.IsDBNull(ccaSummaryIdx) ? null : r.GetString(ccaSummaryIdx);
 
                     errorCode = null;
                     return resp;

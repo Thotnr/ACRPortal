@@ -56,7 +56,14 @@ namespace ACRPortal.Application.service
 
                 // Attach only the caller's documents (RA1 or RA2 depending on their role)
                 string section = detail.ReportingRole == "RA2" ? "RA2" : "RA1";
-                detail.Documents = _docs.GetDocuments(acrGuid, section);
+
+                // Attach CCA documents + photo (section = 'CCA') for the shared modal
+                var allCcaDocs = _docs.GetDocuments(acrGuid, "CCA");
+                detail.Documents = allCcaDocs.FindAll(d => d.DocumentType != "OFFICER_PHOTO");
+                detail.OfficerPhoto = allCcaDocs.Find(d => d.DocumentType == "OFFICER_PHOTO");
+
+                // Preserve caller-step documents separately (section = 'RA1'|'RA2')
+                detail.RoleDocuments = _docs.GetDocuments(acrGuid, section);
 
                 return ApiResponse<ReportingAcrDetailResponse>.Ok(detail, "Success");
             }

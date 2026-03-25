@@ -92,7 +92,26 @@ public class ReportingAcrDetailResponse {
   string                  ReportingRole;       // "RA1" | "RA2"
   SelfAppraisalView       SelfAppraisal;
   ReportingAssessmentView ReportingAssessment;
-  List<AcrDocumentItem>   Documents;           // caller's own section docs (RA1 or RA2)
+  // ------------------------------------------------------------------ //
+  //  Section I (CCA) — visible to all authorities                      //
+  // ------------------------------------------------------------------ //
+  string DateOfBirth;
+  string DateJoiningNigam;
+  string DateJoiningPresentRank;
+  string DateJoiningPresentStation;
+  string AcademicQualification;
+  string TechnicalQualification;
+  string DepartmentalExamPassed;
+  string PropertyReturnDate;
+  string LastMedicalExamDate;
+  string CareerPostingSummary;
+
+  // CCA docs/photo for modal reuse across authorities
+  List<AcrDocumentItem> Documents;      // section='CCA' (excludes OFFICER_PHOTO)
+  AcrDocumentItem OfficerPhoto;         // section='CCA', document_type='OFFICER_PHOTO'
+
+  // Documents uploaded by the caller's current step (section='RA1'|'RA2')
+  List<AcrDocumentItem> RoleDocuments;
 }
 ```
 
@@ -139,7 +158,7 @@ Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 **GET** `/api/acr/{acrId}/reporting`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Returns the full ACR for the RA including the officer's self-appraisal, the caller's own assessment draft, and the caller's uploaded documents.
+Returns the full ACR for the RA including the officer's self-appraisal, the caller's assessment draft, the caller's step attachments (`RoleDocuments`), and the CCA section I attachments (`Documents` / `OfficerPhoto`) for modal reuse.
 
 ### Success `200`
 ```json
@@ -156,6 +175,16 @@ Returns the full ACR for the RA including the officer's self-appraisal, the call
     "PostingFrom": "2023-04-01",
     "PostingTo": "2024-03-31",
     "AcrYear": 2024,
+    "DateOfBirth": "1982-06-15",
+    "DateJoiningNigam": "2008-08-01",
+    "DateJoiningPresentRank": "2020-03-10",
+    "DateJoiningPresentStation": "2022-07-01",
+    "AcademicQualification": "B.Tech (Electrical)",
+    "TechnicalQualification": "AMIE, Section B",
+    "DepartmentalExamPassed": "Accounts Test 2015",
+    "PropertyReturnDate": "2023-06-30",
+    "LastMedicalExamDate": "2023-05-15",
+    "CareerPostingSummary": "15 years in distribution operations.",
     "Officer": { "UserId": "uuid", "LoginId": "EMP001", "DisplayName": "Ramesh Kumar" },
     "ReportingRole": "RA1",
     "SelfAppraisal": {
@@ -196,19 +225,22 @@ Returns the full ACR for the RA including the officer's self-appraisal, the call
     "Documents": [
       {
         "DocumentId": "uuid",
-        "Section": "RA1",
+        "Section": "CCA",
         "DocumentType": "SUPPORTING_DOC",
         "FileUrl": "https://storage.example.com/acr/uuid/ra1_note.pdf",
         "FileName": "RA1_Supporting_Note.pdf",
         "UploadedAt": "2024-07-01T10:30:00.0000000Z"
       }
-    ]
+    ],
+    "OfficerPhoto": null,
+    "RoleDocuments": []
   },
   "ErrorCode": null
 }
 ```
 
-> `Documents` contains only the caller's own section documents (RA1 or RA2). An empty array `[]` is returned if none uploaded.  
+> `Documents` contains only the CCA section documents (section='CCA') for modal reuse.  
+> `RoleDocuments` contains only the caller's own step documents (section='RA1'|'RA2').  
 > `SelfAppraisal.AuditorCompliance` is `null` for A1a/A2 officers.
 
 ### Failure Cases
