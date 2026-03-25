@@ -199,7 +199,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string AcrId { get; set; }
         public string OfficerName { get; set; }
         public string OfficerLoginId { get; set; }
-        public string DsgDesc { get; set; }
+        public string Dsg { get; set; }
         public string FormType { get; set; }
         public string Department { get; set; }
         public string Location { get; set; }

@@ -33,10 +33,12 @@ namespace ACRPortal.Infrastructure.Adapter
                         ac.reporting_user_id,
                         ac.ra2_user_id,
                         ra.ra1_submitted_at,
-                        ra.ra2_submitted_at
+                        ra.ra2_submitted_at,
+                        d.dsg
                 FROM    dbo.acr_cycles ac
                 JOIN    dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
+                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
                 WHERE  (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
                   AND   ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')
                 ORDER BY ac.created_at DESC";
@@ -74,7 +76,8 @@ namespace ACRPortal.Infrastructure.Adapter
                             Status = status,
                             ReportingRole = isRa2 ? "RA2" : "RA1",
                             IsSubmitted = submitted,
-                            CreatedAt = r.IsDBNull(10) ? null : r.GetDateTime(10).ToString("o")
+                            CreatedAt = r.IsDBNull(10) ? null : r.GetDateTime(10).ToString("o"),
+                            Dsg = r.IsDBNull(15) ? null : r.GetString(15),
                         });
                     }
                 }

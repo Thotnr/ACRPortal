@@ -184,10 +184,10 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             const string sql = @"
                 SELECT COUNT(1) FROM dbo.acr_cycles
-                WHERE officer_user_id = @uid AND department = @dept AND posting_from = @from";
+                WHERE officer_user_id = @uid AND posting_from = @from";
             return ExistsCheck(sql,
                 new SqlParameter("@uid", SqlDbType.UniqueIdentifier) { Value = officerUserId },
-                new SqlParameter("@dept", SqlDbType.NVarChar) { Value = department },
+                // new SqlParameter("@dept", SqlDbType.NVarChar) { Value = department },
                 new SqlParameter("@from", SqlDbType.Date) { Value = postingFrom.Date });
         }
 
@@ -195,10 +195,10 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             const string sql = @"
                 SELECT COUNT(1) FROM dbo.acr_cycles
-                WHERE officer_user_id = @uid AND department = @dept AND posting_from = @from AND acr_id <> @acrId";
+                WHERE officer_user_id = @uid AND posting_from = @from AND acr_id <> @acrId";
             return ExistsCheck(sql,
                 new SqlParameter("@uid", SqlDbType.UniqueIdentifier) { Value = officerUserId },
-                new SqlParameter("@dept", SqlDbType.NVarChar) { Value = department },
+                // new SqlParameter("@dept", SqlDbType.NVarChar) { Value = department },
                 new SqlParameter("@from", SqlDbType.Date) { Value = postingFrom.Date },
                 new SqlParameter("@acrId", SqlDbType.UniqueIdentifier) { Value = acrId });
         }
@@ -439,7 +439,7 @@ namespace ACRPortal.Infrastructure.Adapter
         public CcaAcrDetailResponse GetAcrDetail(Guid acrId)
         {
             // Single table read + one JOIN for the officer's display info.
-            // Authority fields are the raw UUID columns on acr_cycles — no user JOINs needed.
+            // Authority fields are the raw UUID columns on acr_cycles ï¿½ no user JOINs needed.
             const string sql = @"
                 SELECT
                     ac.acr_id,                        -- 0
@@ -546,13 +546,13 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             const string sql = @"
                 SELECT ac.acr_id, u.display_name, u.login_id,
-                       d.dsgDesc, ac.form_type,
+                       d.dsg, ac.form_type,
                        ac.department, ac.location,
                        ac.posting_from, ac.posting_to,
                        ac.acr_year, ac.status, ac.created_at
                 FROM   dbo.acr_cycles ac
                 JOIN   dbo.users  u ON u.user_id = ac.officer_user_id
-                LEFT JOIN dbo.tbDsg d ON d.dsgId = u.dsg_id
+                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
                 ORDER BY ac.created_at DESC";
 
             var list = new List<AcrListItem>();
@@ -567,7 +567,7 @@ namespace ACRPortal.Infrastructure.Adapter
                             AcrId = r.GetGuid(0).ToString(),
                             OfficerName = r.IsDBNull(1) ? null : r.GetString(1),
                             OfficerLoginId = r.IsDBNull(2) ? null : r.GetString(2),
-                            DsgDesc = r.IsDBNull(3) ? null : r.GetString(3),
+                            Dsg = r.IsDBNull(3) ? null : r.GetString(3),
                             FormType = r.IsDBNull(4) ? null : r.GetString(4),
                             Department = r.IsDBNull(5) ? null : r.GetString(5),
                             Location = r.IsDBNull(6) ? null : r.GetString(6),

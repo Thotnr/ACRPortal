@@ -24,7 +24,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         ac.form_type,
                         ac.department,
                         ac.location,
-                        ac.designation,
+                        d.dsg,
                         ac.posting_from,
                         ac.posting_to,
                         ac.acr_year,
@@ -33,6 +33,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         sa.submitted_at
                 FROM    dbo.acr_cycles ac
                 LEFT JOIN dbo.self_appraisals sa ON sa.acr_id = ac.acr_id
+                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
                 WHERE   ac.officer_user_id = @uid
                   AND   ac.status <> 'DRAFT' ";
 
@@ -59,7 +60,7 @@ namespace ACRPortal.Infrastructure.Adapter
                             FormType = r.IsDBNull(1) ? null : r.GetString(1),
                             Department = r.IsDBNull(2) ? null : r.GetString(2),
                             Location = r.IsDBNull(3) ? null : r.GetString(3),
-                            Designation = r.IsDBNull(4) ? null : r.GetString(4),
+                            Dsg = r.IsDBNull(4) ? null : r.GetString(4),
                             PostingFrom = r.IsDBNull(5) ? null : r.GetDateTime(5).ToString("yyyy-MM-dd"),
                             PostingTo = r.IsDBNull(6) ? null : r.GetDateTime(6).ToString("yyyy-MM-dd"),
                             AcrYear = r.IsDBNull(7) ? 0 : r.GetInt32(7),

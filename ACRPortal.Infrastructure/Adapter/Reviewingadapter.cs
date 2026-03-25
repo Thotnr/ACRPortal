@@ -30,10 +30,12 @@ namespace ACRPortal.Infrastructure.Adapter
                         ac.acr_year,
                         ac.status,
                         ac.created_at,
-                        rv.submitted_at
+                        rv.submitted_at,
+                        d.dsg
                 FROM    dbo.acr_cycles ac
                 JOIN    dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.reviewing_assessments rv ON rv.acr_id = ac.acr_id
+                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
                 WHERE   ac.reviewing_user_id = @uid
                   AND   ac.status IN ('PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')
                 ORDER BY ac.created_at DESC";
@@ -59,7 +61,8 @@ namespace ACRPortal.Infrastructure.Adapter
                             AcrYear = r.IsDBNull(8) ? 0 : r.GetInt32(8),
                             Status = r.IsDBNull(9) ? null : r.GetString(9),
                             CreatedAt = r.IsDBNull(10) ? null : r.GetDateTime(10).ToString("o"),
-                            IsSubmitted = !r.IsDBNull(11)
+                            IsSubmitted = !r.IsDBNull(11),
+                            Dsg = r.IsDBNull(12) ? null : r.GetString(12),
                         });
             }
             return resp;
