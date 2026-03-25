@@ -114,6 +114,10 @@ public class CcaAcrDetailResponse {
   string CreatedAt; string UpdatedAt;
   List<AcrDocumentItem> Documents;   // CCA's section docs (section='CCA') — excludes photo
   AcrDocumentItem OfficerPhoto;      // null if not yet uploaded
+
+  // Kept for response shape consistency with other authority detail APIs
+  // (CCA doesn't upload step-specific attachments in this flow).
+  List<AcrDocumentItem> RoleDocuments;
 }
 ```
 
@@ -317,7 +321,9 @@ Returns full Section I data plus CCA's uploaded documents.
         "FileUrl": "https://storage.example.com/acr/uuid/annexure_a.pdf",
         "FileName": "Annexure_A_Medical.pdf", "UploadedAt": "2024-05-03T14:00:00.0000000Z"
       }
-    ]
+    ],
+    "OfficerPhoto": null,
+    "RoleDocuments": []
   },
   "ErrorCode": null
 }

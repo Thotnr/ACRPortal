@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace ACRPortal.Domain.DTOs.WebToApp
 {
@@ -126,6 +126,20 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string PostingTo { get; set; }   // yyyy-MM-dd
         public int AcrYear { get; set; }
 
+        // ------------------------------------------------------------------ //
+        //  Section I (CCA) — shown to all authorities                         //
+        // ------------------------------------------------------------------ //
+        public string DateOfBirth { get; set; }
+        public string DateJoiningNigam { get; set; }
+        public string DateJoiningPresentRank { get; set; }
+        public string DateJoiningPresentStation { get; set; }
+        public string AcademicQualification { get; set; }
+        public string TechnicalQualification { get; set; }
+        public string DepartmentalExamPassed { get; set; }
+        public string PropertyReturnDate { get; set; }
+        public string LastMedicalExamDate { get; set; }
+        public string CareerPostingSummary { get; set; }
+
         public OfficerLite Officer { get; set; } = new OfficerLite();
         public SelfAppraisalView SelfAppraisal { get; set; } = new SelfAppraisalView();
         public ReportingAssessmentView Ra1Assessment { get; set; } = new ReportingAssessmentView();
@@ -134,8 +148,19 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public RvaOverrideGradesView RvaOverrideGrades { get; set; } = new RvaOverrideGradesView();
 
         /// <summary>
-        /// Documents uploaded by the RvA for this ACR (section = 'RVA').
+        /// CCA documents for this ACR (section = 'CCA', excludes OFFICER_PHOTO).
+        /// Returned consistently across authority detail APIs.
         /// </summary>
         public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
+
+        /// <summary>
+        /// Officer photograph uploaded by the CCA for this ACR.
+        /// </summary>
+        public AcrDocumentItem OfficerPhoto { get; set; }
+
+        /// <summary>
+        /// Documents uploaded by the caller's current step (section = 'RVA').
+        /// </summary>
+        public List<AcrDocumentItem> RoleDocuments { get; set; } = new List<AcrDocumentItem>();
     }
 }

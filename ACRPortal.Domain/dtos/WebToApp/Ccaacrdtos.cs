@@ -175,6 +175,12 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         /// document_type = 'OFFICER_PHOTO'
         /// </summary>
         public AcrDocumentItem OfficerPhoto { get; set; }
+
+        /// <summary>
+        /// CCA does not have role-specific documents in this flow.
+        /// Kept for response shape consistency with other authority detail APIs.
+        /// </summary>
+        public List<AcrDocumentItem> RoleDocuments { get; set; } = new List<AcrDocumentItem>();
     }
 
     // ------------------------------------------------------------------ //

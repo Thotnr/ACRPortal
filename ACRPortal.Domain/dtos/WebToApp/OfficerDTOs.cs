@@ -122,12 +122,39 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string PostingTo { get; set; }   // yyyy-MM-dd
         public int AcrYear { get; set; }
 
+        // ------------------------------------------------------------------ //
+        //  Section I (CCA) — shown to all authorities                         //
+        // ------------------------------------------------------------------ //
+        public string DateOfBirth { get; set; }
+        public string DateJoiningNigam { get; set; }
+        public string DateJoiningPresentRank { get; set; }
+        public string DateJoiningPresentStation { get; set; }
+        public string AcademicQualification { get; set; }
+        public string TechnicalQualification { get; set; }
+        public string DepartmentalExamPassed { get; set; }
+        public string PropertyReturnDate { get; set; }
+        public string LastMedicalExamDate { get; set; }
+        public string CareerPostingSummary { get; set; }
+
         public SelfAppraisalView SelfAppraisal { get; set; } = new SelfAppraisalView();
 
         /// <summary>
-        /// All documents uploaded by the Officer for this ACR (section = 'OFFICER').
-        /// Empty list when none have been uploaded yet.
+        /// CCA documents for this ACR (section = 'CCA', excludes OFFICER_PHOTO).
+        /// This is returned consistently across all authority detail APIs
+        /// so the shared modal can render them without role-specific logic.
         /// </summary>
         public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
+
+        /// <summary>
+        /// Officer photograph uploaded by the CCA for this ACR.
+        /// </summary>
+        public AcrDocumentItem OfficerPhoto { get; set; }
+
+        /// <summary>
+        /// Documents uploaded by the caller's current step (section = 'OFFICER').
+        /// Kept separate so authority viewing (CCA docs) and document management
+        /// can both work with minimal frontend changes.
+        /// </summary>
+        public List<AcrDocumentItem> RoleDocuments { get; set; } = new List<AcrDocumentItem>();
     }
 }

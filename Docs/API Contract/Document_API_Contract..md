@@ -259,13 +259,13 @@ Each role's detail response now includes a `Documents` field populated by the se
 
 | Detail endpoint | Documents shown |
 |---|---|
-| `GET /api/acr/{acrId}` (Officer) | section = `OFFICER` |
-| `GET /api/acr/{acrId}/reporting` | section = `RA1` or `RA2` (caller's role) |
-| `GET /api/acr/{acrId}/reviewing` | section = `RVA` |
-| `GET /api/acr/{acrId}/accepting` | section = `AA` |
+| `GET /api/acr/{acrId}` (Officer) | section = `CCA` (modal reuse; excludes photo) |
+| `GET /api/acr/{acrId}/reporting` | section = `CCA` (modal reuse; excludes photo) |
+| `GET /api/acr/{acrId}/reviewing` | section = `CCA` (modal reuse; excludes photo) |
+| `GET /api/acr/{acrId}/accepting` | section = `CCA` (modal reuse; excludes photo) |
 | `GET /api/cca/acr/{acrId}` | section = `CCA` |
 
-Each participant sees only their own section's documents in the detail response. To see another section's documents, a separate admin-level query would be required (not currently exposed).
+For the non-CCA authority detail endpoints, the caller's step-specific attachments are exposed via `RoleDocuments` (section = `OFFICER` / `RA1` / `RA2` / `RVA` / `AA`). The modal-friendly `Documents` field is reserved for CCA section I attachments (section = `CCA`, excluding `OFFICER_PHOTO`).
 
 ### `DocumentPath` removal
 
@@ -276,6 +276,7 @@ The `document_path` column has been removed from `self_appraisals`, `reporting_a
 The photograph is stored in `dbo.acr_documents` with `section = 'CCA'` and `document_type = 'OFFICER_PHOTO'`. It is surfaced separately from the general `Documents` list:
 
 - `GET /api/cca/acr/{acrId}` returns `OfficerPhoto: { DocumentId, FileUrl, FileName, UploadedAt }` (null if not yet uploaded) alongside `Documents` (which excludes the photo).
+- `GET /api/acr/{acrId}`, `/api/acr/{acrId}/reporting`, `/api/acr/{acrId}/reviewing`, `/api/acr/{acrId}/accepting` also include `OfficerPhoto` in the response (so the shared authority modal can show the same CCA media consistently).
 - Upload/replace via `POST /api/cca/acr/{acrId}/photo` — not via the generic docs endpoint.
 - Delete via `DELETE /api/cca/acr/{acrId}/docs/{documentId}` using the `DocumentId` from `OfficerPhoto`.
 
