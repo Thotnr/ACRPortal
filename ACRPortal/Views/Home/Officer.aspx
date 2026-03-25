@@ -54,17 +54,34 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <!-- View-Only Tab -->
                 <div class="tab-pane fade show active" id="viewTab" role="tabpanel">
                     <div class="row g-3">
-                    <div class="col-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="viewFormType" class="form-control" readonly></div>
-                    <div class="col-6"><label class="form-label fw-bold">Status</label><input type="text" id="viewStatus" class="form-control" readonly></div>
-                    <div class="col-6"><label class="form-label fw-bold">Location</label><input type="text" id="viewLocation" class="form-control" readonly></div>
-                    <div class="col-6"><label class="form-label fw-bold">Designation</label><input type="text" id="viewDesignation" class="form-control" readonly></div>
-                    <div class="col-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="viewPostingFrom" class="form-control" readonly></div>
-                    <div class="col-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="viewPostingTo" class="form-control" readonly></div>
-                    <div class="col-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="viewAcrYear" class="form-control" readonly></div>
-                    <div class="col-12">
-                        <h6>Documents</h6>
-                        <ul id="viewDocList" class="list-group"></ul>
-                    </div>
+                        <div class="col-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="viewFormType" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Status</label><input type="text" id="viewStatus" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Location</label><input type="text" id="viewLocation" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Designation</label><input type="text" id="viewDesignation" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="viewPostingFrom" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="viewPostingTo" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="viewAcrYear" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Date Of Birth</label><input type="text" id="viewDOB" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Date Joining Nigam</label><input type="text" id="viewJoinNigam" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Joining Present Rank</label><input type="text" id="viewJoinRank" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Joining Present Station</label><input type="text" id="viewJoinStation" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Academic Qualification</label><input type="text" id="viewAcademic" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Technical Qualification</label><input type="text" id="viewTechnical" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Dept Exam Passed</label><input type="text" id="viewDeptExam" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Property Return Date</label><input type="text" id="viewPropertyReturn" class="form-control" readonly></div>
+                        <div class="col-6"><label class="form-label fw-bold">Last Medical Exam</label><input type="text" id="viewMedicalExam" class="form-control" readonly></div>
+                        <div class="col-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea id="viewCareerSummary" class="form-control" readonly></textarea></div>
+                        <!-- <div class="col-12">
+                            <h6>Documents</h6>
+                            <ul id="viewDocList" class="list-group"></ul>
+                        </div>
+                        <div class="col-12" id="ageDocUploadDiv" style="display:none;">
+                            <h6>Additional Document (Age 40+)</h6>
+                            <input type="file" class="form-control mb-2" id="ageDocFile">
+                            <button class="btn btn-sm btn-primary" id="ageDocUploadBtn">
+                                <i class="bi bi-upload"></i> Upload
+                            </button>
+                        </div> -->
                     </div>
                 </div>
 
@@ -200,7 +217,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
         function loadAcrList() {
             $.ajax({
-                url: '/api/acr/my?status=PENDING_OFFICER',
+                url: '/api/acr/my',
                 headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 success: function (res) {
                     if (res.Success) {
@@ -242,6 +259,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             });
         }
 
+        function formatDate(d){
+            if(!d) return '';
+            return new Date(d).toLocaleDateString('en-GB');
+        }
+
         let acrModal = new bootstrap.Modal(document.getElementById('acrDetailModal'));
 
         function viewAcr(acrId){
@@ -252,7 +274,23 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 success: function(res){
                     if(res.Success){
                         const data = res.Data;
-
+                        let age = calculateAge(data.DateOfBirth);
+                        if (age >= 40) {
+                            $('#ageDocUploadDiv').show();
+                        } else {
+                            $('#ageDocUploadDiv').hide();
+                        }
+                        if (data.Status && data.Status.toUpperCase() === 'PENDING_OFFICER') {
+                            $('#saveDraftBtn').show();
+                            $('#addTrainingRow').show();
+                            $(".removeTrainingRow").show();
+                            $('#submitBtn').removeClass('d-none');
+                        } else {
+                            $('#saveDraftBtn').hide();
+                            $('#addTrainingRow').hide();
+                            $(".removeTrainingRow").hide();
+                            $('#submitBtn').addClass('d-none');
+                        }
                         // --- Populate ACR Info tab ---
                         $('#viewFormType').val(data.FormType || '');
                         $('#viewStatus').val(data.Status || '');
@@ -261,6 +299,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         $('#viewPostingFrom').val(data.PostingFrom || '');
                         $('#viewPostingTo').val(data.PostingTo || '');
                         $('#viewAcrYear').val(data.AcrYear || '');
+                        $('#viewDepartment').val(data.Department || '');
+                        $('#viewDOB').val(formatDate(data.DateOfBirth) || '');
+                        $('#viewJoinNigam').val(data.DateJoiningNigam || '');
+                        $('#viewJoinRank').val(data.DateJoiningPresentRank || '');
+                        $('#viewJoinStation').val(data.DateJoiningPresentStation || '');
+                        $('#viewAcademic').val(data.AcademicQualification || '');
+                        $('#viewTechnical').val(data.TechnicalQualification || '');
+                        $('#viewDeptExam').val(data.DepartmentalExamPassed || '');
+                        $('#viewPropertyReturn').val(data.PropertyReturnDate || '');
+                        $('#viewMedicalExam').val(data.LastMedicalExamDate || '');
+                        $('#viewCareerSummary').val(data.CareerPostingSummary || '');
 
                         let docs = '';
                         (data.Documents || []).forEach(d=>{
@@ -285,12 +334,16 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         $('#medicalCompliance').prop('checked', s.MedicalCompliance || false);
                         $('#medicalComplianceDate').val(s.MedicalComplianceDate || '');
 
-                        if (s && Object.keys(s).length > 0) {
+                        if (s && s.Exists) {
                             draftSaved = true;
-                            $('#submitBtn').removeClass('d-none'); // allow direct submit
+                            if(data.Status && data.Status.toUpperCase() === 'PENDING_OFFICER'){
+                                $('#submitBtn').removeClass('d-none');
+                            }
                         } else {
                             draftSaved = false;
-                            $('#submitBtn').addClass('d-none');
+                            if(data.Status && data.Status.toUpperCase() === 'PENDING_OFFICER'){
+                                $('#submitBtn').addClass('d-none');
+                            }
                         }
                         isFormChanged = false;
                         // Show/hide dates
@@ -515,5 +568,21 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 $('#trainingTableBody').append(row);
             });
         }
+
+        function calculateAge(dob) {
+            if (!dob) return 0;
+            let birthDate = new Date(dob);
+            let today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            let m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        }
+
+        $('#acrDetailModal').on('hidden.bs.modal', function () {
+            $('#ageDocUploadDiv').hide();
+        });
     </script>
 </asp:Content>

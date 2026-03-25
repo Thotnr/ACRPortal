@@ -85,8 +85,37 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     <!-- INFO TAB -->
                     <div class="tab-pane fade show active" id="infoTab">
                         <div class="row g-3">
-                            <div class="col-md-6"><label>Officer</label><input class="form-control" id="infoOfficer" readonly></div>
-                            <div class="col-md-6"><label>Status</label><input class="form-control" id="infoStatus" readonly></div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold">Form Type</label><input class="form-control" id="infoFormType" readonly></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Status</label><input class="form-control" id="infoStatus" readonly></div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold">Officer</label><input class="form-control" id="infoOfficer" readonly></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Location</label><input class="form-control" id="infoLocation" readonly></div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold">Designation</label><input class="form-control" id="infoDesignation" readonly></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Posting From</label><input class="form-control" id="infoPostingFrom" readonly></div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold">Posting To</label><input class="form-control" id="infoPostingTo" readonly></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">ACR Year</label><input class="form-control" id="infoAcrYear" readonly></div>
+
+                            <!-- SAME AS OFFICER -->
+                            <!-- <div class="col-md-6"><label class="form-label fw-bold">Department</label><input class="form-control" id="infoDepartment" readonly></div> -->
+                            <div class="col-md-6"><label class="form-label fw-bold">Date Of Birth</label><input class="form-control" id="infoDOB" readonly></div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold">Date Joining Nigam</label><input class="form-control" id="infoJoinNigam" readonly></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Joining Present Rank</label><input class="form-control" id="infoJoinRank" readonly></div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold">Joining Present Station</label><input class="form-control" id="infoJoinStation" readonly></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Academic Qualification</label><input class="form-control" id="infoAcademic" readonly></div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold">Technical Qualification</label><input class="form-control" id="infoTechnical" readonly></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Dept Exam Passed</label><input class="form-control" id="infoDeptExam" readonly></div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold">Property Return Date</label><input class="form-control" id="infoPropertyReturn" readonly></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Last Medical Exam</label><input class="form-control" id="infoMedicalExam" readonly></div>
+
+                            <div class="col-md-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea class="form-control" id="infoCareerSummary" readonly></textarea></div>
+
                         </div>
                     </div>
 
@@ -310,6 +339,11 @@ function loadReviewingQueue(){
     });
 }
 
+function formatDate(d){
+    if(!d) return '';
+    return new Date(d).toLocaleDateString('en-GB');
+}
+
 let reviewingModal = new bootstrap.Modal(document.getElementById('reviewingModal'));
 
 function openReview(id){
@@ -352,6 +386,24 @@ function openReview(id){
 
             $("#infoOfficer").val(d.Officer.DisplayName);
             $("#infoStatus").val(d.Status);
+            $("#infoFormType").val(d.FormType || '');
+            $("#infoLocation").val(d.Location || '');
+            $("#infoDesignation").val(d.Designation || '');
+            $("#infoPostingFrom").val(d.PostingFrom || '');
+            $("#infoPostingTo").val(d.PostingTo || '');
+            $("#infoAcrYear").val(d.AcrYear || '');
+
+            $("#infoDepartment").val(d.Department || '');
+            $("#infoDOB").val(formatDate(d.DateOfBirth));
+            $("#infoJoinNigam").val(d.DateJoiningNigam || '');
+            $("#infoJoinRank").val(d.DateJoiningPresentRank || '');
+            $("#infoJoinStation").val(d.DateJoiningPresentStation || '');
+            $("#infoAcademic").val(d.AcademicQualification || '');
+            $("#infoTechnical").val(d.TechnicalQualification || '');
+            $("#infoDeptExam").val(d.DepartmentalExamPassed || '');
+            $("#infoPropertyReturn").val(d.PropertyReturnDate || '');
+            $("#infoMedicalExam").val(d.LastMedicalExamDate || '');
+            $("#infoCareerSummary").val(d.CareerPostingSummary || '');
             if(d.Status === "PENDING_ACCEPTING"){
                 setReviewReadOnly(true);
             } else {

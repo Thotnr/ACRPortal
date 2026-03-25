@@ -67,23 +67,44 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="assessment-tab" data-bs-toggle="tab" data-bs-target="#assessmentTab" type="button" role="tab">Reporting Assessment</button>
                         </li>
-                        <li class="nav-item" role="presentation">
+                        <!-- <li class="nav-item" role="presentation">
                             <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documentsTab" type="button" role="tab">Documents</button>
-                        </li>
+                        </li> -->
                     </ul>
 
                     <div class="tab-content mt-3">
                         <!-- Info Tab -->
                         <div class="tab-pane fade show active" id="infoTab" role="tabpanel">
                             <div class="row g-3">
-                                <div class="col-md-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="infoFormType" class="form-control" readonly></div>
-                                <div class="col-md-6"><label class="form-label fw-bold">Status</label><input type="text" id="infoStatus" class="form-control" readonly></div>
-                                <div class="col-md-6"><label class="form-label fw-bold">Officer Name</label><input type="text" id="infoOfficerName" class="form-control" readonly></div>
-                                <div class="col-md-6"><label class="form-label fw-bold">Location</label><input type="text" id="infoLocation" class="form-control" readonly></div>
-                                <div class="col-md-6"><label class="form-label fw-bold">Designation</label><input type="text" id="infoDesignation" class="form-control" readonly></div>
-                                <div class="col-md-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="infoPostingFrom" class="form-control" readonly></div>
-                                <div class="col-md-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="infoPostingTo" class="form-control" readonly></div>
-                                <div class="col-md-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="infoAcrYear" class="form-control" readonly></div>
+
+                                <div class="col-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="infoFormType" class="form-control" readonly></div>
+                                <div class="col-6"><label class="form-label fw-bold">Status</label><input type="text" id="infoStatus" class="form-control" readonly></div>
+
+                                <div class="col-6"><label class="form-label fw-bold">Officer Name</label><input type="text" id="infoOfficerName" class="form-control" readonly></div>
+                                <div class="col-6"><label class="form-label fw-bold">Location</label><input type="text" id="infoLocation" class="form-control" readonly></div>
+
+                                <div class="col-6"><label class="form-label fw-bold">Designation</label><input type="text" id="infoDesignation" class="form-control" readonly></div>
+                                <div class="col-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="infoPostingFrom" class="form-control" readonly></div>
+
+                                <div class="col-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="infoPostingTo" class="form-control" readonly></div>
+                                <div class="col-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="infoAcrYear" class="form-control" readonly></div>
+
+                                <!-- NEW FIELDS (same as Officer) -->
+                                <!-- <div class="col-6"><label class="form-label fw-bold">Department</label><input type="text" id="infoDepartment" class="form-control" readonly></div> -->
+                                <div class="col-6"><label class="form-label fw-bold">Date Of Birth</label><input type="text" id="infoDOB" class="form-control" readonly></div>
+
+                                <div class="col-6"><label class="form-label fw-bold">Date Joining Nigam</label><input type="text" id="infoJoinNigam" class="form-control" readonly></div>
+                                <div class="col-6"><label class="form-label fw-bold">Joining Present Rank</label><input type="text" id="infoJoinRank" class="form-control" readonly></div>
+
+                                <div class="col-6"><label class="form-label fw-bold">Joining Present Station</label><input type="text" id="infoJoinStation" class="form-control" readonly></div>
+                                <div class="col-6"><label class="form-label fw-bold">Academic Qualification</label><input type="text" id="infoAcademic" class="form-control" readonly></div>
+
+                                <div class="col-6"><label class="form-label fw-bold">Technical Qualification</label><input type="text" id="infoTechnical" class="form-control" readonly></div>
+                                <div class="col-6"><label class="form-label fw-bold">Dept Exam Passed</label><input type="text" id="infoDeptExam" class="form-control" readonly></div>
+
+                                <div class="col-6"><label class="form-label fw-bold">Property Return Date</label><input type="text" id="infoPropertyReturn" class="form-control" readonly></div>
+                                <div class="col-6"><label class="form-label fw-bold">Last Medical Exam</label><input type="text" id="infoMedicalExam" class="form-control" readonly></div>
+                                <div class="col-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea id="infoCareerSummary" class="form-control" readonly></textarea></div>
                             </div>
                         </div>
 
@@ -149,7 +170,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         </div>
 
                         <!-- Documents Tab -->
-                        <div class="tab-pane fade" id="documentsTab" role="tabpanel">
+                        <!-- <div class="tab-pane fade" id="documentsTab" role="tabpanel">
                             <div class="row g-3 mt-2">
                                 <div class="col-md-6">
                                     <input type="file" id="docFile" class="form-control">
@@ -164,7 +185,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                                 </div>
                             </div>
                             <ul class="list-group mt-3" id="docList"></ul>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -369,6 +390,11 @@ $('#reportingModal').on('hidden.bs.modal', function () {
     clearValidation();
 });
 
+function formatDate(d){
+    if(!d) return '';
+    return new Date(d).toLocaleDateString('en-GB');
+}
+
 let reportingModal = new bootstrap.Modal(document.getElementById('reportingModal'));
 
 function viewReportingAcr(acrId){
@@ -389,6 +415,17 @@ function viewReportingAcr(acrId){
                 $("#infoPostingFrom").val(data.PostingFrom);
                 $("#infoPostingTo").val(data.PostingTo);
                 $("#infoAcrYear").val(data.AcrYear);
+                $("#infoDepartment").val(data.Department || '');
+                $("#infoDOB").val(formatDate(data.DateOfBirth) || '');
+                $("#infoJoinNigam").val(data.DateJoiningNigam || '');
+                $("#infoJoinRank").val(data.DateJoiningPresentRank || '');
+                $("#infoJoinStation").val(data.DateJoiningPresentStation || '');
+                $("#infoAcademic").val(data.AcademicQualification || '');
+                $("#infoTechnical").val(data.TechnicalQualification || '');
+                $("#infoDeptExam").val(data.DepartmentalExamPassed || '');
+                $("#infoPropertyReturn").val(data.PropertyReturnDate || '');
+                $("#infoMedicalExam").val(data.LastMedicalExamDate || '');
+                $("#infoCareerSummary").val(data.CareerPostingSummary || '');
 
                 // --- Populate Assessment Draft ---
                 const ra=data.ReportingAssessment || {};
