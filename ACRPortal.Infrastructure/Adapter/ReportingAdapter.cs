@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -38,7 +38,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 JOIN    dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
                 WHERE  (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
-                  AND   ac.status <> 'DRAFT'
+                  AND   ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')
                 ORDER BY ac.created_at DESC";
 
             var resp = new MyReportingQueueResponse();
@@ -202,7 +202,19 @@ namespace ACRPortal.Infrastructure.Adapter
                         ra.ra2_comp_initiative,
                         ra.ra2_comp_teamwork,
                         ra.ra2_comp_overall,
-                        ra.ra2_overall_grade
+                        ra.ra2_overall_grade,
+
+                        -- CCA (Section I) fields — returned to all authorities
+                        ac.date_of_birth                 AS cca_date_of_birth,
+                        ac.date_joining_nigam          AS cca_date_joining_nigam,
+                        ac.date_joining_present_rank  AS cca_date_joining_present_rank,
+                        ac.date_joining_present_station AS cca_date_joining_present_station,
+                        ac.academic_qualification       AS cca_academic_qualification,
+                        ac.technical_qualification      AS cca_technical_qualification,
+                        ac.departmental_exam_passed    AS cca_departmental_exam_passed,
+                        ac.property_return_date        AS cca_property_return_date,
+                        ac.last_medical_exam_date      AS cca_last_medical_exam_date,
+                        ac.career_posting_summary      AS cca_career_posting_summary
 
                 FROM dbo.acr_cycles ac
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
@@ -223,17 +235,21 @@ namespace ACRPortal.Infrastructure.Adapter
                     Guid ra1 = r.GetGuid(12);
                     Guid? ra2 = r.IsDBNull(13) ? (Guid?)null : r.GetGuid(13);
 
-                    bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
-                                       && userId == ra1;
-                    bool isRa2Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
-                                       && ra2.HasValue && userId == ra2.Value;
+                    bool isRa1Caller = userId == ra1;
+                    bool isRa2Caller = ra2.HasValue && userId == ra2.Value;
 
-                    if (!isRa1Active && !isRa2Active)
-                    {
-                        errorCode = !string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
-                            ? "INVALID_STATE" : "FORBIDDEN";
-                        return null;
-                    }
+                    if (!isRa1Caller && !isRa2Caller)
+                    { errorCode = "FORBIDDEN"; return null; }
+
+                    bool canView =
+                        string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "PENDING_REVIEWING", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "PENDING_ACCEPTING", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "APPROVED", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "REJECTED", StringComparison.OrdinalIgnoreCase);
+
+                    if (!canView)
+                    { errorCode = "INVALID_STATE"; return null; }
 
                     var resp = new ReportingAcrDetailResponse
                     {
@@ -246,7 +262,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         PostingFrom = r.IsDBNull(6) ? null : r.GetDateTime(6).ToString("yyyy-MM-dd"),
                         PostingTo = r.IsDBNull(7) ? null : r.GetDateTime(7).ToString("yyyy-MM-dd"),
                         AcrYear = r.IsDBNull(8) ? 0 : r.GetInt32(8),
-                        ReportingRole = isRa2Active ? "RA2" : "RA1"
+                        ReportingRole = isRa2Caller ? "RA2" : "RA1"
                     };
 
                     resp.Officer.UserId = r.GetGuid(9).ToString();
@@ -289,7 +305,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         DateTime? ra1Submitted = r.IsDBNull(31) ? (DateTime?)null : r.GetDateTime(31);
                         DateTime? ra2Submitted = r.IsDBNull(32) ? (DateTime?)null : r.GetDateTime(32);
 
-                        if (isRa2Active)
+                        if (isRa2Caller)
                         {
                             resp.ReportingAssessment.IsSubmitted = ra2Submitted.HasValue;
                             resp.ReportingAssessment.SubmittedAt = ra2Submitted?.ToString("o");
@@ -352,6 +368,37 @@ namespace ACRPortal.Infrastructure.Adapter
                             resp.ReportingAssessment.OverallGrade = r.IsDBNull(baseIdx + 22) ? (decimal?)null : r.GetDecimal(baseIdx + 22);
                         }
                     }
+
+                    // CCA (Section I) — always mapped for reporting authorities
+                    int ccaDobIdx = r.GetOrdinal("cca_date_of_birth");
+                    resp.DateOfBirth = r.IsDBNull(ccaDobIdx) ? null : r.GetDateTime(ccaDobIdx).ToString("yyyy-MM-dd");
+
+                    int ccaDjNigamIdx = r.GetOrdinal("cca_date_joining_nigam");
+                    resp.DateJoiningNigam = r.IsDBNull(ccaDjNigamIdx) ? null : r.GetDateTime(ccaDjNigamIdx).ToString("yyyy-MM-dd");
+
+                    int ccaDjRankIdx = r.GetOrdinal("cca_date_joining_present_rank");
+                    resp.DateJoiningPresentRank = r.IsDBNull(ccaDjRankIdx) ? null : r.GetDateTime(ccaDjRankIdx).ToString("yyyy-MM-dd");
+
+                    int ccaDjStationIdx = r.GetOrdinal("cca_date_joining_present_station");
+                    resp.DateJoiningPresentStation = r.IsDBNull(ccaDjStationIdx) ? null : r.GetDateTime(ccaDjStationIdx).ToString("yyyy-MM-dd");
+
+                    int ccaAcademicIdx = r.GetOrdinal("cca_academic_qualification");
+                    resp.AcademicQualification = r.IsDBNull(ccaAcademicIdx) ? null : r.GetString(ccaAcademicIdx);
+
+                    int ccaTechnicalIdx = r.GetOrdinal("cca_technical_qualification");
+                    resp.TechnicalQualification = r.IsDBNull(ccaTechnicalIdx) ? null : r.GetString(ccaTechnicalIdx);
+
+                    int ccaDeptExamIdx = r.GetOrdinal("cca_departmental_exam_passed");
+                    resp.DepartmentalExamPassed = r.IsDBNull(ccaDeptExamIdx) ? null : r.GetString(ccaDeptExamIdx);
+
+                    int ccaPropReturnIdx = r.GetOrdinal("cca_property_return_date");
+                    resp.PropertyReturnDate = r.IsDBNull(ccaPropReturnIdx) ? null : r.GetDateTime(ccaPropReturnIdx).ToString("yyyy-MM-dd");
+
+                    int ccaLastMedIdx = r.GetOrdinal("cca_last_medical_exam_date");
+                    resp.LastMedicalExamDate = r.IsDBNull(ccaLastMedIdx) ? null : r.GetDateTime(ccaLastMedIdx).ToString("yyyy-MM-dd");
+
+                    int ccaSummaryIdx = r.GetOrdinal("cca_career_posting_summary");
+                    resp.CareerPostingSummary = r.IsDBNull(ccaSummaryIdx) ? null : r.GetString(ccaSummaryIdx);
 
                     errorCode = null;
                     return resp;

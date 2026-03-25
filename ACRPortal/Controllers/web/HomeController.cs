@@ -24,5 +24,23 @@ namespace ACRPortal.Controllers
             ViewBag.Title = "Cadre Controlling Authority";
             return View();
         }
+
+        public ActionResult Officer()
+        {
+            ViewBag.Title = "Officer Dashboard";
+            return View();
+        }
+
+        public ActionResult Reporting()
+        {
+            ViewBag.Title = "Reporting Dashboard";
+            return View();
+        }
+
+        public ActionResult Reviewing()
+        {
+            ViewBag.Title = "Reviewing Dashboard";
+            return View();
+        }
     }
 }

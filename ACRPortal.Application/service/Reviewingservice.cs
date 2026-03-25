@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using ACRPortal.Application.port;
 using ACRPortal.Application.usecase;
 using ACRPortal.Domain.DTOs.WebToApp;
@@ -53,8 +53,13 @@ namespace ACRPortal.Application.service
                         errorCode ?? "INTERNAL_ERROR");
                 }
 
-                // Attach RvA's own documents
-                detail.Documents = _docs.GetDocuments(acrGuid, "RVA");
+                // Attach CCA documents + photo (section = 'CCA') for shared modal
+                var allCcaDocs = _docs.GetDocuments(acrGuid, "CCA");
+                detail.Documents = allCcaDocs.FindAll(d => d.DocumentType != "OFFICER_PHOTO");
+                detail.OfficerPhoto = allCcaDocs.Find(d => d.DocumentType == "OFFICER_PHOTO");
+
+                // Preserve caller-step documents separately (section = 'RVA')
+                detail.RoleDocuments = _docs.GetDocuments(acrGuid, "RVA");
 
                 return ApiResponse<ReviewingAcrDetailResponse>.Ok(detail, "Success");
             }

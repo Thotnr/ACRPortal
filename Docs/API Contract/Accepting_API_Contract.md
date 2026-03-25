@@ -85,7 +85,27 @@ public class AcceptingAcrDetailResponse {
   RvaOverrideGradesView   RvaOverrideGrades;
   ReviewingAssessmentView ReviewingAssessment;
   AcceptingDecisionView   Decision;
-  List<AcrDocumentItem>   Documents;            // AA's own section docs (section='AA')
+
+  // ------------------------------------------------------------------ //
+  //  Section I (CCA) — visible to all authorities                      //
+  // ------------------------------------------------------------------ //
+  string DateOfBirth;
+  string DateJoiningNigam;
+  string DateJoiningPresentRank;
+  string DateJoiningPresentStation;
+  string AcademicQualification;
+  string TechnicalQualification;
+  string DepartmentalExamPassed;
+  string PropertyReturnDate;
+  string LastMedicalExamDate;
+  string CareerPostingSummary;
+
+  // CCA docs/photo for modal reuse across authorities
+  List<AcrDocumentItem> Documents;            // section='CCA' (excludes OFFICER_PHOTO)
+  AcrDocumentItem OfficerPhoto;               // section='CCA', document_type='OFFICER_PHOTO'
+
+  // Documents uploaded by the caller's current step (section='AA')
+  List<AcrDocumentItem> RoleDocuments;
 }
 ```
 
@@ -120,7 +140,7 @@ Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 **GET** `/api/acr/{acrId}/accepting`  
 Requires: `Authorization: Bearer <token>` | Role: `EMPLOYEE`
 
-Returns the complete ACR history for the AA including all assessments, the AA's own decision (if already submitted), and the AA's uploaded documents.
+Returns the complete ACR history for the AA including all assessments, the AA's own decision (if already submitted), the caller's step attachments (`RoleDocuments`), and the CCA section I attachments (`Documents` / `OfficerPhoto`) for modal reuse.
 
 ### Success `200`
 ```json
@@ -131,6 +151,16 @@ Returns the complete ACR history for the AA including all assessments, the AA's 
     "Department": "Operation Division Hisar", "Location": "Hisar",
     "Designation": "Executive Engineer",
     "PostingFrom": "2023-04-01", "PostingTo": "2024-03-31", "AcrYear": 2024,
+    "DateOfBirth": "1982-06-15",
+    "DateJoiningNigam": "2008-08-01",
+    "DateJoiningPresentRank": "2020-03-10",
+    "DateJoiningPresentStation": "2022-07-01",
+    "AcademicQualification": "B.Tech (Electrical)",
+    "TechnicalQualification": "AMIE, Section B",
+    "DepartmentalExamPassed": "Accounts Test 2015",
+    "PropertyReturnDate": "2023-06-30",
+    "LastMedicalExamDate": "2023-05-15",
+    "CareerPostingSummary": "15 years in distribution operations.",
     "Officer": { "UserId": "uuid", "LoginId": "EMP001", "DisplayName": "Ramesh Kumar" },
     "SelfAppraisal": {
       "Exists": true, "IsSubmitted": true,
@@ -183,17 +213,20 @@ Returns the complete ACR history for the AA including all assessments, the AA's 
     },
     "Documents": [
       {
-        "DocumentId": "uuid", "Section": "AA", "DocumentType": "SUPPORTING_DOC",
-        "FileUrl": "https://storage.example.com/acr/uuid/aa_note.pdf",
-        "FileName": "AA_Decision_Note.pdf", "UploadedAt": "2024-09-01T09:00:00.0000000Z"
+        "DocumentId": "uuid", "Section": "CCA", "DocumentType": "SUPPORTING_DOC",
+        "FileUrl": "https://storage.example.com/acr/uuid/cca_note.pdf",
+        "FileName": "CCA_Supporting_Note.pdf", "UploadedAt": "2024-09-01T09:00:00.0000000Z"
       }
-    ]
+    ],
+    "OfficerPhoto": null,
+    "RoleDocuments": []
   },
   "ErrorCode": null
 }
 ```
 
-> `Documents` is `[]` if no documents uploaded yet.  
+> `Documents` is `[]` if no CCA documents uploaded yet.  
+> `RoleDocuments` is `[]` if no documents uploaded in the caller's current step yet.  
 > `Ra2Assessment.Exists` is `false` for A1a/A2 form types.  
 > `Decision.Exists` is `false` until the AA submits.
 
