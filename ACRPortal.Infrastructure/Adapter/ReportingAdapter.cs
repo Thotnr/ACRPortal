@@ -14,7 +14,7 @@ namespace ACRPortal.Infrastructure.Adapter
             .ConnectionStrings["ACRPortalContext"].ConnectionString;
 
         // ================================================================== //
-        //  GetMyReportingQueue                                                //
+        //  GetMyReportingQueue  (unchanged)                                   //
         // ================================================================== //
         public MyReportingQueueResponse GetMyReportingQueue(Guid userId)
         {
@@ -84,35 +84,40 @@ namespace ACRPortal.Infrastructure.Adapter
 
         // ================================================================== //
         //  GetReportingDetail                                                 //
+        //                                                                     //
+        //  Column index map after document_path removal:                      //
+        //                                                                     //
+        //  ACR header + officer + FK (0-13)                                  //
+        //   0  acr_id              8  acr_year        12  reporting_user_id  //
+        //   1  form_type           9  officer_user_id 13  ra2_user_id        //
+        //   2  status             10  login_id                               //
+        //   3  department         11  display_name                           //
+        //   4  location                                                       //
+        //   5  designation                                                    //
+        //   6  posting_from                                                   //
+        //   7  posting_to                                                     //
+        //                                                                     //
+        //  Self-appraisal (14-29) — document_path removed                    //
+        //  14  appraisal_id       22  membership_bodies  27  prop_dec_date   //
+        //  15  submitted_at       23  training_details   28  medical_comp    //
+        //  16  leave_details      24  awards_honours     29  med_comp_date   //
+        //  17  duties_description 25  auditor_compliance                     //
+        //  18  targets_set        26  property_declared                      //
+        //  19  targets_achieved                                               //
+        //  20  shortfall_reasons                                              //
+        //  21  major_achievements                                             //
+        //                                                                     //
+        //  Reporting assessment (30-)                                         //
+        //  30  assessment_id      (was 31)                                   //
+        //  31  ra1_submitted_at   (was 32)                                   //
+        //  32  ra2_submitted_at   (was 33)                                   //
+        //  33  ra1_agree_with_self → RA1 baseIdx = 33  (was 34)             //
+        //  55  ra1_overall_grade   (33 + 22)                                 //
+        //  56  ra2_agree_with_self → RA2 baseIdx = 56  (was 57/60)          //
+        //  78  ra2_overall_grade   (56 + 22)                                 //
         // ================================================================== //
         public ReportingAcrDetailResponse GetReportingDetail(Guid acrId, Guid userId, out string errorCode)
         {
-            // Self-appraisal column index map (relative to query):
-            //  14  sa.appraisal_id
-            //  15  sa.submitted_at
-            //  16  sa.leave_details          ← new (Migration 7)
-            //  17  sa.duties_description
-            //  18  sa.targets_set
-            //  19  sa.targets_achieved
-            //  20  sa.shortfall_reasons
-            //  21  sa.major_achievements
-            //  22  sa.membership_bodies
-            //  23  sa.training_details
-            //  24  sa.awards_honours
-            //  25  sa.auditor_compliance     ← BIT now
-            //  26  sa.property_declared
-            //  27  sa.property_declared_date ← new (Migration 7)
-            //  28  sa.medical_compliance
-            //  29  sa.medical_compliance_date← new (Migration 7)
-            //  30  sa.document_path
-            //
-            // Reporting assessment block starts at 31 (was 29 before Migration 7)
-            //  31  ra.assessment_id
-            //  32  ra.ra1_submitted_at
-            //  33  ra.ra2_submitted_at
-            //  34  ra1_agree_with_self  → baseIdx = 34 (RA1 block)
-            //  57  ra2_agree_with_self  → baseIdx = 57+3 = 60 (RA2 block)
-
             const string sql = @"
                 SELECT  ac.acr_id,
                         ac.form_type,
@@ -129,7 +134,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         ac.reporting_user_id,
                         ac.ra2_user_id,
 
-                        -- Self-appraisal (14–30)
+                        -- Self-appraisal (14-29) — document_path removed
                         sa.appraisal_id,
                         sa.submitted_at,
                         sa.leave_details,
@@ -146,9 +151,8 @@ namespace ACRPortal.Infrastructure.Adapter
                         sa.property_declared_date,
                         sa.medical_compliance,
                         sa.medical_compliance_date,
-                        sa.document_path,
 
-                        -- Reporting assessment (31–)
+                        -- Reporting assessment (30-)
                         ra.assessment_id,
                         ra.ra1_submitted_at,
                         ra.ra2_submitted_at,
@@ -202,8 +206,8 @@ namespace ACRPortal.Infrastructure.Adapter
 
                 FROM dbo.acr_cycles ac
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
-                LEFT JOIN dbo.self_appraisals        sa ON sa.acr_id = ac.acr_id
-                LEFT JOIN dbo.reporting_assessments  ra ON ra.acr_id = ac.acr_id
+                LEFT JOIN dbo.self_appraisals       sa ON sa.acr_id = ac.acr_id
+                LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
                 WHERE ac.acr_id = @acrId";
 
             using (var con = new SqlConnection(_conn))
@@ -226,10 +230,9 @@ namespace ACRPortal.Infrastructure.Adapter
 
                     if (!isRa1Active && !isRa2Active)
                     {
-                        // Not in reporting step at all, or caller is not an RA for this ACR
-                        if (!string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase))
-                        { errorCode = "INVALID_STATE"; return null; }
-                        errorCode = "FORBIDDEN"; return null;
+                        errorCode = !string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
+                            ? "INVALID_STATE" : "FORBIDDEN";
+                        return null;
                     }
 
                     var resp = new ReportingAcrDetailResponse
@@ -250,7 +253,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     resp.Officer.LoginId = r.IsDBNull(10) ? null : r.GetString(10);
                     resp.Officer.DisplayName = r.IsDBNull(11) ? null : r.GetString(11);
 
-                    // ── Self-appraisal (14–30) ──────────────────────────────
+                    // ── Self-appraisal (14-29) ──────────────────────────────
                     bool hasSelf = !r.IsDBNull(14);
                     resp.SelfAppraisal.Exists = hasSelf;
                     if (hasSelf)
@@ -272,24 +275,27 @@ namespace ACRPortal.Infrastructure.Adapter
                         resp.SelfAppraisal.PropertyDeclaredDate = r.IsDBNull(27) ? null : r.GetDateTime(27).ToString("yyyy-MM-dd");
                         resp.SelfAppraisal.MedicalCompliance = !r.IsDBNull(28) && r.GetBoolean(28);
                         resp.SelfAppraisal.MedicalComplianceDate = r.IsDBNull(29) ? null : r.GetDateTime(29).ToString("yyyy-MM-dd");
-                        resp.SelfAppraisal.DocumentPath = r.IsDBNull(30) ? null : r.GetString(30);
+                        // document_path removed — no col 30 mapping
                     }
 
-                    // ── Reporting assessment (31–) ──────────────────────────
-                    bool hasRa = !r.IsDBNull(31);
+                    // ── Reporting assessment ────────────────────────────────
+                    // assessment_id now at col 30 (was 31)
+                    bool hasRa = !r.IsDBNull(30);
                     resp.ReportingAssessment.Exists = hasRa;
 
                     if (hasRa)
                     {
-                        DateTime? ra1Submitted = r.IsDBNull(32) ? (DateTime?)null : r.GetDateTime(32);
-                        DateTime? ra2Submitted = r.IsDBNull(33) ? (DateTime?)null : r.GetDateTime(33);
+                        // ra1_submitted_at = 31 (was 32), ra2_submitted_at = 32 (was 33)
+                        DateTime? ra1Submitted = r.IsDBNull(31) ? (DateTime?)null : r.GetDateTime(31);
+                        DateTime? ra2Submitted = r.IsDBNull(32) ? (DateTime?)null : r.GetDateTime(32);
 
                         if (isRa2Active)
                         {
                             resp.ReportingAssessment.IsSubmitted = ra2Submitted.HasValue;
                             resp.ReportingAssessment.SubmittedAt = ra2Submitted?.ToString("o");
 
-                            const int baseIdx = 60;   // ra2_agree_with_self (was 57, +3 for new sa cols)
+                            // RA2 narrative: ra2_agree_with_self at col 56 (was 60)
+                            const int baseIdx = 56;
                             resp.ReportingAssessment.AgreeWithSelf = r.IsDBNull(baseIdx + 0) ? (bool?)null : r.GetBoolean(baseIdx + 0);
                             resp.ReportingAssessment.DisagreeDetails = r.IsDBNull(baseIdx + 1) ? null : r.GetString(baseIdx + 1);
                             resp.ReportingAssessment.IntegrityComments = r.IsDBNull(baseIdx + 2) ? null : r.GetString(baseIdx + 2);
@@ -319,7 +325,8 @@ namespace ACRPortal.Infrastructure.Adapter
                             resp.ReportingAssessment.IsSubmitted = ra1Submitted.HasValue;
                             resp.ReportingAssessment.SubmittedAt = ra1Submitted?.ToString("o");
 
-                            const int baseIdx = 34;   // ra1_agree_with_self (was 32, +2 for assessment_id + submitted cols)
+                            // RA1 narrative: ra1_agree_with_self at col 33 (was 34)
+                            const int baseIdx = 33;
                             resp.ReportingAssessment.AgreeWithSelf = r.IsDBNull(baseIdx + 0) ? (bool?)null : r.GetBoolean(baseIdx + 0);
                             resp.ReportingAssessment.DisagreeDetails = r.IsDBNull(baseIdx + 1) ? null : r.GetString(baseIdx + 1);
                             resp.ReportingAssessment.IntegrityComments = r.IsDBNull(baseIdx + 2) ? null : r.GetString(baseIdx + 2);
@@ -353,15 +360,13 @@ namespace ACRPortal.Infrastructure.Adapter
         }
 
         // ================================================================== //
-        //  TryUpsertReportingDraft                                            //
+        //  TryUpsertReportingDraft  (unchanged — no document_path involved)  //
         // ================================================================== //
         public bool TryUpsertReportingDraft(Guid acrId, Guid userId, ReportingDraftRequest request, out string errorCode)
         {
-            // Verify ACR state and caller role
             const string acrCheck = @"
                 SELECT status, form_type, reporting_user_id, ra2_user_id
-                FROM   dbo.acr_cycles
-                WHERE  acr_id = @acrId";
+                FROM   dbo.acr_cycles WHERE acr_id = @acrId";
 
             string status; string formType; Guid ra1; Guid? ra2;
 
@@ -380,10 +385,8 @@ namespace ACRPortal.Infrastructure.Adapter
                 }
             }
 
-            bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
-                               && userId == ra1;
-            bool isRa2Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
-                               && ra2.HasValue && userId == ra2.Value;
+            bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase) && userId == ra1;
+            bool isRa2Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase) && ra2.HasValue && userId == ra2.Value;
 
             if (!isRa1Active && !isRa2Active)
             {
@@ -392,11 +395,9 @@ namespace ACRPortal.Infrastructure.Adapter
                 return false;
             }
 
-            // Check not already submitted for this role
             const string submittedCheck = @"
                 SELECT ra1_submitted_at, ra2_submitted_at
-                FROM   dbo.reporting_assessments
-                WHERE  acr_id = @acrId";
+                FROM   dbo.reporting_assessments WHERE acr_id = @acrId";
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(submittedCheck, con))
@@ -415,13 +416,9 @@ namespace ACRPortal.Infrastructure.Adapter
                 }
             }
 
-            // Ensure row exists
             const string ensureRow = @"
                 IF NOT EXISTS (SELECT 1 FROM dbo.reporting_assessments WHERE acr_id = @acrId)
-                BEGIN
-                    INSERT INTO dbo.reporting_assessments (assessment_id, acr_id)
-                    VALUES (NEWID(), @acrId);
-                END";
+                    INSERT INTO dbo.reporting_assessments (assessment_id, acr_id) VALUES (NEWID(), @acrId);";
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(ensureRow, con))
@@ -433,54 +430,32 @@ namespace ACRPortal.Infrastructure.Adapter
 
             string updateSql = isRa2Active
                 ? @"UPDATE dbo.reporting_assessments SET
-                        ra2_agree_with_self     = @AgreeWithSelf,
-                        ra2_disagree_details    = @DisagreeDetails,
-                        ra2_integrity_comments  = @IntegrityComments,
-                        ra2_remarks             = @Remarks,
-                        ra2_work_targets        = @WorkTargets,
-                        ra2_work_quality        = @WorkQuality,
-                        ra2_work_exceptional    = @WorkExceptional,
-                        ra2_work_overall        = @WorkOverall,
-                        ra2_attr_attitude       = @AttrAttitude,
-                        ra2_attr_responsibility = @AttrResponsibility,
-                        ra2_attr_stability      = @AttrStability,
-                        ra2_attr_communication  = @AttrCommunication,
-                        ra2_attr_moral_courage  = @AttrMoralCourage,
-                        ra2_attr_leadership     = @AttrLeadership,
-                        ra2_attr_timeliness     = @AttrTimeliness,
-                        ra2_attr_overall        = @AttrOverall,
-                        ra2_comp_knowledge      = @CompKnowledge,
-                        ra2_comp_planning       = @CompPlanning,
-                        ra2_comp_decision       = @CompDecision,
-                        ra2_comp_initiative     = @CompInitiative,
-                        ra2_comp_teamwork       = @CompTeamwork,
-                        ra2_comp_overall        = @CompOverall,
-                        ra2_overall_grade       = @OverallGrade
+                        ra2_agree_with_self = @AgreeWithSelf, ra2_disagree_details = @DisagreeDetails,
+                        ra2_integrity_comments = @IntegrityComments, ra2_remarks = @Remarks,
+                        ra2_work_targets = @WorkTargets, ra2_work_quality = @WorkQuality,
+                        ra2_work_exceptional = @WorkExceptional, ra2_work_overall = @WorkOverall,
+                        ra2_attr_attitude = @AttrAttitude, ra2_attr_responsibility = @AttrResponsibility,
+                        ra2_attr_stability = @AttrStability, ra2_attr_communication = @AttrCommunication,
+                        ra2_attr_moral_courage = @AttrMoralCourage, ra2_attr_leadership = @AttrLeadership,
+                        ra2_attr_timeliness = @AttrTimeliness, ra2_attr_overall = @AttrOverall,
+                        ra2_comp_knowledge = @CompKnowledge, ra2_comp_planning = @CompPlanning,
+                        ra2_comp_decision = @CompDecision, ra2_comp_initiative = @CompInitiative,
+                        ra2_comp_teamwork = @CompTeamwork, ra2_comp_overall = @CompOverall,
+                        ra2_overall_grade = @OverallGrade
                    WHERE acr_id = @acrId"
                 : @"UPDATE dbo.reporting_assessments SET
-                        ra1_agree_with_self     = @AgreeWithSelf,
-                        ra1_disagree_details    = @DisagreeDetails,
-                        ra1_integrity_comments  = @IntegrityComments,
-                        ra1_remarks             = @Remarks,
-                        ra1_work_targets        = @WorkTargets,
-                        ra1_work_quality        = @WorkQuality,
-                        ra1_work_exceptional    = @WorkExceptional,
-                        ra1_work_overall        = @WorkOverall,
-                        ra1_attr_attitude       = @AttrAttitude,
-                        ra1_attr_responsibility = @AttrResponsibility,
-                        ra1_attr_stability      = @AttrStability,
-                        ra1_attr_communication  = @AttrCommunication,
-                        ra1_attr_moral_courage  = @AttrMoralCourage,
-                        ra1_attr_leadership     = @AttrLeadership,
-                        ra1_attr_timeliness     = @AttrTimeliness,
-                        ra1_attr_overall        = @AttrOverall,
-                        ra1_comp_knowledge      = @CompKnowledge,
-                        ra1_comp_planning       = @CompPlanning,
-                        ra1_comp_decision       = @CompDecision,
-                        ra1_comp_initiative     = @CompInitiative,
-                        ra1_comp_teamwork       = @CompTeamwork,
-                        ra1_comp_overall        = @CompOverall,
-                        ra1_overall_grade       = @OverallGrade
+                        ra1_agree_with_self = @AgreeWithSelf, ra1_disagree_details = @DisagreeDetails,
+                        ra1_integrity_comments = @IntegrityComments, ra1_remarks = @Remarks,
+                        ra1_work_targets = @WorkTargets, ra1_work_quality = @WorkQuality,
+                        ra1_work_exceptional = @WorkExceptional, ra1_work_overall = @WorkOverall,
+                        ra1_attr_attitude = @AttrAttitude, ra1_attr_responsibility = @AttrResponsibility,
+                        ra1_attr_stability = @AttrStability, ra1_attr_communication = @AttrCommunication,
+                        ra1_attr_moral_courage = @AttrMoralCourage, ra1_attr_leadership = @AttrLeadership,
+                        ra1_attr_timeliness = @AttrTimeliness, ra1_attr_overall = @AttrOverall,
+                        ra1_comp_knowledge = @CompKnowledge, ra1_comp_planning = @CompPlanning,
+                        ra1_comp_decision = @CompDecision, ra1_comp_initiative = @CompInitiative,
+                        ra1_comp_teamwork = @CompTeamwork, ra1_comp_overall = @CompOverall,
+                        ra1_overall_grade = @OverallGrade
                    WHERE acr_id = @acrId";
 
             using (var con = new SqlConnection(_conn))
@@ -494,8 +469,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@WorkTargets", SqlDbType.TinyInt).Value = (object)request.WorkTargets ?? DBNull.Value;
                 cmd.Parameters.Add("@WorkQuality", SqlDbType.TinyInt).Value = (object)request.WorkQuality ?? DBNull.Value;
                 cmd.Parameters.Add("@WorkExceptional", SqlDbType.TinyInt).Value = (object)request.WorkExceptional ?? DBNull.Value;
-                cmd.Parameters.Add("@WorkOverall", SqlDbType.Decimal).Value = (object)request.WorkOverall ?? DBNull.Value;
-                if (request.WorkOverall.HasValue) { cmd.Parameters["@WorkOverall"].Precision = 4; cmd.Parameters["@WorkOverall"].Scale = 2; }
+                var wop = cmd.Parameters.Add("@WorkOverall", SqlDbType.Decimal); wop.Precision = 4; wop.Scale = 2; wop.Value = (object)request.WorkOverall ?? DBNull.Value;
                 cmd.Parameters.Add("@AttrAttitude", SqlDbType.TinyInt).Value = (object)request.AttrAttitude ?? DBNull.Value;
                 cmd.Parameters.Add("@AttrResponsibility", SqlDbType.TinyInt).Value = (object)request.AttrResponsibility ?? DBNull.Value;
                 cmd.Parameters.Add("@AttrStability", SqlDbType.TinyInt).Value = (object)request.AttrStability ?? DBNull.Value;
@@ -503,18 +477,14 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@AttrMoralCourage", SqlDbType.TinyInt).Value = (object)request.AttrMoralCourage ?? DBNull.Value;
                 cmd.Parameters.Add("@AttrLeadership", SqlDbType.TinyInt).Value = (object)request.AttrLeadership ?? DBNull.Value;
                 cmd.Parameters.Add("@AttrTimeliness", SqlDbType.TinyInt).Value = (object)request.AttrTimeliness ?? DBNull.Value;
-                cmd.Parameters.Add("@AttrOverall", SqlDbType.Decimal).Value = (object)request.AttrOverall ?? DBNull.Value;
-                if (request.AttrOverall.HasValue) { cmd.Parameters["@AttrOverall"].Precision = 4; cmd.Parameters["@AttrOverall"].Scale = 2; }
+                var aop = cmd.Parameters.Add("@AttrOverall", SqlDbType.Decimal); aop.Precision = 4; aop.Scale = 2; aop.Value = (object)request.AttrOverall ?? DBNull.Value;
                 cmd.Parameters.Add("@CompKnowledge", SqlDbType.TinyInt).Value = (object)request.CompKnowledge ?? DBNull.Value;
                 cmd.Parameters.Add("@CompPlanning", SqlDbType.TinyInt).Value = (object)request.CompPlanning ?? DBNull.Value;
                 cmd.Parameters.Add("@CompDecision", SqlDbType.TinyInt).Value = (object)request.CompDecision ?? DBNull.Value;
                 cmd.Parameters.Add("@CompInitiative", SqlDbType.TinyInt).Value = (object)request.CompInitiative ?? DBNull.Value;
                 cmd.Parameters.Add("@CompTeamwork", SqlDbType.TinyInt).Value = (object)request.CompTeamwork ?? DBNull.Value;
-                cmd.Parameters.Add("@CompOverall", SqlDbType.Decimal).Value = (object)request.CompOverall ?? DBNull.Value;
-                if (request.CompOverall.HasValue) { cmd.Parameters["@CompOverall"].Precision = 4; cmd.Parameters["@CompOverall"].Scale = 2; }
-                cmd.Parameters.Add("@OverallGrade", SqlDbType.Decimal).Value = (object)request.OverallGrade ?? DBNull.Value;
-                if (request.OverallGrade.HasValue) { cmd.Parameters["@OverallGrade"].Precision = 4; cmd.Parameters["@OverallGrade"].Scale = 2; }
-
+                var cop = cmd.Parameters.Add("@CompOverall", SqlDbType.Decimal); cop.Precision = 4; cop.Scale = 2; cop.Value = (object)request.CompOverall ?? DBNull.Value;
+                var ogp = cmd.Parameters.Add("@OverallGrade", SqlDbType.Decimal); ogp.Precision = 4; ogp.Scale = 2; ogp.Value = (object)request.OverallGrade ?? DBNull.Value;
                 con.Open();
                 cmd.ExecuteNonQuery();
             }
@@ -524,7 +494,7 @@ namespace ACRPortal.Infrastructure.Adapter
         }
 
         // ================================================================== //
-        //  TrySubmitReporting                                                 //
+        //  TrySubmitReporting  (unchanged)                                    //
         // ================================================================== //
         public bool TrySubmitReporting(Guid acrId, Guid userId, out string errorCode)
         {
@@ -552,7 +522,6 @@ namespace ACRPortal.Infrastructure.Adapter
                         }
                     }
 
-                    // Both RA1 and RA2 operate under a single PENDING_REPORTING status
                     if (!string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase))
                     { tx.Rollback(); errorCode = "INVALID_STATE"; return false; }
 
@@ -563,15 +532,11 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (!callerIsRa1 && !callerIsRa2)
                     { tx.Rollback(); errorCode = "FORBIDDEN"; return false; }
 
-                    // Read current submitted_at values; draft row must exist
                     const string getSubmitted = @"
                         SELECT ra1_submitted_at, ra2_submitted_at
-                        FROM   dbo.reporting_assessments
-                        WHERE  acr_id = @acrId";
+                        FROM   dbo.reporting_assessments WHERE acr_id = @acrId";
 
-                    DateTime? ra1Sub = null;
-                    DateTime? ra2Sub = null;
-
+                    DateTime? ra1Sub = null, ra2Sub = null;
                     using (var cmd = new SqlCommand(getSubmitted, con, tx))
                     {
                         cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
@@ -586,11 +551,9 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (callerIsRa1 && ra1Sub.HasValue) { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }
                     if (callerIsRa2 && ra2Sub.HasValue) { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }
 
-                    // Mark this caller's submitted_at
                     string submittedCol = callerIsRa2 ? "ra2_submitted_at" : "ra1_submitted_at";
                     string markSql = $@"
-                        UPDATE dbo.reporting_assessments
-                        SET    {submittedCol} = GETDATE()
+                        UPDATE dbo.reporting_assessments SET {submittedCol} = GETDATE()
                         WHERE  acr_id = @acrId AND {submittedCol} IS NULL;
                         SELECT @@ROWCOUNT;";
 
@@ -603,11 +566,9 @@ namespace ACRPortal.Infrastructure.Adapter
 
                     if (affected == 0) { tx.Rollback(); errorCode = "ALREADY_SUBMITTED"; return false; }
 
-                    // For A1b: advance to PENDING_REVIEWING only when BOTH RA1 and RA2 have submitted.
-                    // For A1a/A2: advance immediately (only RA1 exists).
                     bool otherAlreadyDone = isA1b
                         ? (callerIsRa2 ? ra1Sub.HasValue : ra2Sub.HasValue)
-                        : true;   // no second RA — always advance
+                        : true;
 
                     if (otherAlreadyDone)
                     {
@@ -615,14 +576,12 @@ namespace ACRPortal.Infrastructure.Adapter
                             UPDATE dbo.acr_cycles
                             SET    status = 'PENDING_REVIEWING', updated_at = GETDATE()
                             WHERE  acr_id = @acrId";
-
                         using (var cmd = new SqlCommand(advanceSql, con, tx))
                         {
                             cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
                             cmd.ExecuteNonQuery();
                         }
                     }
-                    // else: other RA hasn't submitted yet — stay in PENDING_REPORTING
 
                     tx.Commit();
                     errorCode = null;

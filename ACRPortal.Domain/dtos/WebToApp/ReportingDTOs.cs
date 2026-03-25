@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace ACRPortal.Domain.DTOs.WebToApp
@@ -18,13 +18,13 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string FormType { get; set; }
         public string Department { get; set; }
         public string Location { get; set; }
-        public string PostingFrom { get; set; } // yyyy-MM-dd
+        public string PostingFrom { get; set; }   // yyyy-MM-dd
         public string PostingTo { get; set; }   // yyyy-MM-dd
         public int AcrYear { get; set; }
-        public string Status { get; set; } // PENDING_REPORTING | PENDING_REPORTING2
-        public string ReportingRole { get; set; } // RA1 | RA2
+        public string Status { get; set; }   // always PENDING_REPORTING
+        public string ReportingRole { get; set; }   // RA1 | RA2
         public bool IsSubmitted { get; set; }
-        public string CreatedAt { get; set; } // ISO 8601
+        public string CreatedAt { get; set; }   // ISO 8601
     }
 
     public class MyReportingQueueResponse
@@ -32,18 +32,26 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public List<MyReportingQueueItem> AcrCycles { get; set; } = new List<MyReportingQueueItem>();
     }
 
+    // ------------------------------------------------------------------ //
+    //  Draft request                                                       //
+    //  DocumentPath removed — documents go through /api/acr/{id}/docs     //
+    // ------------------------------------------------------------------ //
+
     public class ReportingDraftRequest
     {
+        // Agreement
         public bool? AgreeWithSelf { get; set; }
         public string DisagreeDetails { get; set; }
         public string IntegrityComments { get; set; }
         public string Remarks { get; set; }
 
+        // Work output (scale 1-10)
         public byte? WorkTargets { get; set; }
         public byte? WorkQuality { get; set; }
         public byte? WorkExceptional { get; set; }
         public decimal? WorkOverall { get; set; }
 
+        // Personal attributes
         public byte? AttrAttitude { get; set; }
         public byte? AttrResponsibility { get; set; }
         public byte? AttrStability { get; set; }
@@ -53,6 +61,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public byte? AttrTimeliness { get; set; }
         public decimal? AttrOverall { get; set; }
 
+        // Functional competency
         public byte? CompKnowledge { get; set; }
         public byte? CompPlanning { get; set; }
         public byte? CompDecision { get; set; }
@@ -60,14 +69,20 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public byte? CompTeamwork { get; set; }
         public decimal? CompOverall { get; set; }
 
+        // Overall grade — average of all 15 items, 2 decimal places
         public decimal? OverallGrade { get; set; }
     }
+
+    // ------------------------------------------------------------------ //
+    //  Assessment read-back view                                          //
+    //  DocumentPath removed — documents returned via Documents list       //
+    // ------------------------------------------------------------------ //
 
     public class ReportingAssessmentView
     {
         public bool Exists { get; set; }
         public bool IsSubmitted { get; set; }
-        public string SubmittedAt { get; set; } // ISO 8601 | null
+        public string SubmittedAt { get; set; }   // ISO 8601 | null
 
         public bool? AgreeWithSelf { get; set; }
         public string DisagreeDetails { get; set; }
@@ -97,6 +112,11 @@ namespace ACRPortal.Domain.DTOs.WebToApp
 
         public decimal? OverallGrade { get; set; }
     }
+
+    // ------------------------------------------------------------------ //
+    //  Detail response                                                    //
+    //  Documents split by role: Ra1Documents / Ra2Documents              //
+    // ------------------------------------------------------------------ //
 
     public class ReportingAcrDetailResponse
     {
@@ -106,15 +126,19 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string Department { get; set; }
         public string Location { get; set; }
         public string Designation { get; set; }
-        public string PostingFrom { get; set; } // yyyy-MM-dd
+        public string PostingFrom { get; set; }   // yyyy-MM-dd
         public string PostingTo { get; set; }   // yyyy-MM-dd
         public int AcrYear { get; set; }
 
         public OfficerLite Officer { get; set; } = new OfficerLite();
-        public string ReportingRole { get; set; } // RA1 | RA2
-
+        public string ReportingRole { get; set; }   // RA1 | RA2
         public SelfAppraisalView SelfAppraisal { get; set; } = new SelfAppraisalView();
         public ReportingAssessmentView ReportingAssessment { get; set; } = new ReportingAssessmentView();
+
+        /// <summary>
+        /// Documents uploaded by the caller (RA1 → section='RA1', RA2 → section='RA2').
+        /// The frontend uses ReportingRole to know which label to show.
+        /// </summary>
+        public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
     }
 }
-

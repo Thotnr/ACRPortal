@@ -166,7 +166,7 @@ namespace ACRPortal.Infrastructure.Adapter
                      dsg_id, state_id, zone_id, circle_id, division_id, sub_division_id, manager_id)
                 OUTPUT INSERTED.user_id
                 VALUES
-                    (@displayName, @loginId, @passwordHash, @systemRole, 'PENDING',
+                    (@displayName, @loginId, @passwordHash, @systemRole, 'ACTIVE',
                      @dsgId, @stateId, @zoneId, @circleId, @divisionId, @subDivisionId, @managerLoginId)";
 
             const string insertIdentity = @"

@@ -54,6 +54,7 @@
     <Compile Include="Adapter\AdminMastersAdapter.cs" />
     <Compile Include="Adapter\AuthAdapter.cs" />
     <Compile Include="Adapter\Ccaadapter.cs" />
+    <Compile Include="Adapter\Documentadapter.cs" />
     <Compile Include="Adapter\OfficerAdapter.cs" />
     <Compile Include="Adapter\ReportingAdapter.cs" />
     <Compile Include="Adapter\Reviewingadapter.cs" />

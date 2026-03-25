@@ -249,7 +249,7 @@ data-target="#logoutModal">
 </div>
 
 
-<div class="container-fluid">
+<div class="container-fluid px-0">
 
 <div class="main-layout">
 
@@ -303,6 +303,18 @@ data-target="#logoutModal">
 
 <a href="<%= Url.Content("~/Home/CCA") %>" id="menuCCA">
 <i class="fas fa-edit"></i> <span>CCA Form</span>
+</a>
+
+<a href="<%= Url.Content("~/Home/Officer") %>" id="menuOfficer">
+<i class="fas fa-user"></i> <span>Officer</span>
+</a>
+
+<a href="<%= Url.Content("~/Home/Reporting") %>" id="menuReporting">
+<i class="fas fa-user"></i> <span>Reporting</span>
+</a>
+
+<a href="<%= Url.Content("~/Home/Reviewing") %>" id="menuReviewing">
+<i class="fas fa-user"></i> <span>Reviewing</span>
 </a>
 
 <a href="<%= Url.Content("~/Home/Reports") %>" id="menuReports">
@@ -363,7 +375,38 @@ if(!token){
 window.location = BASE_URL + "Login/UserAuth";
 return;
 }
+var role = localStorage.getItem("role");
 
+$("#mastersToggle").hide();
+$("#mastersSubmenu").hide();
+$("#menuCCA").hide();
+$("#menuReports").hide();
+$("#menuOfficer").hide();
+$("#menuReporting").hide();
+$("#menuReviewing").hide();
+
+if(role === "ADMIN"){
+    // show Masters + all menus
+    $("#mastersToggle").show();
+    $("#mastersSubmenu").show();
+    $("#menuCCA").hide();
+    $("#menuReports").show();
+}
+else if(role === "CCA"){
+    // only CCA menu
+    $("#menuCCA").show();
+    $("#mastersToggle").hide();
+    $("#menuReports").hide();
+}
+else if(role === "EMPLOYEE"){
+    // only dashboard
+    $("#mastersToggle").hide();
+    $("#menuCCA").hide();
+    $("#menuReports").hide();
+    $("#menuOfficer").show();
+    $("#menuReporting").show();
+    $("#menuReviewing").show();
+}
 /* username */
 
 var name = localStorage.getItem("displayName");
@@ -376,18 +419,61 @@ $("#headerUsername").html('<i class="fas fa-user-circle"></i> Welcome ' + name);
 
 var path = window.location.pathname.toLowerCase().replace(BASE_URL.toLowerCase(),"");
 
-if(path.includes("dashboard"))
-$("#menuDashboard").addClass("active");
+// Dashboard
+if(path.includes("dashboard")){
+    $("#menuDashboard").addClass("active");
+}
 
-if(path.includes("cca"))
-$("#menuCCA").addClass("active");
+// CCA
+if(path.includes("home/cca") || path.includes("cca")){
+    $("#menuCCA").addClass("active");
+}
 
-if(path.includes("reports"))
-$("#menuReports").addClass("active");
+// Reports
+if(path.includes("reports")){
+    $("#menuReports").addClass("active");
+}
 
-if(path.includes("/masters/")){
-$("#mastersToggle").addClass("active");
-$("#mastersSubmenu").addClass("show");
+// Officer
+if(path.includes("home/officer") || path.includes("officer")){
+    $("#menuOfficer").addClass("active");
+}
+
+if(path.includes("home/reporting") || path.includes("reporting")){
+    $("#menuReporting").addClass("active");
+}
+
+if(path.includes("home/reviewing") || path.includes("reviewing")){
+    $("#menuReviewing").addClass("active");
+}
+
+// Masters submenu
+if(path.includes("masters")){
+    $("#mastersToggle").addClass("active");
+    $("#mastersSubmenu").addClass("show");
+
+    // Mark individual submenu active
+    if(path.includes("masters/designation")){
+        $("#menuMastersDesignation").addClass("active");
+    }
+    else if(path.includes("masters/state")){
+        $("#menuMastersState").addClass("active");
+    }
+    else if(path.includes("masters/zone")){
+        $("#menuMastersZone").addClass("active");
+    }
+    else if(path.includes("masters/circle")){
+        $("#menuMastersCircle").addClass("active");
+    }
+    else if(path.includes("masters/division")){
+        $("#menuMastersDivision").addClass("active");
+    }
+    else if(path.includes("masters/subdivision")){
+        $("#menuMastersSubDivision").addClass("active");
+    }
+    else if(path.includes("masters/addemployee")){
+        $("#menuMastersAddEmployee").addClass("active");
+    }
 }
 
 /* toggle */
