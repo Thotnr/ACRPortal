@@ -12,6 +12,27 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 <div class="container-fluid px-0" id="reviewingDiv" style="display:none;">
     <h2 class="mb-4">Reviewing Authority Dashboard</h2>
 
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <input type="text" id="reviewSearch" class="form-control"
+                placeholder="Search ACR..."
+                onkeyup="searchReviewingQueue(this.value)">
+        </div>
+
+        <div class="col-md-3">
+            Show 
+            <select id="reviewPageSizeSelect" class="form-select d-inline-block"
+                    style="width:80px;" onchange="changeReviewPageSize()">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+            </select>
+            entries
+        </div>
+
+        <div class="col-md-6 text-end" id="reviewTableInfo"></div>
+    </div>
     <!-- TABLE -->
     <div class="table-responsive">
         <table class="table table-bordered table-striped">
@@ -26,6 +47,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             </thead>
             <tbody id="reviewingBody"></tbody>
         </table>
+        <nav>
+            <ul class="pagination justify-content-center" id="reviewPagination"></ul>
+        </nav>
     </div>
 </div>
 
@@ -122,28 +146,121 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 let selectedAcrId = null;
 let draftSaved = false;
+let reviewingData = [];
+let filteredReviewing = [];
+let reviewPageSize = 10;
+let reviewCurrentPage = 1;
 
 $(document).ready(function(){
     $("#reviewingDiv").show();
     loadReviewingQueue();
 });
 
+
+function changeReviewPageSize(){
+    reviewPageSize = parseInt($("#reviewPageSizeSelect").val());
+    reviewCurrentPage = 1;
+    renderReviewingTable();
+}
+
+function updateReviewInfo(start, end){
+    const total = filteredReviewing.length;
+
+    if(total === 0){
+        $("#reviewTableInfo").text("");
+        return;
+    }
+
+    $("#reviewTableInfo").text(
+        `Showing ${start+1} to ${Math.min(end,total)} of ${total} entries`
+    );
+}
+
+function searchReviewingQueue(value){
+
+    value = value.toLowerCase();
+
+    filteredReviewing = reviewingData.filter(a=>{
+        return a.FormType.toLowerCase().includes(value) ||
+               a.OfficerName.toLowerCase().includes(value) ||
+               a.Location.toLowerCase().includes(value) ||
+               a.Status.toLowerCase().includes(value);
+    });
+
+    reviewCurrentPage = 1;
+    renderReviewingTable();
+}
+
+function gotoReviewPage(p){
+    const totalPages = Math.ceil(filteredReviewing.length / reviewPageSize);
+
+    if(p < 1 || p > totalPages) return;
+
+    reviewCurrentPage = p;
+    renderReviewingTable();
+}
+
+function renderReviewPagination(){
+
+    const totalPages = Math.ceil(filteredReviewing.length / reviewPageSize);
+    let html = '';
+
+    html += `<li class="page-item ${reviewCurrentPage==1?'disabled':''}">
+                <a class="page-link" onclick="gotoReviewPage(${reviewCurrentPage-1})">Prev</a>
+             </li>`;
+
+    for(let i=1;i<=totalPages;i++){
+        html += `<li class="page-item ${i==reviewCurrentPage?'active':''}">
+                    <a class="page-link" onclick="gotoReviewPage(${i})">${i}</a>
+                 </li>`;
+    }
+
+    html += `<li class="page-item ${reviewCurrentPage==totalPages?'disabled':''}">
+                <a class="page-link" onclick="gotoReviewPage(${reviewCurrentPage+1})">Next</a>
+             </li>`;
+
+    $("#reviewPagination").html(html);
+}
+
+function renderReviewingTable(){
+
+    const tbody = $("#reviewingBody");
+    tbody.empty();
+
+    const start = (reviewCurrentPage - 1) * reviewPageSize;
+    const end = start + reviewPageSize;
+
+    const pageData = filteredReviewing.slice(start, end);
+
+    if(pageData.length === 0){
+        tbody.append(`<tr><td colspan="5" class="text-center">No entries found</td></tr>`);
+    } else {
+        pageData.forEach(a=>{
+            tbody.append(`<tr>
+                <td>${a.FormType}</td>
+                <td>${a.OfficerName}</td>
+                <td>${a.Location}</td>
+                <td>${a.Status}</td>
+                <td><button class="btn btn-info btn-sm" onclick="openReview('${a.AcrId}')">View</button></td>
+            </tr>`);
+        });
+    }
+
+    updateReviewInfo(start, end);
+    renderReviewPagination();
+}
+
 function loadReviewingQueue(){
     $.ajax({
         url: BASE_URL + "api/acr/reviewing/my",
         headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
         success:function(res){
-            let html='';
-            res.Data.AcrCycles.forEach(a=>{
-                html+=`<tr>
-                    <td>${a.FormType}</td>
-                    <td>${a.OfficerName}</td>
-                    <td>${a.Location}</td>
-                    <td>${a.Status}</td>
-                    <td><button class="btn btn-info btn-sm" onclick="openReview('${a.AcrId}')">View</button></td>
-                </tr>`;
-            });
-            $("#reviewingBody").html(html);
+            if(res.Success){
+                reviewingData = res.Data.AcrCycles;
+                filteredReviewing = [...reviewingData];
+                reviewCurrentPage = 1;
+                renderReviewingTable();
+            }
         }
     });
 }
