@@ -204,6 +204,64 @@ function loadReportingQueue(){
     });
 }
 
+$("#agreeWithSelf").change(function(){
+    if($(this).val() === "false"){
+        $("#disagreeDetails").prop("disabled", false);
+    } else {
+        $("#disagreeDetails").prop("disabled", true).val('');
+    }
+});
+
+function validateReportingForm() {
+
+    let isValid = true;
+
+    function setError(id, message) {
+        const el = $("#" + id);
+        el.addClass("is-invalid");
+        if (el.next(".invalid-feedback").length === 0) {
+            el.after(`<div class="invalid-feedback">${message}</div>`);
+        }
+        isValid = false;
+    }
+
+    function clearErrors() {
+        $(".form-control, .form-select").removeClass("is-invalid");
+        $(".invalid-feedback").remove();
+    }
+
+    clearErrors();
+
+    // ✅ Agree With Self (Required)
+    const agree = $("#agreeWithSelf").val();
+    if (!agree) {
+        setError("agreeWithSelf", "Required");
+    }
+
+    // ✅ If NO → Disagree Details Required
+    if (agree === "false" && !$("#disagreeDetails").val().trim()) {
+        setError("disagreeDetails", "Required when disagreeing");
+    }
+
+    // ✅ Integrity (Required)
+    if (!$("#integrityComments").val().trim()) {
+        setError("integrityComments", "Required");
+    }
+
+    // ❌ Remarks → optional (because “if any”)
+
+    // ✅ Ratings Validation (1–10 required)
+    $(".rating-field").each(function () {
+        const val = $(this).val();
+        if (!val || val < 1 || val > 10) {
+            $(this).addClass("is-invalid");
+            isValid = false;
+        }
+    });
+
+    return isValid;
+}
+
 function renderReportingTable(){
     const tbody = $("#reportingQueueBody");
     tbody.empty();
@@ -297,6 +355,15 @@ function sortReportingTable(col){
     renderReportingTable();
 }
 
+function clearValidation(){
+    $(".form-control, .form-select").removeClass("is-invalid");
+    $(".invalid-feedback").remove();
+}
+
+$('#reportingModal').on('hidden.bs.modal', function () {
+    clearValidation();
+});
+
 let reportingModal = new bootstrap.Modal(document.getElementById('reportingModal'));
 
 function viewReportingAcr(acrId){
@@ -306,6 +373,7 @@ function viewReportingAcr(acrId){
         headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
         success: function(res){
             if(res.Success){
+                clearValidation();
                 const data=res.Data;
                 // --- Populate Info ---
                 $("#infoFormType").val(data.FormType);
@@ -321,6 +389,7 @@ function viewReportingAcr(acrId){
                 const ra=data.ReportingAssessment || {};
                 $("#agreeWithSelf").val(ra.AgreeWithSelf);
                 $("#disagreeDetails").val(ra.DisagreeDetails);
+                $("#agreeWithSelf").trigger("change");
                 $("#integrityComments").val(ra.IntegrityComments);
                 $("#remarks").val(ra.Remarks);
                 $("#workTargets").val(ra.WorkTargets);
@@ -393,6 +462,8 @@ function deleteDoc(docId){
 }
 
 $("#saveDraftBtn").click(function(){
+    if (!validateReportingForm()) return;
+
     const draft={
         AgreeWithSelf: $("#agreeWithSelf").val()==='true',
         DisagreeDetails: $("#disagreeDetails").val(),
@@ -432,7 +503,14 @@ $("#saveDraftBtn").click(function(){
 });
 
 $("#submitBtn").click(function(){
-    if(!draftSaved){ alert("Save draft before submitting"); return;}
+    // ✅ Must save draft first
+    if(!draftSaved){ 
+        alert("Save draft before submitting"); 
+        return;
+    }
+
+    // ✅ Re-validate before submit
+    if (!validateReportingForm()) return;
     $.ajax({
         url: BASE_URL+"api/acr/"+selectedAcrId+"/reporting/submit",
         type:'POST',

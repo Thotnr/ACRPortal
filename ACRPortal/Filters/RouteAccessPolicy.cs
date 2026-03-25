@@ -45,22 +45,23 @@
                 case "CCA":
                     return path.StartsWith("/api/cca")
                         || path.StartsWith("/cca")
-                        || path.EndsWith("/home/cca")         // ← fixes unauthorized access
-                        || path.EndsWith("/home/dashboard")   // ← CCA dashboard access
+                        || path.EndsWith("/home/cca")
+                        || path.EndsWith("/home/dashboard")
                         || path.StartsWith("/api/admin/masters/designations")
                         || path.StartsWith("/api/admin/masters/zones")
                         || path.StartsWith("/api/admin/masters/circles")
                         || path.StartsWith("/api/admin/masters/divisions")
                         || path.StartsWith("/api/admin/masters/subdivisions")
-                        || path.StartsWith("/api/admin/users")  // for employee/officer dropdowns
+                        || path.StartsWith("/api/admin/users")
                         || path.EndsWith("/home/cca");
 
                 case "EMPLOYEE":
                     return path.StartsWith("/api/acr")
                         || path.StartsWith("/acr")
                         || path.EndsWith("/home/officer")
-                        || path.EndsWith("/home/dashboard")  // ← Officer dashboard access
-                        || path.EndsWith("/home/reporting"); // ← Reporting dashboard access
+                        || path.EndsWith("/home/dashboard")
+                        || path.EndsWith("/home/reporting") 
+                        || path.EndsWith("/home/reviewing");
 
                 default:
                     return false;

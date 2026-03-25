@@ -313,6 +313,10 @@ data-target="#logoutModal">
 <i class="fas fa-user"></i> <span>Reporting</span>
 </a>
 
+<a href="<%= Url.Content("~/Home/Reviewing") %>" id="menuReviewing">
+<i class="fas fa-user"></i> <span>Reviewing</span>
+</a>
+
 <a href="<%= Url.Content("~/Home/Reports") %>" id="menuReports">
 <i class="fas fa-chart-bar"></i> <span>Reports</span>
 </a>
@@ -379,6 +383,7 @@ $("#menuCCA").hide();
 $("#menuReports").hide();
 $("#menuOfficer").hide();
 $("#menuReporting").hide();
+$("#menuReviewing").hide();
 
 if(role === "ADMIN"){
     // show Masters + all menus
@@ -400,6 +405,7 @@ else if(role === "EMPLOYEE"){
     $("#menuReports").hide();
     $("#menuOfficer").show();
     $("#menuReporting").show();
+    $("#menuReviewing").show();
 }
 /* username */
 
@@ -435,6 +441,10 @@ if(path.includes("home/officer") || path.includes("officer")){
 
 if(path.includes("home/reporting") || path.includes("reporting")){
     $("#menuReporting").addClass("active");
+}
+
+if(path.includes("home/reviewing") || path.includes("reviewing")){
+    $("#menuReviewing").addClass("active");
 }
 
 // Masters submenu

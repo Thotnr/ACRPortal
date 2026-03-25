@@ -36,5 +36,11 @@ namespace ACRPortal.Controllers
             ViewBag.Title = "Reporting Dashboard";
             return View();
         }
+
+        public ActionResult Reviewing()
+        {
+            ViewBag.Title = "Reviewing Dashboard";
+            return View();
+        }
     }
 }
