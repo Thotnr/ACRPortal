@@ -1,4 +1,4 @@
-namespace ACRPortal.Filters
+﻿namespace ACRPortal.Filters
 {
     internal static class RouteAccessPolicy
     {
@@ -39,16 +39,29 @@ namespace ACRPortal.Filters
                         || path.EndsWith("/masters/circle")
                         || path.EndsWith("/masters/division")
                         || path.EndsWith("/masters/subdivision")
-                        || path.EndsWith("/masters/addemployee");
+                        || path.EndsWith("/masters/addemployee")
+                        || path.EndsWith("/home/officer");
 
                 case "CCA":
-                    return path.StartsWith("/api/cca")   // covers /api/cca/acr/{id}/docs too
+                    return path.StartsWith("/api/cca")
                         || path.StartsWith("/cca")
-                        || path == "/api/admin/masters/designations";
+                        || path.EndsWith("/home/cca")
+                        || path.EndsWith("/home/dashboard")
+                        || path.StartsWith("/api/admin/masters/designations")
+                        || path.StartsWith("/api/admin/masters/zones")
+                        || path.StartsWith("/api/admin/masters/circles")
+                        || path.StartsWith("/api/admin/masters/divisions")
+                        || path.StartsWith("/api/admin/masters/subdivisions")
+                        || path.StartsWith("/api/admin/users")
+                        || path.EndsWith("/home/cca");
 
                 case "EMPLOYEE":
-                    return path.StartsWith("/api/acr")   // covers /api/acr/{id}/docs too
-                        || path.StartsWith("/acr");
+                    return path.StartsWith("/api/acr")
+                        || path.StartsWith("/acr")
+                        || path.EndsWith("/home/officer")
+                        || path.EndsWith("/home/dashboard")
+                        || path.EndsWith("/home/reporting") 
+                        || path.EndsWith("/home/reviewing");
 
                 default:
                     return false;

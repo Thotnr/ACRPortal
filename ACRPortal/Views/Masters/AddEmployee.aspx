@@ -225,6 +225,15 @@ Fields marked with <span class="required-star">*</span> are required
 </div>
 
 <div class="col-md-6 mt-2">
+<label>Type <span class="required-star">*</span></label>
+<select id="systemRole" class="form-control" required>
+    <option value="">Select Type</option>
+    <option value="EMPLOYEE">EMPLOYEE</option>
+    <option value="CCA">CCA</option>
+</select>
+</div>
+
+<div class="col-md-6 mt-2">
 <label>Reporting Manager</label>
 <select id="reportingManagerId" class="form-control"></select>
 </div>
@@ -449,7 +458,7 @@ var zoneId=$("#filterZone").val();
 var dsgId=$("#filterDesignation").val();
 var divisionId=$("#filterDivision").val();
 
-var url= BASE_URL + "api/admin/users?role=EMPLOYEE";
+var url= BASE_URL + "api/admin/users";
 
 if(zoneId) url+="&zoneId="+zoneId;
 if(dsgId) url+="&dsgId="+dsgId;
@@ -656,6 +665,7 @@ renderTable();
 function openEmployeeModal(){
 
 isEditMode=false;
+$("#loginId").prop("disabled", false);
 $("#modalTitle").text("Add Employee");
 
 $("#employeeForm")[0].reset();
@@ -672,6 +682,7 @@ $("#zoneId").val("").trigger("change");
 $("#circleId").val("").trigger("change");
 $("#divisionId").val("").trigger("change");
 $("#subDivisionId").val("").trigger("change");
+$("#systemRole").val("").trigger("change");
 
 /* load managers */
 
@@ -734,7 +745,7 @@ var body={
 DisplayName:$("#displayName").val(),
 LoginId:$("#loginId").val(),
 // Password:$("#password").val(),
-SystemRole:"EMPLOYEE",
+SystemRole: $("#systemRole").val(), // || "EMPLOYEE",
 Email:$("#email").val(),
 Phone:$("#phone").val(),
 DsgId:$("#dsgId").val(),
@@ -746,6 +757,15 @@ SubDivisionId:$("#subDivisionId").val(),
 ManagerId:$("#reportingManagerId").val()
 };
 
+if(!body.SystemRole){
+    alert("Type is required");
+    return;
+}
+
+if(body.SystemRole !== "CCA" && body.SystemRole !== "EMPLOYEE"){
+    alert("Invalid Type selected");
+    return;
+}
 
 if(!isEditMode){
 
@@ -1054,11 +1074,13 @@ $("#modalTitle").text("Edit Employee");
 loadReportingManagers(u.LoginId);
 $("#displayName").val(u.DisplayName);
 $("#loginId").val(u.LoginId);
+$("#loginId").prop("disabled", true);
 $("#email").val(u.Email);
 $("#phone").val(u.Phone);
 $("#dsgId").val(u.DsgId).trigger("change");
 $("#reportingManagerId").val(u.ManagerId).trigger("change");
 $("#stateId").val(u.StateId).trigger("change");
+$("#systemRole").val(u.SystemRole).trigger("change");
 
 setTimeout(function(){
 $("#zoneId").val(u.ZoneId).trigger("change");
