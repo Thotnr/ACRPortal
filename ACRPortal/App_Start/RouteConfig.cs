@@ -49,6 +49,12 @@ namespace ACRPortal
             );
 
             routes.MapRoute(
+                name: "AcceptingDashboard",
+                url: "Accepting/Dashboard",
+                defaults: new { controller = "Dashboard", action = "Accepting" }
+            );
+
+            routes.MapRoute(
                 name: "Masters",
                 url: "Masters/{action}",
                 defaults: new { controller = "Masters", action = "State" }

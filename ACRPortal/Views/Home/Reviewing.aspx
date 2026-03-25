@@ -71,6 +71,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#infoTab">ACR Info</button>
                     </li>
                     <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#raTab">
+                            Reporting Details
+                        </button>
+                    </li>
+                    <li class="nav-item">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reviewTab">Reviewing</button>
                     </li>
                 </ul>
@@ -85,9 +90,47 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         </div>
                     </div>
 
+                    <div class="tab-pane fade" id="raTab">
+                        <h5>RA1 Assessment</h5>
+                        <div class="row">
+                            <div class="col-md-4"><label>Targets</label><input id="ra1Targets" class="form-control" readonly></div>
+                            <div class="col-md-4"><label>Quality</label><input id="ra1Quality" class="form-control" readonly></div>
+                            <div class="col-md-4"><label>Overall</label><input id="ra1Overall" class="form-control" readonly></div>
+                        </div>
+                        <div class="mt-2">
+                            <label>Remarks</label>
+                            <textarea id="ra1Remarks" class="form-control" readonly></textarea>
+                        </div>
+
+                        <div id="ra2Section" style="display:none;">
+                            <hr/>
+                            <h5 class="text-secondary mt-3">Second Reporting Officer (RA2)</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>Targets</label>
+                                    <input id="ra2Targets" class="form-control" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Quality</label>
+                                    <input id="ra2Quality" class="form-control" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Overall</label>
+                                    <input id="ra2Overall" class="form-control" readonly>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label>Remarks</label>
+                                <textarea id="ra2Remarks" class="form-control" readonly></textarea>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- REVIEW TAB -->
                     <div class="tab-pane fade" id="reviewTab">
-
+                        <div class="alert alert-info mt-2" id="readonlyMsg" style="display:none;">
+                            This ACR is under accepting authority. You cannot edit now.
+                        </div>
                         <!-- Q1 -->
                         <div class="mb-3">
                             <label class="form-label">
@@ -150,6 +193,7 @@ let reviewingData = [];
 let filteredReviewing = [];
 let reviewPageSize = 10;
 let reviewCurrentPage = 1;
+let isDirty = false;
 
 $(document).ready(function(){
     $("#reviewingDiv").show();
@@ -202,7 +246,8 @@ function gotoReviewPage(p){
 
 function renderReviewPagination(){
 
-    const totalPages = Math.ceil(filteredReviewing.length / reviewPageSize);
+    // const totalPages = Math.ceil(filteredReviewing.length / reviewPageSize);
+    const totalPages = Math.max(1, Math.ceil(filteredReviewing.length / reviewPageSize));
     let html = '';
 
     html += `<li class="page-item ${reviewCurrentPage==1?'disabled':''}">
@@ -269,6 +314,16 @@ let reviewingModal = new bootstrap.Modal(document.getElementById('reviewingModal
 
 function openReview(id){
     selectedAcrId = id;
+    draftSaved = false;
+    isDirty = false;
+    
+    $("#txtReason, #txtComments, #txtGrade").val('');
+    $("input[name='agree']").prop("checked", false);
+    $("#txtReason").prop("disabled", false);
+
+    $("#ra1Targets, #ra1Quality, #ra1Overall, #ra1Remarks").val('');
+    $("#ra2Targets, #ra2Quality, #ra2Overall, #ra2Remarks").val('');
+    $("#ra2Section").hide();
 
     $.ajax({
         url: BASE_URL + "api/acr/"+id+"/reviewing",
@@ -276,13 +331,48 @@ function openReview(id){
         success:function(res){
             const d = res.Data;
 
+            const ra1 = d.Ra1Assessment || {};
+            // $("#ra1Targets").val(ra1.WorkTargets);
+            $("#ra1Targets").val(safeRating(ra1.WorkTargets));
+            $("#ra1Quality").val(safeRating(ra1.WorkQuality));
+            $("#ra1Overall").val(safeRating(ra1.OverallGrade));
+            $("#ra1Remarks").val(ra1.Remarks);
+
+            const ra2 = d.Ra2Assessment || {};
+            if(ra2.Exists){
+                $("#ra2Section").show();
+
+                $("#ra2Targets").val(safeRating(ra2.WorkTargets));
+                $("#ra2Quality").val(safeRating(ra2.WorkQuality));
+                $("#ra2Overall").val(safeRating(ra2.OverallGrade));
+                $("#ra2Remarks").val(ra2.Remarks);
+            } else {
+                $("#ra2Section").hide();
+            }
+
             $("#infoOfficer").val(d.Officer.DisplayName);
             $("#infoStatus").val(d.Status);
+            if(d.Status === "PENDING_ACCEPTING"){
+                setReviewReadOnly(true);
+            } else {
+                setReviewReadOnly(false);
+            }
 
             const ra = d.ReviewingAssessment || {};
+            $("input[name='agree']").prop("checked", false);
 
-            $("input[name='agree'][value='"+ra.Agree+"']").prop("checked", true);
-            $("#txtReason").val(ra.Reason);
+            if(ra.AgreeWithRa !== null && ra.AgreeWithRa !== undefined){
+                $("input[name='agree'][value='"+String(ra.AgreeWithRa)+"']").prop("checked", true);
+            }
+
+            /* 🔥 YEH CODE YAHA ADD KARNA HAI */
+            if(ra.AgreeWithRa === true){
+                $("#txtReason").prop("disabled", true);
+            } else {
+                $("#txtReason").prop("disabled", false);
+            }
+
+            $("#txtReason").val(ra.DisagreeDetails);
             $("#txtComments").val(ra.Comments);
             $("#txtGrade").val(ra.OverallGrade);
 
@@ -297,7 +387,8 @@ function validateForm(){
 
     const agree = $("input[name='agree']:checked").val();
     const reason = $("#txtReason").val().trim();
-    const grade = $("#txtGrade").val();
+    // const grade = $("#txtGrade").val();
+    const grade = Number($("#txtGrade").val());
 
     $(".form-control").removeClass("is-invalid");
 
@@ -321,9 +412,12 @@ function validateForm(){
 
 $("#saveDraft").click(function(){
 
+    if($("#saveDraft").is(":hidden")) return;
+    const agreeVal = $("input[name='agree']:checked").val();
+
     const payload = {
-        Agree: $("input[name='agree']:checked").val() === "true",
-        Reason: $("#txtReason").val(),
+        AgreeWithRa: agreeVal ? (agreeVal === "true") : null,
+        DisagreeDetails: $("#txtReason").val(),
         Comments: $("#txtComments").val(),
         OverallGrade: Number($("#txtGrade").val())
     };
@@ -337,14 +431,16 @@ $("#saveDraft").click(function(){
         success:function(res){
             alert(res.Message);
             draftSaved = true;
+            isDirty = false;
         }
     });
 });
 
 $("#submitReview").click(function(){
 
-    if(!draftSaved){
-        alert("Save draft first");
+    if($("#submitReview").is(":hidden")) return;
+    if(isDirty && !draftSaved){
+        alert("Save draft before submitting");
         return;
     }
 
@@ -359,10 +455,57 @@ $("#submitReview").click(function(){
             reviewingModal.hide();
             loadReviewingQueue();
             draftSaved = false;
+            isDirty = false;
         }
     });
 });
 
+function safeRating(val){
+    if(val === null || val === undefined) return '';
+    if(val > 10) return 10;
+    if(val < 1) return 1;
+    return val;
+}
+
+$("#txtGrade").on("input", function(){
+
+    let val = Number($(this).val());
+
+    if(val < 1 || val > 10){
+        alert("Grade must be between 1 and 10");
+        $(this).val('');
+    }
+});
+
+$("#reviewTab input, #reviewTab textarea").on("input change", function(){
+    if($(this).prop("disabled")) return;
+    isDirty = true;
+});
+
+$("input[name='agree']").change(function(){
+    if($(this).val() === "false"){
+        $("#txtReason").prop("disabled", false);
+        $("#txtReason").closest('.mb-3').find('span').show();
+    } else {
+        $("#txtReason").prop("disabled", true).val('');
+        $("#txtReason").closest('.mb-3').find('span').hide();
+    }
+});
+
+function setReviewReadOnly(isReadOnly){
+
+    $("#reviewTab input, #reviewTab textarea").prop("disabled", isReadOnly);
+
+    if(isReadOnly){
+        $("#saveDraft").hide();
+        $("#submitReview").hide();
+        $("#readonlyMsg").show(); // ✅ ADD
+    } else {
+        $("#saveDraft").show();
+        $("#submitReview").show();
+        $("#readonlyMsg").hide(); // ✅ ADD
+    }
+}
 </script>
 
 </asp:Content>

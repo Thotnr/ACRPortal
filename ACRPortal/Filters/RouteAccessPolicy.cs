@@ -61,7 +61,8 @@
                         || path.EndsWith("/home/officer")
                         || path.EndsWith("/home/dashboard")
                         || path.EndsWith("/home/reporting") 
-                        || path.EndsWith("/home/reviewing");
+                        || path.EndsWith("/home/reviewing")
+                        || path.EndsWith("/home/accepting");
 
                 default:
                     return false;

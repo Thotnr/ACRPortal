@@ -90,7 +90,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <!-- Assessment Tab -->
                         <div class="tab-pane fade" id="assessmentTab" role="tabpanel">
                             <div class="row g-3 mt-2">
-                                <div class="col-md-4"><label class="form-label">Agree With Self-Appraisal</label>
+                                <div class="col-md-4"><label class="form-label">
+                                        Agree With Self-Appraisal <span class="text-danger">*</span>
+                                    </label>
                                     <select class="form-select" id="agreeWithSelf">
                                         <option value="">Select</option>
                                         <option value="true">Yes</option>
@@ -98,11 +100,14 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                                     </select>
                                 </div>
                                 <div class="col-md-8"><label class="form-label">Disagree Details</label><textarea class="form-control" id="disagreeDetails" rows="2"></textarea></div>
-                                <div class="col-md-12"><label class="form-label">Integrity Comments</label><textarea class="form-control" id="integrityComments" rows="2"></textarea></div>
+                                <div class="col-md-12"><label class="form-label">Integrity Comments <span class="text-danger">*</span></label><textarea class="form-control" id="integrityComments" rows="2"></textarea></div>
                                 <div class="col-md-12"><label class="form-label">Remarks</label><textarea class="form-control" id="remarks" rows="2"></textarea></div>
                             </div>
 
                             <!-- Rating Section (Work / Attributes / Competence) -->
+                            <div class="alert alert-info mt-3">
+                                Note: All ratings must be between <b>1 to 10</b>. Overall grade is auto-calculated.
+                            </div>
                             <div class="row mt-3">
                                 <div class="col-md-12"><h5>Work Performance</h5></div>
                                 <div class="col-md-3"><label>Targets</label><input type="number" min="1" max="10" class="form-control rating-field" id="workTargets"></div>
@@ -387,7 +392,12 @@ function viewReportingAcr(acrId){
 
                 // --- Populate Assessment Draft ---
                 const ra=data.ReportingAssessment || {};
-                $("#agreeWithSelf").val(ra.AgreeWithSelf);
+                // $("#agreeWithSelf").val(ra.AgreeWithSelf);
+                if(ra.AgreeWithSelf !== undefined && ra.AgreeWithSelf !== null){
+                    $("#agreeWithSelf").val(String(ra.AgreeWithSelf));
+                } else {
+                    $("#agreeWithSelf").val("");
+                }
                 $("#disagreeDetails").val(ra.DisagreeDetails);
                 $("#agreeWithSelf").trigger("change");
                 $("#integrityComments").val(ra.IntegrityComments);
@@ -418,6 +428,7 @@ function viewReportingAcr(acrId){
                 // Activate first tab
                 const firstTab=new bootstrap.Tab(document.querySelector('#info-tab'));
                 firstTab.show();
+                toggleViewOnly(data.Status === "PENDING_REVIEWING");
                 reportingModal.show();
             } else alert(res.Message);
         }
@@ -503,6 +514,8 @@ $("#saveDraftBtn").click(function(){
 });
 
 $("#submitBtn").click(function(){
+
+    if($("#submitBtn").is(":hidden")) return;
     // ✅ Must save draft first
     if(!draftSaved){ 
         alert("Save draft before submitting"); 
@@ -542,5 +555,28 @@ function calculateOverall(){
 
 // Trigger calculation on rating change
 $('#assessmentTab').on('input','.rating-field',calculateOverall);
+
+function toggleViewOnly(isViewOnly){
+    $("#assessmentTab input, #assessmentTab textarea, #assessmentTab select").prop("disabled", isViewOnly);
+
+    if(isViewOnly){
+        $("#saveDraftBtn").hide();
+        $("#submitBtn").hide();
+    } else {
+        $("#saveDraftBtn").show();
+        $("#submitBtn").show();
+    }
+}
+
+$(document).on("input", ".rating-field", function(){
+
+    let val = Number($(this).val());
+
+    if(val < 1 || val > 10){
+        alert("Rating must be between 1 and 10");
+        $(this).val('');
+    }
+});
+
 </script>
 </asp:Content>
