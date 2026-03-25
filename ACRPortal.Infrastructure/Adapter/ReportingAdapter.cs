@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -38,7 +38,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 JOIN    dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
                 WHERE  (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
-                  AND   ac.status <> 'DRAFT'
+                  AND   ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')
                 ORDER BY ac.created_at DESC";
 
             var resp = new MyReportingQueueResponse();
@@ -223,17 +223,21 @@ namespace ACRPortal.Infrastructure.Adapter
                     Guid ra1 = r.GetGuid(12);
                     Guid? ra2 = r.IsDBNull(13) ? (Guid?)null : r.GetGuid(13);
 
-                    bool isRa1Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
-                                       && userId == ra1;
-                    bool isRa2Active = string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
-                                       && ra2.HasValue && userId == ra2.Value;
+                    bool isRa1Caller = userId == ra1;
+                    bool isRa2Caller = ra2.HasValue && userId == ra2.Value;
 
-                    if (!isRa1Active && !isRa2Active)
-                    {
-                        errorCode = !string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
-                            ? "INVALID_STATE" : "FORBIDDEN";
-                        return null;
-                    }
+                    if (!isRa1Caller && !isRa2Caller)
+                    { errorCode = "FORBIDDEN"; return null; }
+
+                    bool canView =
+                        string.Equals(status, "PENDING_REPORTING", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "PENDING_REVIEWING", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "PENDING_ACCEPTING", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "APPROVED", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "REJECTED", StringComparison.OrdinalIgnoreCase);
+
+                    if (!canView)
+                    { errorCode = "INVALID_STATE"; return null; }
 
                     var resp = new ReportingAcrDetailResponse
                     {
@@ -246,7 +250,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         PostingFrom = r.IsDBNull(6) ? null : r.GetDateTime(6).ToString("yyyy-MM-dd"),
                         PostingTo = r.IsDBNull(7) ? null : r.GetDateTime(7).ToString("yyyy-MM-dd"),
                         AcrYear = r.IsDBNull(8) ? 0 : r.GetInt32(8),
-                        ReportingRole = isRa2Active ? "RA2" : "RA1"
+                        ReportingRole = isRa2Caller ? "RA2" : "RA1"
                     };
 
                     resp.Officer.UserId = r.GetGuid(9).ToString();
@@ -289,7 +293,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         DateTime? ra1Submitted = r.IsDBNull(31) ? (DateTime?)null : r.GetDateTime(31);
                         DateTime? ra2Submitted = r.IsDBNull(32) ? (DateTime?)null : r.GetDateTime(32);
 
-                        if (isRa2Active)
+                        if (isRa2Caller)
                         {
                             resp.ReportingAssessment.IsSubmitted = ra2Submitted.HasValue;
                             resp.ReportingAssessment.SubmittedAt = ra2Submitted?.ToString("o");

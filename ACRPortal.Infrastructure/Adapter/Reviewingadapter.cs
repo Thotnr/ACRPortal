@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -35,7 +35,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 JOIN    dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.reviewing_assessments rv ON rv.acr_id = ac.acr_id
                 WHERE   ac.reviewing_user_id = @uid
-                  AND   ac.status <> 'DRAFT'
+                  AND   ac.status IN ('PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')
                 ORDER BY ac.created_at DESC";
 
             var resp = new MyReviewingQueueResponse();
@@ -240,7 +240,12 @@ namespace ACRPortal.Infrastructure.Adapter
 
                     if (userId != rvaId)
                     { errorCode = "FORBIDDEN"; return null; }
-                    if (!string.Equals(status, "PENDING_REVIEWING", StringComparison.OrdinalIgnoreCase))
+                    bool canView =
+                        string.Equals(status, "PENDING_REVIEWING", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "PENDING_ACCEPTING", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "APPROVED", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status, "REJECTED", StringComparison.OrdinalIgnoreCase);
+                    if (!canView)
                     { errorCode = "INVALID_STATE"; return null; }
 
                     var resp = new ReviewingAcrDetailResponse
