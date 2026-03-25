@@ -54,13 +54,13 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <!-- View-Only Tab -->
                 <div class="tab-pane fade show active" id="viewTab" role="tabpanel">
                     <div class="row g-3">
-                    <div class="col-md-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="viewFormType" class="form-control" readonly></div>
-                    <div class="col-md-6"><label class="form-label fw-bold">Status</label><input type="text" id="viewStatus" class="form-control" readonly></div>
-                    <div class="col-md-6"><label class="form-label fw-bold">Location</label><input type="text" id="viewLocation" class="form-control" readonly></div>
-                    <div class="col-md-6"><label class="form-label fw-bold">Designation</label><input type="text" id="viewDesignation" class="form-control" readonly></div>
-                    <div class="col-md-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="viewPostingFrom" class="form-control" readonly></div>
-                    <div class="col-md-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="viewPostingTo" class="form-control" readonly></div>
-                    <div class="col-md-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="viewAcrYear" class="form-control" readonly></div>
+                    <div class="col-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="viewFormType" class="form-control" readonly></div>
+                    <div class="col-6"><label class="form-label fw-bold">Status</label><input type="text" id="viewStatus" class="form-control" readonly></div>
+                    <div class="col-6"><label class="form-label fw-bold">Location</label><input type="text" id="viewLocation" class="form-control" readonly></div>
+                    <div class="col-6"><label class="form-label fw-bold">Designation</label><input type="text" id="viewDesignation" class="form-control" readonly></div>
+                    <div class="col-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="viewPostingFrom" class="form-control" readonly></div>
+                    <div class="col-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="viewPostingTo" class="form-control" readonly></div>
+                    <div class="col-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="viewAcrYear" class="form-control" readonly></div>
                     <div class="col-12">
                         <h6>Documents</h6>
                         <ul id="viewDocList" class="list-group"></ul>
@@ -71,20 +71,39 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <!-- Self-Appraisal Tab -->
                 <div class="tab-pane fade" id="selfTab" role="tabpanel">
                     <div class="row g-3">
-                    <div class="col-md-6"><label for="leaveDetails" class="form-label">Leave Details</label><textarea id="leaveDetails" class="form-control" rows="2"></textarea></div>
-                    <div class="col-md-6"><label for="membershipBodies" class="form-label">Membership Bodies</label><textarea id="membershipBodies" class="form-control" rows="2"></textarea></div>
-                    <div class="col-md-6"><label for="trainingDetails" class="form-label">Training Details</label><textarea id="trainingDetails" class="form-control" rows="2"></textarea></div>
-                    <div class="col-md-6"><label for="awardsHonours" class="form-label">Awards / Honours</label><textarea id="awardsHonours" class="form-control" rows="2"></textarea></div>
-                    <div class="col-md-6"><label for="dutiesDescription" class="form-label">Duties Description</label><textarea id="dutiesDescription" class="form-control" rows="2"></textarea></div>
-                    <div class="col-md-6"><label for="targetsSet" class="form-label">Targets Set</label><textarea id="targetsSet" class="form-control" rows="2"></textarea></div>
-                    <div class="col-md-6"><label for="targetsAchieved" class="form-label">Targets Achieved</label><textarea id="targetsAchieved" class="form-control" rows="2"></textarea></div>
-                    <div class="col-md-6"><label for="shortfallReasons" class="form-label">Shortfall Reasons</label><textarea id="shortfallReasons" class="form-control" rows="2"></textarea></div>
-                    <div class="col-12"><label for="majorAchievements" class="form-label">Major Achievements</label><textarea id="majorAchievements" class="form-control" rows="2"></textarea></div>
+                    <div class="col-6"><label for="leaveDetails" class="form-label">Leave Details</label><textarea id="leaveDetails" class="form-control" rows="2"></textarea></div>
+                    <div class="col-6"><label for="membershipBodies" class="form-label">Membership Bodies</label><textarea id="membershipBodies" class="form-control" rows="2"></textarea></div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Training Details</label>
+                        <table class="table table-bordered" id="trainingTable" style="width:100%;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:15%;">Date From</th>
+                                    <th style="width:15%;">Date To</th>
+                                    <th style="width:35%;">Institute</th>
+                                    <th style="width:35%;">Subject</th>
+                                    <th style="width:5%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="trainingTableBody">
+                                <!-- Rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-success mb-2" id="addTrainingRow">
+                            <i class="bi bi-plus-circle"></i> Add Training
+                        </button>
+                    </div>
+                    <div class="col-6"><label for="awardsHonours" class="form-label">Awards / Honours</label><textarea id="awardsHonours" class="form-control" rows="2"></textarea></div>
+                    <div class="col-6"><label for="dutiesDescription" class="form-label">Duties Description <span class="text-danger">*</span></label><textarea id="dutiesDescription" class="form-control" rows="2"></textarea></div>
+                    <div class="col-6"><label for="targetsSet" class="form-label">Targets Set <span class="text-danger">*</span></label><textarea id="targetsSet" class="form-control" rows="2"></textarea></div>
+                    <div class="col-6"><label for="targetsAchieved" class="form-label">Targets Achieved <span class="text-danger">*</span></label><textarea id="targetsAchieved" class="form-control" rows="2"></textarea></div>
+                    <div class="col-6"><label for="shortfallReasons" class="form-label">Shortfall Reasons</label><textarea id="shortfallReasons" class="form-control" rows="2"></textarea></div>
+                    <div class="col-6"><label for="majorAchievements" class="form-label">Major Achievements</label><textarea id="majorAchievements" class="form-control" rows="2"></textarea></div>
 
                     <!-- Compliance -->
                     <div class="row mt-3">
-                        <div class="col-md-4"><div class="form-check"><input type="checkbox" class="form-check-input" id="auditorCompliance"><label class="form-check-label" for="auditorCompliance">Auditor Compliance</label></div></div>
-                        <div class="col-md-4">
+                        <div class="col-4"><div class="form-check"><input type="checkbox" class="form-check-input" id="auditorCompliance"><label class="form-check-label" for="auditorCompliance">Auditor Compliance</label></div></div>
+                        <div class="col-4">
                             <div class="form-check">
                                 <input type="checkbox" class="form-check-input" id="propertyDeclared">
                                 <label class="form-check-label" for="propertyDeclared">Property Declared</label>
@@ -95,7 +114,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                                 <input type="date" class="form-control" id="propertyDeclaredDate">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-4">
                             <div class="form-check">
                                 <input type="checkbox" class="form-check-input" id="medicalCompliance">
                                 <label class="form-check-label" for="medicalCompliance">Medical Compliance</label>
@@ -111,7 +130,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <button class="btn btn-primary" id="saveDraftBtn"><i class="bi bi-save"></i> Save Draft</button>
-                        <button class="btn btn-success" id="submitBtn"><i class="bi bi-send"></i> Submit Self-Appraisal</button>
+                        <button class="btn btn-success d-none" id="submitBtn"><i class="bi bi-send"></i> Submit Self-Appraisal</button>
                     </div>
                     </div>
                 </div>
@@ -128,6 +147,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     <script>
 
         let draftSaved = false;
+        let isFormChanged = false;
         // Check Role from localStorage
         $(document).ready(function () {
             const role = localStorage.getItem('role');
@@ -139,6 +159,42 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             $("#employeeACRDiv").show();
             loadAcrList();
         });
+
+        $(document).on('input change', '#selfTab input, #selfTab textarea', function () {
+            isFormChanged = true;
+            draftSaved = false;
+            $('#submitBtn').addClass('d-none'); // hide submit again
+        });
+
+        function validateForm() {
+            let isValid = true;
+            let msg = '';
+
+            if (!$('#dutiesDescription').val().trim()) {
+                msg = 'Duties Description is required';
+                isValid = false;
+            }
+            else if (!$('#targetsSet').val().trim()) {
+                msg = 'Targets Set is required';
+                isValid = false;
+            }
+            else if (!$('#targetsAchieved').val().trim()) {
+                msg = 'Targets Achieved is required';
+                isValid = false;
+            }
+            else if ($('#propertyDeclared').is(':checked') && !$('#propertyDeclaredDate').val()) {
+                msg = 'Property Declared Date is required';
+                isValid = false;
+            }
+            else if ($('#medicalCompliance').is(':checked') && !$('#medicalComplianceDate').val()) {
+                msg = 'Medical Compliance Date is required';
+                isValid = false;
+            }
+
+            if (!isValid) alert(msg);
+
+            return isValid;
+        }
 
         let selectedAcrId = null;
 
@@ -216,7 +272,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         const s = data.SelfAppraisal || {};
                         $('#leaveDetails').val(s.LeaveDetails || '');
                         $('#membershipBodies').val(s.MembershipBodies || '');
-                        $('#trainingDetails').val(s.TrainingDetails || '');
+                        loadTrainingFromJSON(s.TrainingDetails || '[]');
                         $('#awardsHonours').val(s.AwardsHonours || '');
                         $('#dutiesDescription').val(s.DutiesDescription || '');
                         $('#targetsSet').val(s.TargetsSet || '');
@@ -229,6 +285,14 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         $('#medicalCompliance').prop('checked', s.MedicalCompliance || false);
                         $('#medicalComplianceDate').val(s.MedicalComplianceDate || '');
 
+                        if (s && Object.keys(s).length > 0) {
+                            draftSaved = true;
+                            $('#submitBtn').removeClass('d-none'); // allow direct submit
+                        } else {
+                            draftSaved = false;
+                            $('#submitBtn').addClass('d-none');
+                        }
+                        isFormChanged = false;
                         // Show/hide dates
                         togglePropertyDeclaredDate(s);
                         toggleMedicalComplianceDate(s);
@@ -244,15 +308,19 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         }
 
         $('#backBtn').click(function () {
-            $('#acrDetailDiv').hide();
-            $('#acrListDiv').show();
+            // $('#acrDetailDiv').hide();
+            // $('#acrListDiv').show();
+            acrModal.hide(); // Hide the modal after submission
+            loadAcrList();
         });
 
         $('#saveDraftBtn').click(function () {
+            if (!validateForm()) return;
+            
             const draft = {
                 LeaveDetails: $('#leaveDetails').val(),
                 MembershipBodies: $('#membershipBodies').val(),
-                TrainingDetails: $('#trainingDetails').val(),
+                TrainingDetails: getTrainingJSON(),
                 AwardsHonours: $('#awardsHonours').val(),
                 DutiesDescription: $('#dutiesDescription').val(),
                 TargetsSet: $('#targetsSet').val(),
@@ -275,6 +343,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 success: function (res) {
                     alert(res.Message);
                     draftSaved = true; // Set flag true once draft is saved
+                    isFormChanged = false;
+                    $('#submitBtn').removeClass('d-none'); 
                 },
                 error: function() {
                     alert('Error saving draft. Please try again.');
@@ -284,10 +354,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         });
 
         $('#submitBtn').click(function () {
-            if (!draftSaved) {
-                alert("You must save the draft before submitting the self-appraisal!");
-                return; // Prevent submission
+            if (isFormChanged) {
+                alert("Please save draft before submitting updated data.");
+                return;
             }
+
+            if (!draftSaved) {
+                alert("Please save draft first.");
+                return;
+            }
+
+            if (!validateForm()) return;
 
             $.ajax({
                 url: `/api/acr/${selectedAcrId}/self-appraisal/submit`,
@@ -295,10 +372,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 success: function (res) {
                     alert(res.Message);
-                    draftSaved = false; // Reset flag after submission
+
+                    draftSaved = false;
+                    isFormChanged = false;
+
+                    acrModal.hide();
                     loadAcrList();
-                    $('#acrDetailDiv').hide();
-                    $('#acrListDiv').show();
                 }
             });
         });
@@ -381,6 +460,60 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 $('#medicalCompliance').prop('checked', false);
                 $('#medicalComplianceDateDiv').hide();
             }
+        }
+
+        $('#addTrainingRow').click(function() {
+            let row = `<tr>
+                <td><input type="date" class="form-control trainingDateFrom"></td>
+                <td><input type="date" class="form-control trainingDateTo"></td>
+                <td><input type="text" class="form-control trainingInstitute"></td>
+                <td><input type="text" class="form-control trainingSubject"></td>
+                <td><button type="button" class="btn btn-sm btn-danger removeTrainingRow"><i class="bi bi-trash"></i></button></td>
+            </tr>`;
+            $('#trainingTableBody').append(row);
+        });
+
+        // Remove row
+        $(document).on('click', '.removeTrainingRow', function() {
+            $(this).closest('tr').remove();
+        });
+
+        // Save Training Details as JSON string
+        function getTrainingJSON() {
+            let trainingList = [];
+            $('#trainingTableBody tr').each(function() {
+                let row = $(this);
+                let obj = {
+                    DateFrom: row.find('.trainingDateFrom').val(),
+                    DateTo: row.find('.trainingDateTo').val(),
+                    Institute: row.find('.trainingInstitute').val(),
+                    Subject: row.find('.trainingSubject').val()
+                };
+                // Only push if at least one field is filled
+                if(obj.DateFrom || obj.DateTo || obj.Institute || obj.Subject){
+                    trainingList.push(obj);
+                }
+            });
+            return JSON.stringify(trainingList);
+        }
+
+        // Load JSON and populate table
+        function loadTrainingFromJSON(jsonStr) {
+            $('#trainingTableBody').empty();
+            if(!jsonStr) return;
+            let data = [];
+            try { data = JSON.parse(jsonStr); } catch(e){ console.error(e); return; }
+
+            data.forEach(t => {
+                let row = `<tr>
+                    <td><input type="date" class="form-control trainingDateFrom" value="${t.DateFrom || ''}"></td>
+                    <td><input type="date" class="form-control trainingDateTo" value="${t.DateTo || ''}"></td>
+                    <td><input type="text" class="form-control trainingInstitute" value="${t.Institute || ''}"></td>
+                    <td><input type="text" class="form-control trainingSubject" value="${t.Subject || ''}"></td>
+                    <td><button type="button" class="btn btn-sm btn-danger removeTrainingRow"><i class="bi bi-trash"></i></button></td>
+                </tr>`;
+                $('#trainingTableBody').append(row);
+            });
         }
     </script>
 </asp:Content>

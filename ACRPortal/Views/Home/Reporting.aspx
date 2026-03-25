@@ -446,7 +446,7 @@ $("#submitBtn").click(function(){
     });
 });
 
- function calculateOverall(){
+function calculateOverall(){
     const workSum = ['workTargets','workQuality','workExceptional'].reduce((acc,id)=> acc + Number($('#'+id).val()||0),0);
     $('#workOverall').val((workSum/3).toFixed(2));
 
