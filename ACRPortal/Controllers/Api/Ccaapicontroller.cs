@@ -44,6 +44,29 @@ namespace ACRPortal.Controllers
             catch (Exception ex) { return Fail(ex.Message); }
         }
 
+        // GET /api/cca/officers/{officerUserId}/authorities/suggestions
+        [HttpGet]
+        [Route("officers/{officerUserId}/authorities/suggestions")]
+        public HttpResponseMessage GetAuthoritySuggestions(string officerUserId)
+        {
+            try
+            {
+                var result = _cca.GetAuthoritySuggestions(officerUserId);
+                var status = result.Success ? HttpStatusCode.OK
+                    : result.ErrorCode == "BAD_REQUEST" ? HttpStatusCode.BadRequest
+                    : result.ErrorCode == "NOT_FOUND" ? HttpStatusCode.NotFound
+                    : result.ErrorCode == "INVALID_OFFICER" ? HttpStatusCode.BadRequest
+                    : result.ErrorCode == "MISSING_RA" ? HttpStatusCode.Conflict
+                    : result.ErrorCode == "INVALID_RA" ? HttpStatusCode.Conflict
+                    : result.ErrorCode == "MISSING_RVA" ? HttpStatusCode.Conflict
+                    : result.ErrorCode == "INVALID_RVA" ? HttpStatusCode.Conflict
+                    : HttpStatusCode.InternalServerError;
+
+                return Respond(status, result);
+            }
+            catch (Exception ex) { return Fail(ex.Message); }
+        }
+
         // POST /api/cca/acr
         [HttpPost]
         [Route("acr")]

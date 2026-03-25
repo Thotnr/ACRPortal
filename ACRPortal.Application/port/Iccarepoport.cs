@@ -8,6 +8,7 @@ namespace ACRPortal.Application.port
     {
         List<CcaOfficerListItem> GetOfficers();
         List<CcaEmployeeDropdownItem> GetEmployeesForDropdown();
+        CcaAuthoritySuggestionResponse GetAuthoritySuggestions(Guid officerUserId, out string errorCode);
 
         bool IsUserActive(Guid userId);
         bool IsAcrDuplicate(Guid officerUserId, string department, DateTime postingFrom);

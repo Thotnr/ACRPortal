@@ -142,6 +142,26 @@ namespace ACRPortal.Controllers.Api
             _docs = docs;
         }
 
+        // POST /api/cca/acr/{acrId}/photo
+        [HttpPost]
+        [Route("acr/{acrId}/photo")]
+        public HttpResponseMessage UploadOfficerPhoto(string acrId, [FromBody] AddDocumentRequest request)
+        {
+            try
+            {
+                if (request == null)
+                    return Fail("Request body is required", "BAD_REQUEST", HttpStatusCode.BadRequest);
+
+                string userId = GetCallerUserId();
+                if (string.IsNullOrWhiteSpace(userId))
+                    return Fail("Token missing or invalid", "TOKEN_INVALID", HttpStatusCode.Unauthorized);
+
+                var result = _docs.UploadOfficerPhoto(acrId, userId, request);
+                return Respond(MapStatus(result.ErrorCode, result.Success, HttpStatusCode.Created), result);
+            }
+            catch (Exception ex) { return Fail(ex.Message); }
+        }
+
         // POST /api/cca/acr/{acrId}/docs
         [HttpPost]
         [Route("acr/{acrId}/docs")]

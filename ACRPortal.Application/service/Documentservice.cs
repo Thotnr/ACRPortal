@@ -102,6 +102,58 @@ namespace ACRPortal.Application.service
         }
 
         // ------------------------------------------------------------------ //
+        //  Upload officer photo (CCA only, replaces existing)                 //
+        // ------------------------------------------------------------------ //
+        public ApiResponse<AddDocumentResponse> UploadOfficerPhoto(
+            string acrId,
+            string ccaUserId,
+            AddDocumentRequest request)
+        {
+            try
+            {
+                if (!Guid.TryParse(acrId, out Guid acrGuid))
+                    return ApiResponse<AddDocumentResponse>.Fail("AcrId is not a valid GUID", "BAD_REQUEST");
+
+                if (!Guid.TryParse(ccaUserId, out Guid callerGuid))
+                    return ApiResponse<AddDocumentResponse>.Fail("Invalid user id in token", "TOKEN_INVALID");
+
+                if (request == null || string.IsNullOrWhiteSpace(request.FileUrl))
+                    return ApiResponse<AddDocumentResponse>.Fail("FileUrl is required", "BAD_REQUEST");
+
+                // Validate caller is the CCA for this ACR and state allows it
+                string section, errorCode;
+                if (!_repo.ResolveCallerSection(acrGuid, callerGuid, out section, out errorCode))
+                {
+                    return ApiResponse<AddDocumentResponse>.Fail(
+                        errorCode == "NOT_FOUND" ? "ACR not found" :
+                        errorCode == "FORBIDDEN" ? "You are not the CCA for this ACR" :
+                        errorCode == "INVALID_STATE" ? "Photo cannot be uploaded at the current workflow step" :
+                        "Unable to upload photo",
+                        errorCode ?? "INTERNAL_ERROR");
+                }
+
+                if (section != "CCA")
+                    return ApiResponse<AddDocumentResponse>.Fail(
+                        "Only the CCA can upload the officer photograph", "FORBIDDEN");
+
+                string documentId = _repo.ReplaceDocumentByType(
+                    acrGuid,
+                    "CCA",
+                    "OFFICER_PHOTO",
+                    request.FileUrl.Trim(),
+                    request.FileName?.Trim());
+
+                return ApiResponse<AddDocumentResponse>.Ok(
+                    new AddDocumentResponse { DocumentId = documentId },
+                    "Officer photo uploaded successfully");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<AddDocumentResponse>.Fail(ex.Message, "INTERNAL_ERROR");
+            }
+        }
+
+        // ------------------------------------------------------------------ //
         //  Delete document                                                     //
         // ------------------------------------------------------------------ //
         public ApiResponse<EmptyResponse> DeleteDocument(string acrId, string documentId, string callerUserId)

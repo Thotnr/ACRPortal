@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ACRPortal.Domain.DTOs.WebToApp
@@ -31,6 +31,13 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     public class CcaEmployeeDropdownResponse
     {
         public List<CcaEmployeeDropdownItem> Employees { get; set; } = new List<CcaEmployeeDropdownItem>();
+    }
+
+    public class CcaAuthoritySuggestionResponse
+    {
+        public string OfficerUserId { get; set; }
+        public string ReportingUserId { get; set; }
+        public string ReviewingUserId { get; set; }
     }
 
     // ------------------------------------------------------------------ //
@@ -162,6 +169,12 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         /// Typically the medical report (Annexure A).
         /// </summary>
         public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
+
+        /// <summary>
+        /// Officer photograph uploaded by CCA. Null if not yet uploaded.
+        /// document_type = 'OFFICER_PHOTO'
+        /// </summary>
+        public AcrDocumentItem OfficerPhoto { get; set; }
     }
 
     // ------------------------------------------------------------------ //

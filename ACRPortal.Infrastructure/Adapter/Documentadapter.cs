@@ -220,6 +220,43 @@ namespace ACRPortal.Infrastructure.Adapter
         }
 
         // ================================================================== //
+        //  ReplaceDocumentByType                                              //
+        //  Atomically deletes any existing doc of the given type+section      //
+        //  and inserts a new one. Used for OFFICER_PHOTO.                    //
+        // ================================================================== //
+        public string ReplaceDocumentByType(Guid acrId, string section, string documentType,
+            string fileUrl, string fileName)
+        {
+            // Single transaction: DELETE existing + INSERT new
+            const string sql = @"
+                DELETE FROM dbo.acr_documents
+                WHERE  acr_id        = @acrId
+                  AND  section       = @section
+                  AND  document_type = @docType;
+
+                DECLARE @newId UNIQUEIDENTIFIER = NEWID();
+
+                INSERT INTO dbo.acr_documents
+                    (document_id, acr_id, section, document_type, file_url, file_name, uploaded_at)
+                VALUES
+                    (@newId, @acrId, @section, @docType, @fileUrl, @fileName, GETDATE());
+
+                SELECT @newId;";
+
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
+                cmd.Parameters.Add("@section", SqlDbType.VarChar).Value = section;
+                cmd.Parameters.Add("@docType", SqlDbType.VarChar).Value = documentType;
+                cmd.Parameters.Add("@fileUrl", SqlDbType.NVarChar).Value = fileUrl;
+                cmd.Parameters.Add("@fileName", SqlDbType.NVarChar).Value = (object)fileName ?? DBNull.Value;
+                con.Open();
+                return cmd.ExecuteScalar().ToString();
+            }
+        }
+
+        // ================================================================== //
         //  Private — state validation                                         //
         // ================================================================== //
         private static bool IsStateAllowed(string section, string status)
