@@ -449,7 +449,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     u.user_id,                        -- 3   officer
                     u.login_id,                       -- 4
                     u.display_name,                   -- 5
-                    u.dsg_id,                         -- 6
+                    d.dsg,                            -- 6
                     ac.designation,                   -- 7   snapshot
 
                     ac.department,                    -- 8
@@ -483,6 +483,7 @@ namespace ACRPortal.Infrastructure.Adapter
 
                 FROM dbo.acr_cycles ac
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
+                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
                 WHERE ac.acr_id = @acrId";
 
             using (var con = new SqlConnection(_conn))
@@ -503,8 +504,8 @@ namespace ACRPortal.Infrastructure.Adapter
                         OfficerUserId = r.GetGuid(3).ToString(),
                         OfficerLoginId = r.IsDBNull(4) ? null : r.GetString(4),
                         OfficerName = r.IsDBNull(5) ? null : r.GetString(5),
-                        DsgId = r.IsDBNull(6) ? (int?)null : r.GetInt32(6),
-                        DsgDesc = r.IsDBNull(7) ? null : r.GetString(7),
+                        Dsg = r.IsDBNull(6) ? null : r.GetString(6),
+                        // DsgDesc = r.IsDBNull(7) ? null : r.GetString(7),
 
                         Department = r.IsDBNull(8) ? null : r.GetString(8),
                         Location = r.IsDBNull(9) ? null : r.GetString(9),

@@ -124,8 +124,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string OfficerUserId { get; set; }
         public string OfficerLoginId { get; set; }
         public string OfficerName { get; set; }
-        public int? DsgId { get; set; }
-        public string DsgDesc { get; set; }
+        public string Dsg { get; set; }
 
         // Posting
         public string Department { get; set; }

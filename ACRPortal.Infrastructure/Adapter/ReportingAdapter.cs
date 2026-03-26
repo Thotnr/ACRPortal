@@ -127,7 +127,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         ac.status,
                         ac.department,
                         ac.location,
-                        ac.designation,
+                        d.dsg,
                         ac.posting_from,
                         ac.posting_to,
                         ac.acr_year,
@@ -223,6 +223,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.self_appraisals       sa ON sa.acr_id = ac.acr_id
                 LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
+                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
                 WHERE ac.acr_id = @acrId";
 
             using (var con = new SqlConnection(_conn))
@@ -261,7 +262,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         Status = status,
                         Department = r.IsDBNull(3) ? null : r.GetString(3),
                         Location = r.IsDBNull(4) ? null : r.GetString(4),
-                        Designation = r.IsDBNull(5) ? null : r.GetString(5),
+                        Dsg = r.IsDBNull(5) ? null : r.GetString(5),
                         PostingFrom = r.IsDBNull(6) ? null : r.GetDateTime(6).ToString("yyyy-MM-dd"),
                         PostingTo = r.IsDBNull(7) ? null : r.GetDateTime(7).ToString("yyyy-MM-dd"),
                         AcrYear = r.IsDBNull(8) ? 0 : r.GetInt32(8),
