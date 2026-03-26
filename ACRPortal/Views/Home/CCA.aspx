@@ -3,8 +3,9 @@ Inherits="System.Web.Mvc.ViewPage"
 MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="<%= Url.Content("~/assets/js/shared/constant.js") %>"></script>
+<link href="<%= Url.Content("~/assets/js/lib/select2.min.css") %>" rel="stylesheet" />
+<script src="<%= Url.Content("~/assets/js/lib/select2.min.js") %>"></script>
 
 <style>
 #ccaTable { font-size:14px; }
@@ -1333,9 +1334,10 @@ $("#officerName").off("change").on("change", function () {
     }
 });
 
+// Using getCommonStatusBadge from constant.js with CCA specific styling
 function getStatusBadge(status) {
     var s = (status || "").toUpperCase();
-
+    
     if (s === "DRAFT") return '<span class="status-badge status-draft">DRAFT</span>';
     if (s === "APPROVED") return '<span class="status-badge status-completed">APPROVED</span>';
     if (s === "REJECTED") return '<span class="status-badge status-rejected">REJECTED</span>';

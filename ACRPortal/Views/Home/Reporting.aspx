@@ -3,10 +3,13 @@ Inherits="System.Web.Mvc.ViewPage"
 MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="<%= Url.Content("~/assets/js/shared/constant.js") %>"></script>
+<link href="<%= Url.Content("~/assets/js/lib/bootstrap.min.css") %>" rel="stylesheet">
+<link href="<%= Url.Content("~/assets/js/lib/bootstrap-icons.css") %>" rel="stylesheet">
+<script src="<%= Url.Content("~/assets/js/lib/bootstrap.bundle.min.js") %>"></script>
+<script src="<%= Url.Content("~/assets/js/lib/jquery-3.7.1.min.js") %>"></script>
+
 <style>
     .page-title {
         color: #0d6efd;
@@ -744,20 +747,8 @@ $(document).on("input", ".rating-field", function(){
     }
 });
 
-function getReportingStatusBadge(status) {
-    switch (status) {
-        case 'PENDING_REPORTING':
-            return '<span class="badge bg-warning text-dark">Pending</span>';
-        case 'PENDING_REVIEWING':
-            return '<span class="badge bg-info text-dark">Forwarded</span>';
-        case 'APPROVED':
-            return '<span class="badge bg-success">Approved</span>';
-        case 'REJECTED':
-            return '<span class="badge bg-danger">Rejected</span>';
-        default:
-            return '<span class="badge bg-secondary">' + (status || '--') + '</span>';
-    }
-}
+// Using getCommonStatusBadge from constant.js
+var getReportingStatusBadge = getCommonStatusBadge;
 
 </script>
 </asp:Content>

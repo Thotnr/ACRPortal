@@ -4,52 +4,122 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="<%= Url.Content("~/assets/js/shared/constant.js") %>"></script>
+<link href="<%= Url.Content("~/assets/js/lib/bootstrap.min.css") %>" rel="stylesheet">
+<link href="<%= Url.Content("~/assets/js/lib/bootstrap-icons.css") %>" rel="stylesheet">
+<script src="<%= Url.Content("~/assets/js/lib/bootstrap.bundle.min.js") %>"></script>
+<script src="<%= Url.Content("~/assets/js/lib/jquery-3.7.1.min.js") %>"></script>
+
+<style>
+    .page-title {
+        color: #0d6efd;
+        font-weight: 700;
+    }
+
+    .page-block {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+    }
+
+    .section-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px;
+        background: #fff;
+    }
+
+    .rating-card {
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        background: #fff;
+        padding: 14px;
+        height: 100%;
+    }
+
+    .rating-card h5 {
+        color: #0d6efd;
+        font-size: 16px;
+        margin-bottom: 14px;
+        font-weight: 600;
+    }
+
+    #reviewingTable th {
+        white-space: nowrap;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    #reviewingTable td {
+        vertical-align: middle;
+    }
+
+    .modal-content {
+        border: 0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .modal-header.bg-primary {
+        background: linear-gradient(90deg, #0d6efd, #0b5ed7) !important;
+    }
+
+    .nav-tabs .nav-link {
+        font-weight: 600;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        border-color: #dee2e6 #dee2e6 #fff;
+    }
+
+    #reviewPagination .page-link {
+        cursor: pointer;
+    }
+</style>
 
 <div class="container-fluid px-0" id="reviewingDiv" style="display:none;">
-    <h2 class="mb-4">Reviewing Authority Dashboard</h2>
+    <h2 class="mb-4 page-title">Reviewing Authority Dashboard</h2>
 
-    <div class="row mb-3">
-        <div class="col-md-3">
-            <input type="text" id="reviewSearch" class="form-control"
-                placeholder="Search ACR..."
-                onkeyup="searchReviewingQueue(this.value)">
+    <div class="card shadow-sm border-0 page-block">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h5 class="mb-0 text-primary">
+                    <i class="bi bi-table"></i> Reviewing Queue
+                </h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <input type="text" id="reviewSearch" class="form-control" placeholder="Search ACR..." style="width:260px;">
+                    <select id="reviewPageSizeSelect" class="form-select" style="width:110px;">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle mb-0" id="reviewingTable">
+                    <thead class="table-primary">
+                        <tr>
+                            <th onclick="sortReviewingTable('FormType')">Form Type</th>
+                            <th onclick="sortReviewingTable('OfficerName')">Officer</th>
+                            <th onclick="sortReviewingTable('Location')">Location</th>
+                            <th onclick="sortReviewingTable('Status')">Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reviewingBody"></tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                <div id="reviewTableInfo" class="small text-muted"></div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="reviewPagination"></ul>
+                </nav>
+            </div>
         </div>
-
-        <div class="col-md-3">
-            Show 
-            <select id="reviewPageSizeSelect" class="form-select d-inline-block"
-                    style="width:80px;" onchange="changeReviewPageSize()">
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="30">30</option>
-                <option value="50">50</option>
-            </select>
-            entries
-        </div>
-
-        <div class="col-md-6 text-end" id="reviewTableInfo"></div>
-    </div>
-    <!-- TABLE -->
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead class="table-primary">
-                <tr>
-                    <th>Form Type</th>
-                    <th>Officer</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="reviewingBody"></tbody>
-        </table>
-        <nav>
-            <ul class="pagination justify-content-center" id="reviewPagination"></ul>
-        </nav>
     </div>
 </div>
 
@@ -84,128 +154,134 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
                     <!-- INFO TAB -->
                     <div class="tab-pane fade show active" id="infoTab">
-                        <div class="row g-3">
-
-                            <div class="col-md-6"><label class="form-label fw-bold">Form Type</label><input class="form-control" id="infoFormType" readonly></div>
-                            <div class="col-md-6"><label class="form-label fw-bold">Status</label><input class="form-control" id="infoStatus" readonly></div>
-
-                            <div class="col-md-6"><label class="form-label fw-bold">Officer</label><input class="form-control" id="infoOfficer" readonly></div>
-                            <div class="col-md-6"><label class="form-label fw-bold">Location</label><input class="form-control" id="infoLocation" readonly></div>
-
-                            <div class="col-md-6"><label class="form-label fw-bold">Designation</label><input class="form-control" id="infoDesignation" readonly></div>
-                            <div class="col-md-6"><label class="form-label fw-bold">Posting From</label><input class="form-control" id="infoPostingFrom" readonly></div>
-
-                            <div class="col-md-6"><label class="form-label fw-bold">Posting To</label><input class="form-control" id="infoPostingTo" readonly></div>
-                            <div class="col-md-6"><label class="form-label fw-bold">ACR Year</label><input class="form-control" id="infoAcrYear" readonly></div>
-
-                            <!-- SAME AS OFFICER -->
-                            <!-- <div class="col-md-6"><label class="form-label fw-bold">Department</label><input class="form-control" id="infoDepartment" readonly></div> -->
-                            <div class="col-md-6"><label class="form-label fw-bold">Date Of Birth</label><input class="form-control" id="infoDOB" readonly></div>
-
-                            <div class="col-md-6"><label class="form-label fw-bold">Date Joining Nigam</label><input class="form-control" id="infoJoinNigam" readonly></div>
-                            <div class="col-md-6"><label class="form-label fw-bold">Joining Present Rank</label><input class="form-control" id="infoJoinRank" readonly></div>
-
-                            <div class="col-md-6"><label class="form-label fw-bold">Joining Present Station</label><input class="form-control" id="infoJoinStation" readonly></div>
-                            <div class="col-md-6"><label class="form-label fw-bold">Academic Qualification</label><input class="form-control" id="infoAcademic" readonly></div>
-
-                            <div class="col-md-6"><label class="form-label fw-bold">Technical Qualification</label><input class="form-control" id="infoTechnical" readonly></div>
-                            <div class="col-md-6"><label class="form-label fw-bold">Dept Exam Passed</label><input class="form-control" id="infoDeptExam" readonly></div>
-
-                            <div class="col-md-6"><label class="form-label fw-bold">Property Return Date</label><input class="form-control" id="infoPropertyReturn" readonly></div>
-                            <div class="col-md-6"><label class="form-label fw-bold">Last Medical Exam</label><input class="form-control" id="infoMedicalExam" readonly></div>
-
-                            <div class="col-md-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea class="form-control" id="infoCareerSummary" readonly></textarea></div>
-
+                        <div class="section-card">
+                            <div class="row g-3">
+    
+                                <div class="col-md-6"><label class="form-label fw-bold">Form Type</label><input class="form-control" id="infoFormType" readonly></div>
+                                <div class="col-md-6"><label class="form-label fw-bold">Status</label><input class="form-control" id="infoStatus" readonly></div>
+    
+                                <div class="col-md-6"><label class="form-label fw-bold">Officer</label><input class="form-control" id="infoOfficer" readonly></div>
+                                <div class="col-md-6"><label class="form-label fw-bold">Location</label><input class="form-control" id="infoLocation" readonly></div>
+    
+                                <div class="col-md-6"><label class="form-label fw-bold">Designation</label><input class="form-control" id="infoDesignation" readonly></div>
+                                <div class="col-md-6"><label class="form-label fw-bold">Posting From</label><input class="form-control" id="infoPostingFrom" readonly></div>
+    
+                                <div class="col-md-6"><label class="form-label fw-bold">Posting To</label><input class="form-control" id="infoPostingTo" readonly></div>
+                                <div class="col-md-6"><label class="form-label fw-bold">ACR Year</label><input class="form-control" id="infoAcrYear" readonly></div>
+    
+                                <!-- SAME AS OFFICER -->
+                                <!-- <div class="col-md-6"><label class="form-label fw-bold">Department</label><input class="form-control" id="infoDepartment" readonly></div> -->
+                                <div class="col-md-6"><label class="form-label fw-bold">Date Of Birth</label><input class="form-control" id="infoDOB" readonly></div>
+    
+                                <div class="col-md-6"><label class="form-label fw-bold">Date Joining Nigam</label><input class="form-control" id="infoJoinNigam" readonly></div>
+                                <div class="col-md-6"><label class="form-label fw-bold">Joining Present Rank</label><input class="form-control" id="infoJoinRank" readonly></div>
+    
+                                <div class="col-md-6"><label class="form-label fw-bold">Joining Present Station</label><input class="form-control" id="infoJoinStation" readonly></div>
+                                <div class="col-md-6"><label class="form-label fw-bold">Academic Qualification</label><input class="form-control" id="infoAcademic" readonly></div>
+    
+                                <div class="col-md-6"><label class="form-label fw-bold">Technical Qualification</label><input class="form-control" id="infoTechnical" readonly></div>
+                                <div class="col-md-6"><label class="form-label fw-bold">Dept Exam Passed</label><input class="form-control" id="infoDeptExam" readonly></div>
+    
+                                <div class="col-md-6"><label class="form-label fw-bold">Property Return Date</label><input class="form-control" id="infoPropertyReturn" readonly></div>
+                                <div class="col-md-6"><label class="form-label fw-bold">Last Medical Exam</label><input class="form-control" id="infoMedicalExam" readonly></div>
+    
+                                <div class="col-md-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea class="form-control" id="infoCareerSummary" readonly></textarea></div>
+    
+                            </div>
                         </div>
                     </div>
 
                     <div class="tab-pane fade" id="raTab">
-                        <h5>RA1 Assessment</h5>
-                        <div class="row">
-                            <div class="col-md-4"><label>Targets</label><input id="ra1Targets" class="form-control" readonly></div>
-                            <div class="col-md-4"><label>Quality</label><input id="ra1Quality" class="form-control" readonly></div>
-                            <div class="col-md-4"><label>Overall</label><input id="ra1Overall" class="form-control" readonly></div>
-                        </div>
-                        <div class="mt-2">
-                            <label>Remarks</label>
-                            <textarea id="ra1Remarks" class="form-control" readonly></textarea>
+                        <div class="rating-card">
+                            <h5>RA1 Assessment</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4"><label>Targets</label><input id="ra1Targets" class="form-control" readonly></div>
+                                <div class="col-md-4"><label>Quality</label><input id="ra1Quality" class="form-control" readonly></div>
+                                <div class="col-md-4"><label>Overall</label><input id="ra1Overall" class="form-control" readonly></div>
+                            </div>
+                            <div class="mt-3">
+                                <label>Remarks</label>
+                                <textarea id="ra1Remarks" class="form-control" readonly></textarea>
+                            </div>
                         </div>
 
-                        <div id="ra2Section" style="display:none;">
-                            <hr/>
-                            <h5 class="text-secondary mt-3">Second Reporting Officer (RA2)</h5>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label>Targets</label>
-                                    <input id="ra2Targets" class="form-control" readonly>
+                        <div id="ra2Section" style="display:none;" class="mt-3">
+                            <div class="rating-card">
+                                <h5>Second Reporting Officer (RA2)</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label>Targets</label>
+                                        <input id="ra2Targets" class="form-control" readonly>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label>Quality</label>
+                                        <input id="ra2Quality" class="form-control" readonly>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label>Overall</label>
+                                        <input id="ra2Overall" class="form-control" readonly>
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label>Quality</label>
-                                    <input id="ra2Quality" class="form-control" readonly>
+                                <div class="mt-3">
+                                    <label>Remarks</label>
+                                    <textarea id="ra2Remarks" class="form-control" readonly></textarea>
                                 </div>
-                                <div class="col-md-4">
-                                    <label>Overall</label>
-                                    <input id="ra2Overall" class="form-control" readonly>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <label>Remarks</label>
-                                <textarea id="ra2Remarks" class="form-control" readonly></textarea>
                             </div>
                         </div>
                     </div>
 
                     <!-- REVIEW TAB -->
                     <div class="tab-pane fade" id="reviewTab">
-                        <div class="alert alert-info mt-2" id="readonlyMsg" style="display:none;">
-                            This ACR is under accepting authority. You cannot edit now.
-                        </div>
-                        <!-- Q1 -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                1. Do you agree with the assessment... <span class="text-danger">*</span>
-                            </label>
-
-                            <div>
-                                <input type="radio" name="agree" value="true"> Yes
-                                <input type="radio" name="agree" value="false" class="ms-3"> No
+                        <div class="section-card">
+                            <div class="alert alert-info mt-2" id="readonlyMsg" style="display:none;">
+                                This ACR is under accepting authority. You cannot edit now.
                             </div>
-
-                            <small class="text-muted">
-                                If not agree, update values in respective section.
-                            </small>
+                            <!-- Q1 -->
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    1. Do you agree with the assessment... <span class="text-danger">*</span>
+                                </label>
+    
+                                <div>
+                                    <input type="radio" name="agree" value="true"> Yes
+                                    <input type="radio" name="agree" value="false" class="ms-3"> No
+                                </div>
+    
+                                <small class="text-muted">
+                                    If not agree, update values in respective section.
+                                </small>
+                            </div>
+    
+                            <!-- Q2 -->
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    2. Difference of opinion (Reason) <span class="text-danger">*</span>
+                                </label>
+                                <textarea id="txtReason" class="form-control"></textarea>
+                            </div>
+    
+                            <!-- Q3 -->
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    3. Comments of Reviewing Authority
+                                </label>
+                                <textarea id="txtComments" class="form-control"></textarea>
+                            </div>
+    
+                            <!-- Q4 -->
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    4. Overall Grade (1-10) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" id="txtGrade" class="form-control" min="1" max="10">
+                            </div>
+    
+                            <!-- BUTTONS -->
+                            <div class="text-end">
+                                <button class="btn btn-secondary" id="saveDraft">Save Draft</button>
+                                <button class="btn btn-success" id="submitReview">Submit</button>
+                            </div>
                         </div>
-
-                        <!-- Q2 -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                2. Difference of opinion (Reason) <span class="text-danger">*</span>
-                            </label>
-                            <textarea id="txtReason" class="form-control"></textarea>
-                        </div>
-
-                        <!-- Q3 -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                3. Comments of Reviewing Authority
-                            </label>
-                            <textarea id="txtComments" class="form-control"></textarea>
-                        </div>
-
-                        <!-- Q4 -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                4. Overall Grade (1-10) <span class="text-danger">*</span>
-                            </label>
-                            <input type="number" id="txtGrade" class="form-control" min="1" max="10">
-                        </div>
-
-                        <!-- BUTTONS -->
-                        <div class="text-end">
-                            <button class="btn btn-secondary" id="saveDraft">Save Draft</button>
-                            <button class="btn btn-success" id="submitReview">Submit</button>
-                        </div>
-
                     </div>
                 </div>
 
@@ -224,8 +300,17 @@ let reviewPageSize = 10;
 let reviewCurrentPage = 1;
 let isDirty = false;
 
+let reviewSortColumn = "";
+let reviewSortAsc = true;
+
 $(document).ready(function(){
     $("#reviewingDiv").show();
+    $("#reviewSearch").on("input", function () {
+        searchReviewingQueue($(this).val());
+    });
+    $("#reviewPageSizeSelect").on("change", function () {
+        changeReviewPageSize();
+    });
     loadReviewingQueue();
 });
 
@@ -250,16 +335,19 @@ function updateReviewInfo(start, end){
 }
 
 function searchReviewingQueue(value){
-
-    value = value.toLowerCase();
-
-    filteredReviewing = reviewingData.filter(a=>{
-        return a.FormType.toLowerCase().includes(value) ||
-               a.OfficerName.toLowerCase().includes(value) ||
-               a.Location.toLowerCase().includes(value) ||
-               a.Status.toLowerCase().includes(value);
-    });
-
+    value = (value || "").toLowerCase().trim();
+    if (!value) {
+        filteredReviewing = [...reviewingData];
+    } else {
+        filteredReviewing = reviewingData.filter(a => {
+            return (
+                (a.FormType || "").toLowerCase().includes(value) ||
+                (a.OfficerName || "").toLowerCase().includes(value) ||
+                (a.Location || "").toLowerCase().includes(value) ||
+                (a.Status || "").toLowerCase().includes(value)
+            );
+        });
+    }
     reviewCurrentPage = 1;
     renderReviewingTable();
 }
@@ -273,48 +361,78 @@ function gotoReviewPage(p){
     renderReviewingTable();
 }
 
-function renderReviewPagination(){
+function renderReviewPagination() {
+    const totalPages = Math.ceil(filteredReviewing.length / reviewPageSize);
+    const container = $("#reviewPagination");
+    container.empty();
 
-    // const totalPages = Math.ceil(filteredReviewing.length / reviewPageSize);
-    const totalPages = Math.max(1, Math.ceil(filteredReviewing.length / reviewPageSize));
-    let html = '';
+    if (totalPages <= 1) return;
 
-    html += `<li class="page-item ${reviewCurrentPage==1?'disabled':''}">
-                <a class="page-link" onclick="gotoReviewPage(${reviewCurrentPage-1})">Prev</a>
-             </li>`;
+    const prevDisabled = reviewCurrentPage === 1 ? "disabled" : "";
+    container.append(`
+        <li class="page-item ${prevDisabled}">
+            <a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(${reviewCurrentPage - 1})">Previous</a>
+        </li>
+    `);
 
-    for(let i=1;i<=totalPages;i++){
-        html += `<li class="page-item ${i==reviewCurrentPage?'active':''}">
-                    <a class="page-link" onclick="gotoReviewPage(${i})">${i}</a>
-                 </li>`;
+    const startPage = Math.max(1, reviewCurrentPage - 2);
+    const endPage = Math.min(totalPages, reviewCurrentPage + 2);
+
+    if (startPage > 1) {
+        container.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(1)">1</a></li>`);
+        if (startPage > 2) {
+            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
+        }
     }
 
-    html += `<li class="page-item ${reviewCurrentPage==totalPages?'disabled':''}">
-                <a class="page-link" onclick="gotoReviewPage(${reviewCurrentPage+1})">Next</a>
-             </li>`;
+    for (let i = startPage; i <= endPage; i++) {
+        const active = i === reviewCurrentPage ? "active" : "";
+        container.append(`
+            <li class="page-item ${active}">
+                <a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(${i})">${i}</a>
+            </li>
+        `);
+    }
 
-    $("#reviewPagination").html(html);
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
+        }
+        container.append(`
+            <li class="page-item">
+                <a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(${totalPages})">${totalPages}</a>
+            </li>
+        `);
+    }
+
+    const nextDisabled = reviewCurrentPage === totalPages ? "disabled" : "";
+    container.append(`
+        <li class="page-item ${nextDisabled}">
+            <a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(${reviewCurrentPage + 1})">Next</a>
+        </li>
+    `);
 }
 
-function renderReviewingTable(){
+// Using getCommonStatusBadge from constant.js
+var getReviewStatusBadge = getCommonStatusBadge;
 
+function renderReviewingTable() {
     const tbody = $("#reviewingBody");
     tbody.empty();
 
     const start = (reviewCurrentPage - 1) * reviewPageSize;
     const end = start + reviewPageSize;
-
     const pageData = filteredReviewing.slice(start, end);
 
-    if(pageData.length === 0){
+    if (pageData.length === 0) {
         tbody.append(`<tr><td colspan="5" class="text-center">No entries found</td></tr>`);
     } else {
-        pageData.forEach(a=>{
+        pageData.forEach(a => {
             tbody.append(`<tr>
-                <td>${a.FormType}</td>
-                <td>${a.OfficerName}</td>
-                <td>${a.Location}</td>
-                <td>${a.Status}</td>
+                <td>${a.FormType || ''}</td>
+                <td>${a.OfficerName || ''}</td>
+                <td>${a.Location || ''}</td>
+                <td>${getReviewStatusBadge(a.Status)}</td>
                 <td><button class="btn btn-info btn-sm" onclick="openReview('${a.AcrId}')">View</button></td>
             </tr>`);
         });
@@ -324,16 +442,18 @@ function renderReviewingTable(){
     renderReviewPagination();
 }
 
-function loadReviewingQueue(){
+function loadReviewingQueue() {
     $.ajax({
         url: BASE_URL + "api/acr/reviewing/my",
-        headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
-        success:function(res){
-            if(res.Success){
-                reviewingData = res.Data.AcrCycles;
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+        success: function (res) {
+            if (res.Success) {
+                reviewingData = (res.Data && res.Data.AcrCycles) ? res.Data.AcrCycles : [];
                 filteredReviewing = [...reviewingData];
                 reviewCurrentPage = 1;
-                renderReviewingTable();
+                reviewSortColumn = "OfficerName";
+                reviewSortAsc = true;
+                sortReviewingTable("OfficerName");
             }
         }
     });
@@ -389,20 +509,20 @@ function openReview(id){
             $("#infoFormType").val(d.FormType || '');
             $("#infoLocation").val(d.Location || '');
             $("#infoDesignation").val(d.Designation || '');
-            $("#infoPostingFrom").val(d.PostingFrom || '');
-            $("#infoPostingTo").val(d.PostingTo || '');
             $("#infoAcrYear").val(d.AcrYear || '');
 
-            $("#infoDepartment").val(d.Department || '');
+            $("#infoPostingFrom").val(formatDate(d.PostingFrom));
+            $("#infoPostingTo").val(formatDate(d.PostingTo));
+            $("#infoJoinNigam").val(formatDate(d.DateJoiningNigam));
+            $("#infoJoinRank").val(formatDate(d.DateJoiningPresentRank));
+            $("#infoJoinStation").val(formatDate(d.DateJoiningPresentStation));
+            $("#infoPropertyReturn").val(formatDate(d.PropertyReturnDate));
+            $("#infoMedicalExam").val(formatDate(d.LastMedicalExamDate));
+
             $("#infoDOB").val(formatDate(d.DateOfBirth));
-            $("#infoJoinNigam").val(d.DateJoiningNigam || '');
-            $("#infoJoinRank").val(d.DateJoiningPresentRank || '');
-            $("#infoJoinStation").val(d.DateJoiningPresentStation || '');
             $("#infoAcademic").val(d.AcademicQualification || '');
             $("#infoTechnical").val(d.TechnicalQualification || '');
             $("#infoDeptExam").val(d.DepartmentalExamPassed || '');
-            $("#infoPropertyReturn").val(d.PropertyReturnDate || '');
-            $("#infoMedicalExam").val(d.LastMedicalExamDate || '');
             $("#infoCareerSummary").val(d.CareerPostingSummary || '');
             if(d.Status === "PENDING_ACCEPTING"){
                 setReviewReadOnly(true);
@@ -434,53 +554,48 @@ function openReview(id){
 }
 
 function validateForm(){
-
     let valid = true;
 
     const agree = $("input[name='agree']:checked").val();
     const reason = $("#txtReason").val().trim();
-    // const grade = $("#txtGrade").val();
     const grade = Number($("#txtGrade").val());
 
-    $(".form-control").removeClass("is-invalid");
+    $("#txtReason, #txtGrade").removeClass("is-invalid");
 
-    if(!agree){
-        alert("Select Yes/No");
+    if (!agree) {
+        alert("Please select Yes or No.");
         return false;
     }
 
-    if(agree === "false" && !reason){
+    if (agree === "false" && !reason) {
         $("#txtReason").addClass("is-invalid");
         valid = false;
     }
 
-    if(!grade || grade < 1 || grade > 10){
+    if (!grade || grade < 1 || grade > 10) {
         $("#txtGrade").addClass("is-invalid");
         valid = false;
     }
-
     return valid;
 }
 
-$("#saveDraft").click(function(){
-
-    if($("#saveDraft").is(":hidden")) return;
+$("#saveDraft").click(function(e){
+    e.preventDefault();
+    if ($("#saveDraft").is(":hidden")) return;
     const agreeVal = $("input[name='agree']:checked").val();
-
     const payload = {
         AgreeWithRa: agreeVal ? (agreeVal === "true") : null,
         DisagreeDetails: $("#txtReason").val(),
         Comments: $("#txtComments").val(),
-        OverallGrade: Number($("#txtGrade").val())
+        OverallGrade: $("#txtGrade").val() ? Number($("#txtGrade").val()) : null
     };
-
     $.ajax({
-        url: BASE_URL+"api/acr/"+selectedAcrId+"/reviewing/draft",
-        type:'PATCH',
-        contentType:'application/json',
+        url: BASE_URL + "api/acr/" + selectedAcrId + "/reviewing/draft",
+        type: 'PATCH',
+        contentType: 'application/json',
         data: JSON.stringify(payload),
-        headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
-        success:function(res){
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+        success: function (res) {
             alert(res.Message);
             draftSaved = true;
             isDirty = false;
@@ -488,7 +603,8 @@ $("#saveDraft").click(function(){
     });
 });
 
-$("#submitReview").click(function(){
+$("#submitReview").click(function(e){
+    e.preventDefault();
 
     if($("#submitReview").is(":hidden")) return;
     if(isDirty && !draftSaved){
@@ -557,6 +673,22 @@ function setReviewReadOnly(isReadOnly){
         $("#submitReview").show();
         $("#readonlyMsg").hide(); // ✅ ADD
     }
+}
+
+function sortReviewingTable(col) {
+    reviewSortAsc = (reviewSortColumn === col) ? !reviewSortAsc : true;
+    reviewSortColumn = col;
+
+    filteredReviewing.sort((a, b) => {
+        let x = (a[col] || "").toString().toLowerCase();
+        let y = (b[col] || "").toString().toLowerCase();
+
+        if (x > y) return reviewSortAsc ? 1 : -1;
+        if (x < y) return reviewSortAsc ? -1 : 1;
+        return 0;
+    });
+
+    renderReviewingTable();
 }
 </script>
 
