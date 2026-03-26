@@ -24,6 +24,9 @@
             if (path.EndsWith("/home/dashboard"))
                 return true;
 
+            if (path.StartsWith("/web/shared"))
+                return true;
+
             switch (systemRole?.ToUpper())
             {
                 case "ADMIN":
@@ -61,7 +64,8 @@
                         || path.EndsWith("/home/officer")
                         || path.EndsWith("/home/dashboard")
                         || path.EndsWith("/home/reporting") 
-                        || path.EndsWith("/home/reviewing");
+                        || path.EndsWith("/home/reviewing")
+                        || path.EndsWith("/home/accepting");
 
                 default:
                     return false;

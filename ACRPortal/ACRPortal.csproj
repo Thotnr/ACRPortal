@@ -158,6 +158,7 @@
     <Compile Include="Controllers\Web\HomeController.cs" />
     <Compile Include="Controllers\Web\MastersController.cs" />
     <Compile Include="Controllers\Web\LoginController.cs" />
+    <Compile Include="Controllers\Web\SharedController.cs" />
     <Compile Include="Filters\JwtApiAuthFilter.cs" />
     <Compile Include="Filters\JwtMvcAuthFilter.cs" />
     <Compile Include="Filters\NoAuthAttribute.cs" />
