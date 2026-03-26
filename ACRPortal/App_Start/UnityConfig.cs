@@ -61,6 +61,9 @@ namespace ACRPortal
             // Both DocumentApiController and CcaDocumentApiController inject IDocumentUseCase
             container.RegisterType<IDocumentRepoPort, DocumentAdapter>();
             container.RegisterType<IDocumentUseCase, DocumentService>();
+
+            container.RegisterType<IDashboardRepoPort, DashboardAdapter>();
+            container.RegisterType<IDashboardUseCase, DashboardService>();
         }
     }
 }

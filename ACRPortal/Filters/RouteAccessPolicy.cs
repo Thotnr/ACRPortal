@@ -33,16 +33,10 @@
                     return path.StartsWith("/api/admin")
                         || path.StartsWith("/api/user/createuser")
                         || path.StartsWith("/admin")
+                        || path.StartsWith("/masters")
+                        || path.StartsWith("/api/dashboard")
                         || path.EndsWith("/home/dashboard")
                         || path.EndsWith("/home/cca")
-                        || path.EndsWith("/masters")
-                        || path.EndsWith("/masters/designation")
-                        || path.EndsWith("/masters/zone")
-                        || path.EndsWith("/masters/state")
-                        || path.EndsWith("/masters/circle")
-                        || path.EndsWith("/masters/division")
-                        || path.EndsWith("/masters/subdivision")
-                        || path.EndsWith("/masters/addemployee")
                         || path.EndsWith("/home/officer");
 
                 case "CCA":
@@ -56,6 +50,7 @@
                         || path.StartsWith("/api/admin/masters/divisions")
                         || path.StartsWith("/api/admin/masters/subdivisions")
                         || path.StartsWith("/api/admin/users")
+                        || path.StartsWith("/api/dashboard")
                         || path.EndsWith("/home/cca");
 
                 case "EMPLOYEE":
