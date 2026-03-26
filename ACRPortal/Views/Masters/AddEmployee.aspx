@@ -141,7 +141,7 @@ entries
 <tr>
 
 <!-- <th onclick="sortTable('DisplayName')">Name</th> -->
-<th onclick="sortTable('LoginId')">Login ID</th>
+<th onclick="sortTable('LoginId')">Login ID (HRMS)</th>
 <th>Email</th>
 <th>Phone</th>
 <th onclick="sortTable('Dsg')">Designation</th>
@@ -200,7 +200,7 @@ Fields marked with <span class="required-star">*</span> are required
 </div>
 
 <div class="col-md-6">
-<label>Login ID <span class="required-star">*</span></label>
+<label>Login ID (HRMS) <span class="required-star">*</span></label>
 <input type="text" id="loginId" class="form-control" required>
 </div>
 
