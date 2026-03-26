@@ -71,17 +71,6 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <div class="col-6"><label class="form-label fw-bold">Property Return Date</label><input type="text" id="viewPropertyReturn" class="form-control" readonly></div>
                         <div class="col-6"><label class="form-label fw-bold">Last Medical Exam</label><input type="text" id="viewMedicalExam" class="form-control" readonly></div>
                         <div class="col-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea id="viewCareerSummary" class="form-control" readonly></textarea></div>
-                        <!-- <div class="col-12">
-                            <h6>Documents</h6>
-                            <ul id="viewDocList" class="list-group"></ul>
-                        </div>
-                        <div class="col-12" id="ageDocUploadDiv" style="display:none;">
-                            <h6>Additional Document (Age 40+)</h6>
-                            <input type="file" class="form-control mb-2" id="ageDocFile">
-                            <button class="btn btn-sm btn-primary" id="ageDocUploadBtn">
-                                <i class="bi bi-upload"></i> Upload
-                            </button>
-                        </div> -->
                     </div>
                 </div>
 
@@ -143,6 +132,14 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                                 <input type="date" class="form-control" id="medicalComplianceDate">
                             </div>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select File</label>
+                        <input type="file" id="fuAutoUpload" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.docx" onchange="uploadFile(this)" />
+                        <input type="hidden" id="hdnUploadedFilePath" />
+                        <input type="hidden" id="hdnUploadedFileName" />
+                        <div id="uploadStatus" class="mt-2 small"></div>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
@@ -275,10 +272,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     if(res.Success){
                         const data = res.Data;
                         let age = calculateAge(data.DateOfBirth);
-                        if (age >= 40) {
-                            $('#ageDocUploadDiv').show();
+                        // Global flag
+                        window.isDocMandatory = age >= 40;
+                        if (window.isDocMandatory) {
+                            $('#docMandatoryMsg').show();
                         } else {
-                            $('#ageDocUploadDiv').hide();
+                            $('#docMandatoryMsg').hide();
                         }
                         if (data.Status && data.Status.toUpperCase() === 'PENDING_OFFICER') {
                             $('#saveDraftBtn').show();
@@ -407,6 +406,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         });
 
         $('#submitBtn').click(function () {
+            
             if (isFormChanged) {
                 alert("Please save draft before submitting updated data.");
                 return;
@@ -415,6 +415,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             if (!draftSaved) {
                 alert("Please save draft first.");
                 return;
+            }
+
+            if (window.isDocMandatory) {
+
+                let hasDoc = $('#docList li').length > 0 &&
+                            !$('#docList li').text().includes('No documents');
+
+                if (!hasDoc) {
+                    alert("Medical document is mandatory for age 40+");
+                    return;
+                }
             }
 
             if (!validateForm()) return;
@@ -435,29 +446,36 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             });
         });
 
-        // ---------------- Document Upload ----------------
-        $('#uploadDocBtn').click(function () {
-            var fileInput = $('#docFile')[0].files[0];
-            if (!fileInput) { alert('Select a file'); return; }
+        function callDocsApi(fileData) {
 
-            var docType = $('#docType').val() || 'SUPPORTING_DOC';
-            var formData = new FormData();
-            formData.append('docFile', fileInput);
-            formData.append('docType', docType);
+            var payload = {
+                FileUrl: fileData.FileUrl,
+                FileName: fileData.FileName,
+                DocumentType: "MEDICAL_REPORT"
+            };
 
             $.ajax({
-                url: 'ACROfficer.aspx/UploadDocument',  // call backend handler
+                url: `/api/acr/${selectedAcrId}/docs`,
                 type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+
                 success: function (res) {
-                    $('#uploadResult').html('Uploaded: ' + res.d);
-                    loadDocuments();
+
+                    if (res.Success) {
+                        $('#uploadStatus').html('✅ Document uploaded successfully');
+                        loadDocuments(); // refresh list
+                    } else {
+                        $('#uploadStatus').html('<span class="text-danger">' + res.Message + '</span>');
+                    }
+                },
+                error: function () {
+                    $('#uploadStatus').html('<span class="text-danger">API Error</span>');
                 }
             });
-        });
-
+        }
+        // ---------------- Document ----------------
         function loadDocuments() {
             $.ajax({
                 url: `/api/acr/${selectedAcrId}/docs`,
@@ -465,9 +483,19 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 success: function (res) {
                     if (res.Success) {
                         let list = '';
+
+                        if (!res.Data.Documents.length) {
+                            list = '<li class="list-group-item">No documents uploaded</li>';
+                        }
+
                         res.Data.Documents.forEach(d => {
-                            list += `<li>${d.FileName} (${d.DocumentType})</li>`;
+                            list += `
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <a href="${d.FileUrl}" target="_blank">${d.FileName}</a>
+                                    <span class="badge bg-secondary">${d.DocumentType}</span>
+                                </li>`;
                         });
+
                         $('#docList').html(list);
                     }
                 }
@@ -581,8 +609,61 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             return age;
         }
 
-        $('#acrDetailModal').on('hidden.bs.modal', function () {
-            $('#ageDocUploadDiv').hide();
-        });
+        function uploadFile(input) {
+            if (input.files.length === 0) return;
+
+            if (input.files[0].size > 5 * 1024 * 1024) { // 5 MB
+                alert("File size cannot exceed 5MB");
+                input.value = ""; // reset file input
+                return;
+            }
+            var allowedTypes = ["application/pdf", "image/png", "image/jpeg", 
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+
+            if (!allowedTypes.includes(input.files[0].type)) {
+                alert("Invalid file type!");
+                input.value = "";
+                return;
+            }
+            var formData = new FormData();
+            formData.append("file", input.files[0]);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/web/Shared/FileUploadHandler", true); // your upload handler endpoint
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    var percent = (e.loaded / e.total) * 100;
+                    console.log("Upload progress: " + percent.toFixed(2) + "%");
+                }
+            };
+
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    var res = JSON.parse(xhr.responseText);
+                    if (res.success) {
+                        document.getElementById('hdnUploadedFilePath').value = res.filePath;
+                        document.getElementById('hdnUploadedFileName').value = res.fileName;
+                        
+                        // 🔥 CHAIN TO YOUR DOCS API
+                        callDocsApi({
+                            FileUrl: res.filePath, 
+                            FileName: res.fileName
+                        });
+                        
+                        // Status message instead of alert
+                        $('#uploadStatus').html('✅ File uploaded successfully');
+                        loadDocuments(); // Refresh doc list
+                    } else {
+                        $('#uploadStatus').html('<span class="text-danger">Upload failed: ' + res.message + '</span>');
+                    }
+                } else {
+                    $('#uploadStatus').html('<span class="text-danger">Upload error!</span>');
+                }
+            };
+
+            xhr.send(formData);
+        }
+
     </script>
 </asp:Content>
