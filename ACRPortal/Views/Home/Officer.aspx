@@ -425,7 +425,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     $('#viewFormType').val(data.FormType || '');
                     $('#viewStatus').val(data.Status || '');
                     $('#viewLocation').val(data.Location || '');
-                    $('#viewDesignation').val(data.Designation || '');
+                    $('#viewDesignation').val(data.Dsg || '');
                     $('#viewPostingFrom').val(data.PostingFrom || '');
                     $('#viewPostingTo').val(data.PostingTo || '');
                     $('#viewAcrYear').val(data.AcrYear || '');
@@ -894,7 +894,7 @@ function searchTable(value) {
             return (
                 (a.FormType || '').toLowerCase().includes(value) ||
                 (a.Location || '').toLowerCase().includes(value) ||
-                (a.Designation || '').toLowerCase().includes(value) ||
+                (a.Dsg || '').toLowerCase().includes(value) ||
                 (a.PostingFrom || '').toLowerCase().includes(value) ||
                 (a.PostingTo || '').toLowerCase().includes(value) ||
                 (a.Status || '').toLowerCase().includes(value)
@@ -939,7 +939,7 @@ function getSortValue(item, col) {
     switch (col) {
         case 0: return item.FormType;
         case 1: return item.Location;
-        case 2: return item.Designation;
+        case 2: return item.Dsg;
         case 3: return item.PostingFrom;
         case 4: return item.PostingTo;
         case 5: return item.Status;
@@ -989,7 +989,7 @@ function renderAcrTable() {
         rows += `<tr>
             <td>${a.FormType || ''}</td>
             <td>${a.Location || ''}</td>
-            <td>${a.Designation || ''}</td>
+            <td>${a.Dsg || ''}</td>
             <td>${a.PostingFrom || ''}</td>
             <td>${a.PostingTo || ''}</td>
             <td>${getStatusBadge(a.Status)}</td>

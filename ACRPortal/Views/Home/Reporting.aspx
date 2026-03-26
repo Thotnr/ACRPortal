@@ -7,48 +7,125 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<style>
+    .page-title {
+        color: #0d6efd;
+        font-weight: 700;
+    }
+
+    #reportingQueueTable th {
+        white-space: nowrap;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    #reportingQueueTable td {
+        vertical-align: middle;
+    }
+
+    .modal-content {
+        border: 0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .modal-header.bg-primary {
+        background: linear-gradient(90deg, #0d6efd, #0b5ed7) !important;
+    }
+
+    .nav-tabs .nav-link {
+        font-weight: 600;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        border-color: #dee2e6 #dee2e6 #fff;
+    }
+
+    .form-label.fw-bold {
+        color: #344054;
+    }
+
+    .section-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px;
+        background: #fff;
+    }
+
+    #reportingPagination .page-link,
+    #paginationContainer .page-link {
+        cursor: pointer;
+    }
+
+    .rating-card {
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        background: #fff;
+        padding: 14px;
+        height: 100%;
+    }
+
+    .rating-card h5 {
+        color: #0d6efd;
+        font-size: 16px;
+        margin-bottom: 14px;
+        font-weight: 600;
+    }
+
+    .page-block {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+    }
+</style>
 
 <div class="container-fluid px-0" id="employeeReportingDiv" style="display:none;">
-    <h2 class="mb-4">Reporting Authority Dashboard</h2>
+    <h2 class="mb-4 page-title">Reporting Authority Dashboard</h2>
 
-    <div class="row mb-3">
-        <div class="col-md-3">
-            <input type="text" id="reportSearch" class="form-control" placeholder="Search ACR..." onkeyup="searchReportingQueue(this.value)">
-        </div>
-        <div class="col-md-3">
-            Show 
-            <select id="reportPageSizeSelect" class="form-select d-inline-block" style="width:80px;" onchange="changeReportingPageSize()">
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="30">30</option>
-                <option value="50">50</option>
-            </select>
-            entries
-        </div>
-        <div class="col-md-6 text-end" id="reportTableInfo"></div>
-    </div>
+    <div class="card shadow-sm border-0 page-block">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h5 class="mb-0 text-primary">
+                    <i class="bi bi-table"></i> Reporting Queue
+                </h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <!-- <input type="text" id="reportSearch" class="form-control" placeholder="Search ACR..." style="width:260px;"> -->
+                    <input type="text" id="acrSearchBox" class="form-control" placeholder="Search ACR..." style="width:260px;">
+                    <select id="reportPageSizeSelect" class="form-select" style="width:110px;">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
 
-    <!-- Reporting Queue Table -->
-    <div class="table-responsive">
-        <table class="table table-striped table-hover table-bordered" id="reportingQueueTable">
-            <thead class="table-primary">
-                <tr>
-                    <th>Form Type</th>
-                    <th>Officer</th>
-                    <th>Location</th>
-                    <th>Designation</th>
-                    <th>Posting From</th>
-                    <th>Posting To</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="reportingQueueBody"></tbody>
-        </table>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle mb-0" id="reportingQueueTable">
+                    <thead class="table-primary">
+                        <tr>
+                            <th onclick="sortReportingTable('FormType')">Form Type</th>
+                            <th onclick="sortReportingTable('OfficerName')">Officer</th>
+                            <th onclick="sortReportingTable('Location')">Location</th>
+                            <th onclick="sortReportingTable('Dsg')">Designation</th>
+                            <th onclick="sortReportingTable('PostingFrom')">Posting From</th>
+                            <th onclick="sortReportingTable('PostingTo')">Posting To</th>
+                            <th onclick="sortReportingTable('Status')">Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportingQueueBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <nav>
-        <ul class="pagination justify-content-center" id="reportingPagination"></ul>
-    </nav>
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+        <div id="reportTableInfo" class="small text-muted"></div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0" id="reportingPagination"></ul>
+        </nav>
+    </div>
 
     <!-- Reporting Modal -->
     <div class="modal fade" id="reportingModal" tabindex="-1" aria-labelledby="reportingLabel" aria-hidden="true">
@@ -75,36 +152,38 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     <div class="tab-content mt-3">
                         <!-- Info Tab -->
                         <div class="tab-pane fade show active" id="infoTab" role="tabpanel">
-                            <div class="row g-3">
-
-                                <div class="col-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="infoFormType" class="form-control" readonly></div>
-                                <div class="col-6"><label class="form-label fw-bold">Status</label><input type="text" id="infoStatus" class="form-control" readonly></div>
-
-                                <div class="col-6"><label class="form-label fw-bold">Officer Name</label><input type="text" id="infoOfficerName" class="form-control" readonly></div>
-                                <div class="col-6"><label class="form-label fw-bold">Location</label><input type="text" id="infoLocation" class="form-control" readonly></div>
-
-                                <div class="col-6"><label class="form-label fw-bold">Designation</label><input type="text" id="infoDesignation" class="form-control" readonly></div>
-                                <div class="col-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="infoPostingFrom" class="form-control" readonly></div>
-
-                                <div class="col-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="infoPostingTo" class="form-control" readonly></div>
-                                <div class="col-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="infoAcrYear" class="form-control" readonly></div>
-
-                                <!-- NEW FIELDS (same as Officer) -->
-                                <!-- <div class="col-6"><label class="form-label fw-bold">Department</label><input type="text" id="infoDepartment" class="form-control" readonly></div> -->
-                                <div class="col-6"><label class="form-label fw-bold">Date Of Birth</label><input type="text" id="infoDOB" class="form-control" readonly></div>
-
-                                <div class="col-6"><label class="form-label fw-bold">Date Joining Nigam</label><input type="text" id="infoJoinNigam" class="form-control" readonly></div>
-                                <div class="col-6"><label class="form-label fw-bold">Joining Present Rank</label><input type="text" id="infoJoinRank" class="form-control" readonly></div>
-
-                                <div class="col-6"><label class="form-label fw-bold">Joining Present Station</label><input type="text" id="infoJoinStation" class="form-control" readonly></div>
-                                <div class="col-6"><label class="form-label fw-bold">Academic Qualification</label><input type="text" id="infoAcademic" class="form-control" readonly></div>
-
-                                <div class="col-6"><label class="form-label fw-bold">Technical Qualification</label><input type="text" id="infoTechnical" class="form-control" readonly></div>
-                                <div class="col-6"><label class="form-label fw-bold">Dept Exam Passed</label><input type="text" id="infoDeptExam" class="form-control" readonly></div>
-
-                                <div class="col-6"><label class="form-label fw-bold">Property Return Date</label><input type="text" id="infoPropertyReturn" class="form-control" readonly></div>
-                                <div class="col-6"><label class="form-label fw-bold">Last Medical Exam</label><input type="text" id="infoMedicalExam" class="form-control" readonly></div>
-                                <div class="col-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea id="infoCareerSummary" class="form-control" readonly></textarea></div>
+                            <div class="section-card">
+                                <div class="row g-3">
+    
+                                    <div class="col-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="infoFormType" class="form-control" readonly></div>
+                                    <div class="col-6"><label class="form-label fw-bold">Status</label><input type="text" id="infoStatus" class="form-control" readonly></div>
+    
+                                    <div class="col-6"><label class="form-label fw-bold">Officer Name</label><input type="text" id="infoOfficerName" class="form-control" readonly></div>
+                                    <div class="col-6"><label class="form-label fw-bold">Location</label><input type="text" id="infoLocation" class="form-control" readonly></div>
+    
+                                    <div class="col-6"><label class="form-label fw-bold">Designation</label><input type="text" id="infoDesignation" class="form-control" readonly></div>
+                                    <div class="col-6"><label class="form-label fw-bold">Posting From</label><input type="text" id="infoPostingFrom" class="form-control" readonly></div>
+    
+                                    <div class="col-6"><label class="form-label fw-bold">Posting To</label><input type="text" id="infoPostingTo" class="form-control" readonly></div>
+                                    <div class="col-6"><label class="form-label fw-bold">ACR Year</label><input type="text" id="infoAcrYear" class="form-control" readonly></div>
+    
+                                    <!-- NEW FIELDS (same as Officer) -->
+                                    <!-- <div class="col-6"><label class="form-label fw-bold">Department</label><input type="text" id="infoDepartment" class="form-control" readonly></div> -->
+                                    <div class="col-6"><label class="form-label fw-bold">Date Of Birth</label><input type="text" id="infoDOB" class="form-control" readonly></div>
+    
+                                    <div class="col-6"><label class="form-label fw-bold">Date Joining Nigam</label><input type="text" id="infoJoinNigam" class="form-control" readonly></div>
+                                    <div class="col-6"><label class="form-label fw-bold">Joining Present Rank</label><input type="text" id="infoJoinRank" class="form-control" readonly></div>
+    
+                                    <div class="col-6"><label class="form-label fw-bold">Joining Present Station</label><input type="text" id="infoJoinStation" class="form-control" readonly></div>
+                                    <div class="col-6"><label class="form-label fw-bold">Academic Qualification</label><input type="text" id="infoAcademic" class="form-control" readonly></div>
+    
+                                    <div class="col-6"><label class="form-label fw-bold">Technical Qualification</label><input type="text" id="infoTechnical" class="form-control" readonly></div>
+                                    <div class="col-6"><label class="form-label fw-bold">Dept Exam Passed</label><input type="text" id="infoDeptExam" class="form-control" readonly></div>
+    
+                                    <div class="col-6"><label class="form-label fw-bold">Property Return Date</label><input type="text" id="infoPropertyReturn" class="form-control" readonly></div>
+                                    <div class="col-6"><label class="form-label fw-bold">Last Medical Exam</label><input type="text" id="infoMedicalExam" class="form-control" readonly></div>
+                                    <div class="col-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea id="infoCareerSummary" class="form-control" readonly></textarea></div>
+                                </div>
                             </div>
                         </div>
 
@@ -130,33 +209,51 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                                 Note: All ratings must be between <b>1 to 10</b>. Overall grade is auto-calculated.
                             </div>
                             <div class="row mt-3">
-                                <div class="col-md-12"><h5>Work Performance</h5></div>
-                                <div class="col-md-3"><label>Targets</label><input type="number" min="1" max="10" class="form-control rating-field" id="workTargets"></div>
-                                <div class="col-md-3"><label>Quality</label><input type="number" min="1" max="10" class="form-control rating-field" id="workQuality"></div>
-                                <div class="col-md-3"><label>Exceptional</label><input type="number" min="1" max="10" class="form-control rating-field" id="workExceptional"></div>
-                                <div class="col-md-3"><label>Overall</label><input type="number" step="0.01" class="form-control" id="workOverall" readonly></div>
+                                <div class="col-12">
+                                    <div class="rating-card">
+                                        <h5>Work Performance</h5>
+                                        <div class="row g-3">
+                                            <div class="col-md-3"><label>Targets</label><input type="number" min="1" max="10" class="form-control rating-field" id="workTargets"></div>
+                                            <div class="col-md-3"><label>Quality</label><input type="number" min="1" max="10" class="form-control rating-field" id="workQuality"></div>
+                                            <div class="col-md-3"><label>Exceptional</label><input type="number" min="1" max="10" class="form-control rating-field" id="workExceptional"></div>
+                                            <div class="col-md-3"><label>Overall</label><input type="number" step="0.01" class="form-control" id="workOverall" readonly></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="row mt-3">
-                                <div class="col-md-12"><h5>Attributes</h5></div>
-                                <div class="col-md-3"><label>Attitude</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrAttitude"></div>
-                                <div class="col-md-3"><label>Responsibility</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrResponsibility"></div>
-                                <div class="col-md-3"><label>Stability</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrStability"></div>
-                                <div class="col-md-3"><label>Communication</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrCommunication"></div>
-                                <div class="col-md-3"><label>Moral Courage</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrMoralCourage"></div>
-                                <div class="col-md-3"><label>Leadership</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrLeadership"></div>
-                                <div class="col-md-3"><label>Timeliness</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrTimeliness"></div>
-                                <div class="col-md-3"><label>Overall</label><input type="number" step="0.01" class="form-control" id="attrOverall" readonly></div>
+                                <div class="col-12">
+                                    <div class="rating-card">
+                                        <h5>Attributes</h5>
+                                        <div class="row g-3">
+                                            <div class="col-md-3"><label>Attitude</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrAttitude"></div>
+                                            <div class="col-md-3"><label>Responsibility</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrResponsibility"></div>
+                                            <div class="col-md-3"><label>Stability</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrStability"></div>
+                                            <div class="col-md-3"><label>Communication</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrCommunication"></div>
+                                            <div class="col-md-3"><label>Moral Courage</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrMoralCourage"></div>
+                                            <div class="col-md-3"><label>Leadership</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrLeadership"></div>
+                                            <div class="col-md-3"><label>Timeliness</label><input type="number" min="1" max="10" class="form-control rating-field" id="attrTimeliness"></div>
+                                            <div class="col-md-3"><label>Overall</label><input type="number" step="0.01" class="form-control" id="attrOverall" readonly></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="row mt-3">
-                                <div class="col-md-12"><h5>Competence</h5></div>
-                                <div class="col-md-3"><label>Knowledge</label><input type="number" min="1" max="10" class="form-control rating-field" id="compKnowledge"></div>
-                                <div class="col-md-3"><label>Planning</label><input type="number" min="1" max="10" class="form-control rating-field" id="compPlanning"></div>
-                                <div class="col-md-3"><label>Decision</label><input type="number" min="1" max="10" class="form-control rating-field" id="compDecision"></div>
-                                <div class="col-md-3"><label>Initiative</label><input type="number" min="1" max="10" class="form-control rating-field" id="compInitiative"></div>
-                                <div class="col-md-3"><label>Teamwork</label><input type="number" min="1" max="10" class="form-control rating-field" id="compTeamwork"></div>
-                                <div class="col-md-3"><label>Overall</label><input type="number" step="0.01" class="form-control" id="compOverall" readonly></div>
+                                <div class="col-12">
+                                    <div class="rating-card">
+                                        <h5>Competence</h5>
+                                        <div class="row g-3">
+                                            <div class="col-md-3"><label>Knowledge</label><input type="number" min="1" max="10" class="form-control rating-field" id="compKnowledge"></div>
+                                            <div class="col-md-3"><label>Planning</label><input type="number" min="1" max="10" class="form-control rating-field" id="compPlanning"></div>
+                                            <div class="col-md-3"><label>Decision</label><input type="number" min="1" max="10" class="form-control rating-field" id="compDecision"></div>
+                                            <div class="col-md-3"><label>Initiative</label><input type="number" min="1" max="10" class="form-control rating-field" id="compInitiative"></div>
+                                            <div class="col-md-3"><label>Teamwork</label><input type="number" min="1" max="10" class="form-control rating-field" id="compTeamwork"></div>
+                                            <div class="col-md-3"><label>Overall</label><input type="number" step="0.01" class="form-control" id="compOverall" readonly></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="row mt-3">
@@ -201,14 +298,25 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     let reportCurrentPage = 1;
     let reportSortColumn = "";
     let reportSortAsc = true;
+
 $(document).ready(function(){
     const role = localStorage.getItem('role');
-    if(role !== "EMPLOYEE"){
+    if (role !== "EMPLOYEE") {
         alert("Access denied. Only EMPLOYEE can access this page.");
         window.location.href = BASE_URL + "Home/Dashboard";
         return;
     }
+
     $("#employeeReportingDiv").show();
+
+    $("#acrSearchBox").on("input", function () {
+        searchReportingQueue($(this).val());
+    });
+
+    $("#reportPageSizeSelect").on("change", function () {
+        changeReportingPageSize();
+    });
+
     loadReportingQueue();
 });
 
@@ -224,6 +332,9 @@ function loadReportingQueue(){
                 reportingData = res.Data.AcrCycles;
                 filteredReporting = [...reportingData];
                 reportCurrentPage = 1;
+                reportSortColumn = "OfficerName";
+                reportSortAsc = true;
+                filteredReporting.sort((a, b) => ((a.OfficerName || "").localeCompare(b.OfficerName || "")));
                 renderReportingTable();
             } else alert(res.Message);
         }
@@ -302,13 +413,13 @@ function renderReportingTable(){
     } else {
         pageData.forEach(a => {
             tbody.append(`<tr>
-                <td>${a.FormType}</td>
-                <td>${a.OfficerName}</td>
-                <td>${a.Location}</td>
-                <td>${a.Designation}</td>
-                <td>${a.PostingFrom}</td>
-                <td>${a.PostingTo}</td>
-                <td>${a.Status}</td>
+                <td>${a.FormType || ''}</td>
+                <td>${a.OfficerName || ''}</td>
+                <td>${a.Location || ''}</td>
+                <td>${a.Dsg || ''}</td>
+                <td>${a.PostingFrom || ''}</td>
+                <td>${a.PostingTo || ''}</td>
+                <td>${getReportingStatusBadge(a.Status)}</td>
                 <td><button class="btn btn-sm btn-info" onclick="viewReportingAcr('${a.AcrId}')"><i class="bi bi-eye"></i> View</button></td>
             </tr>`);
         });
@@ -329,18 +440,54 @@ function updateReportingInfo(start, end){
 
 function renderReportingPagination(){
     const totalPages = Math.ceil(filteredReporting.length / reportPageSize);
-    let html = `<li class="page-item ${reportCurrentPage==1?'disabled':''}">
-                    <a class="page-link" onclick="gotoReportingPage(${reportCurrentPage-1})">Prev</a>
-                </li>`;
-    for(let i=1;i<=totalPages;i++){
-        html += `<li class="page-item ${i==reportCurrentPage?'active':''}">
-                    <a class="page-link" onclick="gotoReportingPage(${i})">${i}</a>
-                 </li>`;
+    const container = $("#reportingPagination");
+    container.empty();
+
+    if (totalPages <= 1) return;
+
+    const prevDisabled = reportCurrentPage === 1 ? "disabled" : "";
+    container.append(`
+        <li class="page-item ${prevDisabled}">
+            <a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(${reportCurrentPage - 1})">Previous</a>
+        </li>
+    `);
+
+    const startPage = Math.max(1, reportCurrentPage - 2);
+    const endPage = Math.min(totalPages, reportCurrentPage + 2);
+
+    if (startPage > 1) {
+        container.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(1)">1</a></li>`);
+        if (startPage > 2) {
+            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
+        }
     }
-    html += `<li class="page-item ${reportCurrentPage==totalPages?'disabled':''}">
-                <a class="page-link" onclick="gotoReportingPage(${reportCurrentPage+1})">Next</a>
-             </li>`;
-    $("#reportingPagination").html(html);
+
+    for (let i = startPage; i <= endPage; i++) {
+        const active = i === reportCurrentPage ? "active" : "";
+        container.append(`
+            <li class="page-item ${active}">
+                <a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(${i})">${i}</a>
+            </li>
+        `);
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
+        }
+        container.append(`
+            <li class="page-item">
+                <a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(${totalPages})">${totalPages}</a>
+            </li>
+        `);
+    }
+
+    const nextDisabled = reportCurrentPage === totalPages ? "disabled" : "";
+    container.append(`
+        <li class="page-item ${nextDisabled}">
+            <a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(${reportCurrentPage + 1})">Next</a>
+        </li>
+    `);
 }
 
 function gotoReportingPage(p){
@@ -356,28 +503,42 @@ function changeReportingPageSize(){
     renderReportingTable();
 }
 
-function searchReportingQueue(value){
-    value = value.toLowerCase();
-    filteredReporting = reportingData.filter(a => {
-        return a.FormType.toLowerCase().includes(value) ||
-               a.OfficerName.toLowerCase().includes(value) ||
-               a.Location.toLowerCase().includes(value) ||
-               a.Designation.toLowerCase().includes(value) ||
-               a.Status.toLowerCase().includes(value);
-    });
+function searchReportingQueue(value) {
+    value = (value || "").toLowerCase().trim();
+
+    if (!value) {
+        filteredReporting = [...reportingData];
+    } else {
+        filteredReporting = reportingData.filter(a => {
+            return (
+                (a.FormType || "").toLowerCase().includes(value) ||
+                (a.OfficerName || "").toLowerCase().includes(value) ||
+                (a.Location || "").toLowerCase().includes(value) ||
+                (a.Dsg || "").toLowerCase().includes(value) ||
+                (a.PostingFrom || "").toLowerCase().includes(value) ||
+                (a.PostingTo || "").toLowerCase().includes(value) ||
+                (a.Status || "").toLowerCase().includes(value)
+            );
+        });
+    }
+
     reportCurrentPage = 1;
     renderReportingTable();
 }
 
-function sortReportingTable(col){
+function sortReportingTable(col) {
     reportSortAsc = (reportSortColumn === col) ? !reportSortAsc : true;
     reportSortColumn = col;
-    filteredReporting.sort((a,b) => {
-        let x = a[col], y = b[col];
-        if(x>y) return reportSortAsc?1:-1;
-        if(x<y) return reportSortAsc?-1:1;
+
+    filteredReporting.sort((a, b) => {
+        let x = (a[col] || "").toString().toLowerCase();
+        let y = (b[col] || "").toString().toLowerCase();
+
+        if (x > y) return reportSortAsc ? 1 : -1;
+        if (x < y) return reportSortAsc ? -1 : 1;
         return 0;
     });
+
     renderReportingTable();
 }
 
@@ -399,6 +560,7 @@ let reportingModal = new bootstrap.Modal(document.getElementById('reportingModal
 
 function viewReportingAcr(acrId){
     selectedAcrId = acrId;
+    draftSaved = false;
     $.ajax({
         url: BASE_URL + "api/acr/"+acrId+"/reporting",
         headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
@@ -411,20 +573,19 @@ function viewReportingAcr(acrId){
                 $("#infoStatus").val(data.Status);
                 $("#infoOfficerName").val(data.Officer.DisplayName);
                 $("#infoLocation").val(data.Location);
-                $("#infoDesignation").val(data.Designation);
-                $("#infoPostingFrom").val(data.PostingFrom);
-                $("#infoPostingTo").val(data.PostingTo);
+                $("#infoDesignation").val(data.Dsg);
+                $("#infoPostingFrom").val(formatDate(data.PostingFrom));
+                $("#infoPostingTo").val(formatDate(data.PostingTo));
                 $("#infoAcrYear").val(data.AcrYear);
-                $("#infoDepartment").val(data.Department || '');
                 $("#infoDOB").val(formatDate(data.DateOfBirth) || '');
-                $("#infoJoinNigam").val(data.DateJoiningNigam || '');
-                $("#infoJoinRank").val(data.DateJoiningPresentRank || '');
-                $("#infoJoinStation").val(data.DateJoiningPresentStation || '');
+                $("#infoJoinNigam").val(formatDate(data.DateJoiningNigam) || '');
+                $("#infoJoinRank").val(formatDate(data.DateJoiningPresentRank) || '');
+                $("#infoJoinStation").val(formatDate(data.DateJoiningPresentStation) || '');
                 $("#infoAcademic").val(data.AcademicQualification || '');
                 $("#infoTechnical").val(data.TechnicalQualification || '');
                 $("#infoDeptExam").val(data.DepartmentalExamPassed || '');
-                $("#infoPropertyReturn").val(data.PropertyReturnDate || '');
-                $("#infoMedicalExam").val(data.LastMedicalExamDate || '');
+                $("#infoPropertyReturn").val(formatDate(data.PropertyReturnDate) || '');
+                $("#infoMedicalExam").val(formatDate(data.LastMedicalExamDate) || '');
                 $("#infoCareerSummary").val(data.CareerPostingSummary || '');
 
                 // --- Populate Assessment Draft ---
@@ -459,9 +620,6 @@ function viewReportingAcr(acrId){
                 $("#compOverall").val(ra.CompOverall);
                 $("#overallGrade").val(ra.OverallGrade);
 
-                // --- Load Documents ---
-                loadReportingDocs();
-
                 // Activate first tab
                 const firstTab=new bootstrap.Tab(document.querySelector('#info-tab'));
                 firstTab.show();
@@ -472,86 +630,57 @@ function viewReportingAcr(acrId){
     });
 }
 
-function loadReportingDocs(){
-    $.ajax({
-        url: BASE_URL+"api/acr/"+selectedAcrId+"/docs",
-        headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
-        success:function(res){
-            if(res.Success){
-                let list='';
-                res.Data.Documents.forEach(d=>{
-                    list += `<li class="list-group-item">${d.FileName} (${d.DocumentType}) 
-                    <button class="btn btn-sm btn-danger float-end" onclick="deleteDoc('${d.DocumentId}')">Delete</button></li>`;
-                });
-                $("#docList").html(list);
-            }
-        }
-    });
-}
-
 $("#uploadDocBtn").click(function(){
-    const file=$("#docFile")[0].files[0];
-    if(!file){ alert("Select a file"); return;}
-    // Upload to storage first, then POST /api/acr/{acrId}/docs
-    alert("File upload integration pending"); // Implement as per storage flow
+    // const file=$("#docFile")[0].files[0];
+    // if(!file){ alert("Select a file"); return;}
+    // // Upload to storage first, then POST /api/acr/{acrId}/docs
+    // alert("File upload integration pending"); // Implement as per storage flow
 });
 
-function deleteDoc(docId){
-    if(!confirm("Delete this document?")) return;
-    $.ajax({
-        url: BASE_URL+"api/acr/"+selectedAcrId+"/docs/"+docId,
-        type:'DELETE',
-        headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
-        success:function(res){
-            if(res.Success) loadReportingDocs();
-            else alert(res.Message);
-        }
-    });
-}
+$("#saveDraftBtn").click(function(e){
+    e.preventDefault();
 
-$("#saveDraftBtn").click(function(){
-    if (!validateReportingForm()) return;
-
-    const draft={
-        AgreeWithSelf: $("#agreeWithSelf").val()==='true',
+    const draft = {
+        AgreeWithSelf: $("#agreeWithSelf").val() === 'true',
         DisagreeDetails: $("#disagreeDetails").val(),
         IntegrityComments: $("#integrityComments").val(),
         Remarks: $("#remarks").val(),
-        WorkTargets: Number($("#workTargets").val()),
-        WorkQuality: Number($("#workQuality").val()),
-        WorkExceptional: Number($("#workExceptional").val()),
-        WorkOverall: Number($("#workOverall").val()),
-        AttrAttitude: Number($("#attrAttitude").val()),
-        AttrResponsibility: Number($("#attrResponsibility").val()),
-        AttrStability: Number($("#attrStability").val()),
-        AttrCommunication: Number($("#attrCommunication").val()),
-        AttrMoralCourage: Number($("#attrMoralCourage").val()),
-        AttrLeadership: Number($("#attrLeadership").val()),
-        AttrTimeliness: Number($("#attrTimeliness").val()),
-        AttrOverall: Number($("#attrOverall").val()),
-        CompKnowledge: Number($("#compKnowledge").val()),
-        CompPlanning: Number($("#compPlanning").val()),
-        CompDecision: Number($("#compDecision").val()),
-        CompInitiative: Number($("#compInitiative").val()),
-        CompTeamwork: Number($("#compTeamwork").val()),
-        CompOverall: Number($("#compOverall").val()),
-        OverallGrade: Number($("#overallGrade").val())
+        WorkTargets: Number($("#workTargets").val() || 0),
+        WorkQuality: Number($("#workQuality").val() || 0),
+        WorkExceptional: Number($("#workExceptional").val() || 0),
+        WorkOverall: Number($("#workOverall").val() || 0),
+        AttrAttitude: Number($("#attrAttitude").val() || 0),
+        AttrResponsibility: Number($("#attrResponsibility").val() || 0),
+        AttrStability: Number($("#attrStability").val() || 0),
+        AttrCommunication: Number($("#attrCommunication").val() || 0),
+        AttrMoralCourage: Number($("#attrMoralCourage").val() || 0),
+        AttrLeadership: Number($("#attrLeadership").val() || 0),
+        AttrTimeliness: Number($("#attrTimeliness").val() || 0),
+        AttrOverall: Number($("#attrOverall").val() || 0),
+        CompKnowledge: Number($("#compKnowledge").val() || 0),
+        CompPlanning: Number($("#compPlanning").val() || 0),
+        CompDecision: Number($("#compDecision").val() || 0),
+        CompInitiative: Number($("#compInitiative").val() || 0),
+        CompTeamwork: Number($("#compTeamwork").val() || 0),
+        CompOverall: Number($("#compOverall").val() || 0),
+        OverallGrade: Number($("#overallGrade").val() || 0)
     };
+
     $.ajax({
-        url: BASE_URL+"api/acr/"+selectedAcrId+"/reporting/draft",
-        type:'PATCH',
-        contentType:'application/json',
+        url: BASE_URL + "api/acr/" + selectedAcrId + "/reporting/draft",
+        type: 'PATCH',
+        contentType: 'application/json',
         data: JSON.stringify(draft),
         headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
         success:function(res){
             alert(res.Message);
-            draftSaved=true;
+            draftSaved = true;
         }
     });
 });
 
-$("#submitBtn").click(function(){
-
+$("#submitBtn").click(function(e){
+    e.preventDefault();
     if($("#submitBtn").is(":hidden")) return;
     // ✅ Must save draft first
     if(!draftSaved){ 
@@ -614,6 +743,21 @@ $(document).on("input", ".rating-field", function(){
         $(this).val('');
     }
 });
+
+function getReportingStatusBadge(status) {
+    switch (status) {
+        case 'PENDING_REPORTING':
+            return '<span class="badge bg-warning text-dark">Pending</span>';
+        case 'PENDING_REVIEWING':
+            return '<span class="badge bg-info text-dark">Forwarded</span>';
+        case 'APPROVED':
+            return '<span class="badge bg-success">Approved</span>';
+        case 'REJECTED':
+            return '<span class="badge bg-danger">Rejected</span>';
+        default:
+            return '<span class="badge bg-secondary">' + (status || '--') + '</span>';
+    }
+}
 
 </script>
 </asp:Content>
