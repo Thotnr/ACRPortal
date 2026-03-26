@@ -148,6 +148,7 @@
     <Compile Include="Controllers\Api\AdminMastersController.cs" />
     <Compile Include="Controllers\Api\AuthController.cs" />
     <Compile Include="Controllers\Api\Ccaapicontroller.cs" />
+    <Compile Include="Controllers\Api\DashboardApiController.cs" />
     <Compile Include="Controllers\Api\Documentapicontroller.cs" />
     <Compile Include="Controllers\Api\OfficerApiController.cs" />
     <Compile Include="Controllers\Api\ReportingApiController.cs" />
