@@ -60,9 +60,9 @@ namespace ACRPortal
                 defaults: new { controller = "Masters", action = "State" }
             );
 
-            routes.MapRoute(
-                name: "SharedUpload",
-                url: "web/Shared/FileUploadHandler",
+            _ = routes.MapRoute(
+                name: "FileUpload",
+                url: "Web/Shared/FileUploadHandler",  // ✅ Fixed
                 defaults: new { controller = "Shared", action = "FileUploadHandler" }
             );
 
