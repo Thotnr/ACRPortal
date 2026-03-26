@@ -14,6 +14,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string FormType { get; set; }   // 'A1a' | 'A1b' | 'A2'
         public string Department { get; set; }
         public string Location { get; set; }
+        public string Dsg { get; set; }
         public string PostingFrom { get; set; }   // yyyy-MM-dd
         public string PostingTo { get; set; }   // yyyy-MM-dd
         public int AcrYear { get; set; }
@@ -121,7 +122,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string Status { get; set; }
         public string Department { get; set; }
         public string Location { get; set; }
-        public string Designation { get; set; }
+        public string Dsg { get; set; }
         public string PostingFrom { get; set; }   // yyyy-MM-dd
         public string PostingTo { get; set; }   // yyyy-MM-dd
         public int AcrYear { get; set; }
