@@ -309,20 +309,25 @@ var res=tryParseJson(xhr.responseText);
 if(res && res.Success){
 
 var token = res.Data.Token;
+var userRole = res.Data.SystemRole;
 debugger;
 localStorage.setItem("token", token);
 localStorage.setItem("displayName", res.Data.DisplayName);
-localStorage.setItem("role", res.Data.SystemRole);
+localStorage.setItem("role", userRole);
 localStorage.setItem("tokenExpiry", res.Data.ExpiresAt);
 
-window.location.href='@Url.Action("Dashboard","Home")';
 document.cookie="jwt_token="+token+"; path=/; SameSite=Strict";
 toastr.success("Login successful");
 
+// Redirect based on user role
+var redirectUrl = '@Url.Action("Dashboard","Home")'; // Default for ADMIN/CCA
+
+if(userRole === 'EMPLOYEE') {
+redirectUrl = '@Url.Action("Officer","Home")';
+}
+
 setTimeout(function(){
-
-window.location.href='@Url.Action("Dashboard","Home")';
-
+window.location.href = redirectUrl;
 },500);
 
 }

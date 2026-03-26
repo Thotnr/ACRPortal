@@ -389,6 +389,7 @@ $("#menuOfficer").hide();
 $("#menuReporting").hide();
 $("#menuReviewing").hide();
 $("#menuAccepting").hide();
+$("#menuDashboard").hide();
 
 if(role === "ADMIN"){
     // show Masters + all menus
@@ -396,12 +397,14 @@ if(role === "ADMIN"){
     $("#mastersSubmenu").show();
     $("#menuCCA").hide();
     $("#menuReports").show();
+    $("#menuDashboard").show();
 }
 else if(role === "CCA"){
     // only CCA menu
     $("#menuCCA").show();
     $("#mastersToggle").hide();
     $("#menuReports").hide();
+    $("#menuDashboard").show();
 }
 else if(role === "EMPLOYEE"){
     // only dashboard
@@ -412,6 +415,7 @@ else if(role === "EMPLOYEE"){
     $("#menuReporting").show();
     $("#menuReviewing").show();
     $("#menuAccepting").show();
+    $("#menuDashboard").hide();
 }
 /* username */
 
