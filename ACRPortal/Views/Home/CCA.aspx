@@ -8,23 +8,226 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 <script src="<%= Url.Content("~/assets/js/lib/select2.min.js") %>"></script>
 
 <style>
-#ccaTable { font-size:14px; }
-#ccaTable th { cursor:pointer; font-weight:600; }
+    .cca-page {
+        --cca-navy: #15314b;
+        --cca-blue: #2563eb;
+        --cca-cyan: #06b6d4;
+        --cca-green: #10b981;
+        --cca-amber: #f59e0b;
+        --cca-surface: rgba(255, 255, 255, 0.95);
+        --cca-line: rgba(15, 23, 42, 0.08);
+        --cca-muted: #64748b;
+        --cca-ink: #1e293b;
+        --cca-shadow: 0 24px 45px rgba(15, 23, 42, 0.08);
+        position: relative;
+        padding: 6px 0 18px;
+        color: var(--cca-ink);
+    }
 
-.status-badge { padding:4px 10px; border-radius:15px; font-size:12px; }
+    .cca-page:before,
+    .cca-page:after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(12px);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .cca-page:before {
+        width: 210px;
+        height: 210px;
+        top: 0;
+        right: 8%;
+        background: rgba(37, 99, 235, 0.12);
+    }
+
+    .cca-page:after {
+        width: 180px;
+        height: 180px;
+        left: 3%;
+        bottom: 6%;
+        background: rgba(6, 182, 212, 0.1);
+    }
+
+    .cca-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        padding: 28px 30px;
+        margin-bottom: 22px;
+        background:
+            radial-gradient(circle at top right, rgba(255,255,255,0.15), transparent 30%),
+            linear-gradient(135deg, #15314b 0%, #2346a8 50%, #0ea5e9 100%);
+        box-shadow: 0 28px 50px rgba(37, 99, 235, 0.2);
+        color: #fff;
+    }
+
+    .cca-hero:after {
+        content: "";
+        position: absolute;
+        width: 260px;
+        height: 260px;
+        top: -120px;
+        right: -70px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.05);
+    }
+
+    .cca-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.12);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .cca-title {
+        margin: 16px 0 10px;
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .cca-subtitle {
+        max-width: 720px;
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.7;
+        color: rgba(255,255,255,0.84);
+    }
+
+    .cca-hero-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        height: 100%;
+    }
+
+    .btn-raise-appraisal {
+        border: 0;
+        border-radius: 16px;
+        padding: 12px 18px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ffffff, #dbeafe);
+        color: #15314b;
+        box-shadow: 0 20px 35px rgba(15, 23, 42, 0.18);
+    }
+
+    .btn-raise-appraisal:hover,
+    .btn-raise-appraisal:focus {
+        background: linear-gradient(135deg, #ffffff, #eff6ff);
+        color: #15314b;
+    }
+
+    .cca-shell-card {
+        background: var(--cca-surface);
+        border: 1px solid rgba(255,255,255,0.75);
+        border-radius: 24px;
+        box-shadow: var(--cca-shadow);
+    }
+
+    .cca-toolbar {
+        padding: 22px;
+        margin-bottom: 18px;
+    }
+
+    .cca-toolbar-title {
+        margin: 0 0 6px;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .cca-toolbar-copy {
+        margin: 0;
+        font-size: 14px;
+        color: var(--cca-muted);
+    }
+
+    .search-wrap {
+        position: relative;
+    }
+
+    .search-wrap i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+
+    .search-input {
+        height: 48px;
+        padding-left: 42px;
+        border-radius: 14px;
+        border: 1px solid var(--cca-line);
+        background: #f8fbff;
+    }
+
+    .cca-table-card {
+        overflow: hidden;
+    }
+
+#ccaTable { font-size:14px; }
+#ccaTable {
+    margin-bottom: 0;
+}
+#ccaTable th {
+    cursor:pointer;
+    font-weight:700;
+    font-size: 12px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    border-top: 0;
+    border-bottom: 0;
+}
+#ccaTable thead.thead-dark th {
+    background: linear-gradient(135deg, #15314b, #2346a8);
+    color: #fff;
+}
+#ccaTable td {
+    vertical-align: middle;
+    padding: 16px 14px;
+    border-color: rgba(15, 23, 42, 0.06);
+}
+#ccaTable tbody tr:hover {
+    background: rgba(37, 99, 235, 0.04);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding:6px 11px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight: 700;
+}
 .status-draft { background:#e2e3e5; color:#41464b; }
 .status-pending { background:#fff3cd; color:#856404; }
 .status-progress { background:#cfe2ff; color:#084298; }
 .status-completed { background:#d1e7dd; color:#0f5132; }
 .status-rejected { background:#f8d7da; color:#842029; }
 
-.modal-body { max-height:80vh; overflow-y:auto; }
+.modal-body {
+    max-height:80vh;
+    overflow-y:auto;
+    background:
+        radial-gradient(circle at top right, rgba(37,99,235,0.05), transparent 24%),
+        #f8fbff;
+}
 .modal-dialog { margin-top:30px; }
 
 .modal-header {
-    background: #0d6efd;
+    background: linear-gradient(135deg, #15314b, #2563eb);
     color: #fff;
     border-bottom: 0;
+    padding: 18px 24px;
 }
 .modal-header .close {
     color: #fff;
@@ -33,15 +236,19 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 }
 
 .modal-content {
-    border-radius: 10px;
+    border-radius: 24px;
     overflow: hidden;
+    border: 0;
+    box-shadow: 0 28px 60px rgba(15, 23, 42, 0.18);
 }
 
 .ccaFormClass h5 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 14px;
-    color: #2f3a45;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: #2563eb;
+    letter-spacing: .08em;
+    text-transform: uppercase;
 }
 
 .form-group label {
@@ -53,22 +260,33 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 .form-control,
 .select2-container .select2-selection--single {
-    border-radius: 6px !important;
+    border-radius: 12px !important;
+}
+
+.form-control {
+    min-height: 44px;
+    border-color: rgba(15, 23, 42, 0.12);
+    background: #fff;
+}
+
+.form-control:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12);
 }
 
 .select2-container .select2-selection--single {
-    height: 38px !important;
-    border: 1px solid #ced4da !important;
+    height: 44px !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
     background: #fff !important;
 }
 
 .select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 36px !important;
-    padding-left: 10px !important;
+    line-height: 42px !important;
+    padding-left: 12px !important;
 }
 
 .select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 36px !important;
+    height: 42px !important;
 }
 
 .auto-filled {
@@ -82,110 +300,188 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     margin-top: 4px;
 }
 
-.ccaFormClass { padding:0 20px 20px 20px; }
+.ccaFormClass {
+    padding: 4px 10px 8px;
+}
 
 .select2-container .select2-selection--single {
-    height: 38px !important;
-    padding: 5px 10px;
+    height: 44px !important;
+    padding: 8px 10px;
 }
 .select2-container--default .select2-selection--single .select2-selection__rendered {
     line-height: 28px;
 }
 .select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 36px;
+    height: 42px;
 }
 
-.upload-box {
-    border: 1px dashed #ced4da;
-    border-radius: 8px;
-    padding: 15px;
-    background: #fafafa;
-}
-.file-pill {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    padding:10px 12px;
-    border:1px solid #dee2e6;
-    border-radius:8px;
-    background:#fff;
-}
-.file-name-wrap {
-    min-width:0;
-}
-.file-name-wrap .file-name {
-    font-weight:600;
-    word-break:break-word;
-}
-.file-name-wrap .file-meta {
-    font-size:12px;
-    color:#6c757d;
-}
-.readonly-mask {
-    pointer-events:none;
-    opacity:.8;
-}
 .text-required { color:#dc3545; }
 #paginationContainer .page-link {
     cursor: pointer;
+    border-radius: 10px;
+    margin: 0 2px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    color: #1d4ed8;
+}
+
+#paginationContainer .page-item.active .page-link {
+    background: linear-gradient(135deg, #2563eb, #0ea5e9);
+    border-color: transparent;
+}
+
+.cca-form-section {
+    background: rgba(255,255,255,0.88);
+    border: 1px solid rgba(219, 234, 254, 0.9);
+    border-radius: 20px;
+    padding: 20px 20px 6px;
+    margin-bottom: 18px;
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.05);
+}
+
+.cca-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.cca-actions .btn {
+    min-width: 160px;
+    border-radius: 14px;
+    font-weight: 700;
+    padding: 11px 18px;
+}
+
+.cca-table-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px 22px;
+    flex-wrap: wrap;
+}
+
+.authority-status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--cca-muted);
+}
+
+@media (max-width: 991.98px) {
+    .cca-hero-actions {
+        justify-content: flex-start;
+        margin-top: 18px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .cca-title {
+        font-size: 28px;
+    }
+
+    .cca-hero {
+        padding: 24px 22px;
+        border-radius: 24px;
+    }
+
+    .cca-toolbar,
+    .cca-table-meta {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .cca-form-section {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .cca-actions .btn {
+        width: 100%;
+        min-width: 0;
+    }
 }
 </style>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>CCA Officer Appraisal</h3>
-        <button class="btn btn-primary" onclick="openAppraisalModal()">Raise Appraisal</button>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <input type="text" class="form-control" placeholder="Search officer..." onkeyup="searchTable(this.value)">
+<div class="container-fluid cca-page">
+    <div class="cca-hero">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="cca-kicker">
+                    <i class="fas fa-clipboard-check"></i>
+                    CCA Workflow
+                </span>
+                <h3 class="cca-title">Manage officer appraisals in one cleaner workspace.</h3>
+                <p class="cca-subtitle">Review records faster, open appraisal details with less friction, and keep the submission flow easier to scan for day-to-day operations.</p>
+            </div>
+            <div class="col-lg-4">
+                <div class="cca-hero-actions">
+                    <button class="btn btn-raise-appraisal" onclick="openAppraisalModal()">
+                        <i class="fas fa-plus mr-2"></i>Raise Appraisal
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover" id="ccaTable">
-            <thead class="thead-dark">
-                <tr>
-                    <th onclick="sortTable(0)">Officer Name</th>
-                    <th onclick="sortTable(1)">Designation</th>
-                    <th onclick="sortTable(2)">Posting</th>
-                    <th onclick="sortTable(3)">From</th>
-                    <th onclick="sortTable(4)">To</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="ccaTableBody">
-                <tr>
-                    <td>--</td>
-                    <td>--</td>
-                    <td>--</td>
-                    <td>--</td>
-                    <td>--</td>
-                    <td><span class="status-badge status-pending">--</span></td>
-                    <td><button class="btn btn-sm btn-info" onclick="openAppraisalModal()">View</button></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2">
-            <label class="mb-0">Rows per page:</label>
-            <select id="pageSize" class="form-control form-control-sm" style="width:90px;">
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-            </select>
+    <div class="cca-shell-card cca-toolbar">
+        <div class="row align-items-center">
+            <div class="col-lg-7 mb-3 mb-lg-0">
+                <h4 class="cca-toolbar-title">Appraisal records</h4>
+                <p class="cca-toolbar-copy">Search, sort, and open CCA records from a more readable table layout.</p>
+            </div>
+            <div class="col-lg-5">
+                <div class="search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control search-input" placeholder="Search officer, designation, posting..." onkeyup="searchTable(this.value)">
+                </div>
+            </div>
         </div>
+    </div>
 
-        <div id="paginationInfo" class="small text-muted"></div>
+    <div class="cca-shell-card cca-table-card">
+        <div class="table-responsive">
+            <table class="table table-hover" id="ccaTable">
+                <thead class="thead-dark">
+                    <tr>
+                        <th onclick="sortTable(0)">Officer Name</th>
+                        <th onclick="sortTable(1)">Designation</th>
+                        <th onclick="sortTable(2)">Posting</th>
+                        <th onclick="sortTable(3)">From</th>
+                        <th onclick="sortTable(4)">To</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="ccaTableBody">
+                    <tr>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td><span class="status-badge status-pending">--</span></td>
+                        <td><button class="btn btn-sm btn-info" onclick="openAppraisalModal()">View</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="cca-table-meta">
+            <div class="d-flex align-items-center gap-2">
+                <label class="mb-0">Rows per page:</label>
+                <select id="pageSize" class="form-control form-control-sm" style="width:90px;">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
 
-        <nav>
-            <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
-        </nav>
+            <div id="paginationInfo" class="small text-muted"></div>
+
+            <nav>
+                <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
+            </nav>
+        </div>
     </div>
 </div>
 
@@ -199,143 +495,120 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
             <div class="modal-body">
                 <form id="ccaForm" class="ccaFormClass">
-                    <h5>Period Details</h5>
+                    <div class="cca-form-section">
+                        <h5>Period Details</h5>
 
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label>From <span class="text-required">*</span></label>
-                            <input type="date" class="form-control" id="periodFrom">
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label>To <span class="text-required">*</span></label>
-                            <input type="date" class="form-control" id="periodTo">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Place / Office of Posting <span class="text-required">*</span></label>
-                        <select class="form-control" id="placePosting"></select>
-                    </div>
-
-                    <h5 class="mt-3">Basic Information</h5>
-
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label>Name of the Officer <span class="text-required">*</span></label>
-                            <select class="form-control" id="officerName"></select>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>From <span class="text-required">*</span></label>
+                                <input type="date" class="form-control" id="periodFrom">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>To <span class="text-required">*</span></label>
+                                <input type="date" class="form-control" id="periodTo">
+                            </div>
                         </div>
 
-                        <div class="form-group col-md-6">
-                            <label>Designation <span class="text-required">*</span></label>
-                            <select class="form-control" id="designation" onchange="onDesignationChange()">
-                                <option value="">Loading...</option>
-                            </select>
+                        <div class="form-group">
+                            <label>Place / Office of Posting <span class="text-required">*</span></label>
+                            <select class="form-control" id="placePosting"></select>
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label>Date of Birth <span class="text-required">*</span></label>
-                            <input type="date" class="form-control" id="dob">
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label>Date of Joining in the Nigam</label>
-                            <input type="date" class="form-control" id="joiningNigam">
-                        </div>
-                    </div>
+                    <div class="cca-form-section">
+                        <h5>Basic Information</h5>
 
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label>Academic Qualification</label>
-                            <input type="text" class="form-control" id="academicQualification" maxlength="500">
-                        </div>
-                        <div class="form-group col-md-6" id="technicalDiv">
-                            <label>Technical Qualification</label>
-                            <input type="text" class="form-control" id="technicalQualification" maxlength="500">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label>Date of Joining to Present Rank</label>
-                            <input type="date" class="form-control" id="joiningRank">
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label>Date of Joining to Present Station</label>
-                            <input type="date" class="form-control" id="joiningStation">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Departmental Exam Passed</label>
-                        <input type="text" class="form-control" id="deptExam" maxlength="500">
-                    </div>
-
-                    <h5 class="mt-3">Authorities</h5>
-
-                    <div class="form-row" id="authorityRow">
-                        <div class="form-group col-md-4">
-                            <label>Reporting Authority <span class="text-required">*</span></label>
-                            <select class="form-control authority-ddl" id="reportingAuthority"></select>
-                        </div>
-
-                        <div class="form-group col-md-4">
-                            <label>Review Authority <span class="text-required">*</span></label>
-                            <select class="form-control authority-ddl" id="reviewAuthority"></select>
-                        </div>
-
-                        <div class="form-group col-md-4">
-                            <label>Accepting Authority <span class="text-required">*</span></label>
-                            <select class="form-control authority-ddl" id="acceptingAuthority"></select>
-                        </div>
-                    </div>
-
-                    <h5 class="mt-3">Other Information</h5>
-
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label>Property Return Date</label>
-                            <input type="date" class="form-control" id="propertyReturnDate">
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label>Medical Exam Date</label>
-                            <input type="date" class="form-control" id="medicalExamDate">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Medical Report
-                            <small class="text-muted">(PDF/JPG/JPEG/PNG, max 5MB)</small>
-                        </label>
-
-                        <div id="documentSection" class="upload-box">
-                            <div id="docUploadState">
-                                <input type="file" class="form-control" id="medicalReport" accept=".pdf,.jpg,.jpeg,.png">
-                                <small class="form-text text-muted">Upload file first, then it will be attached to CCA docs section.</small>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Name of the Officer <span class="text-required">*</span></label>
+                                <select class="form-control" id="officerName"></select>
                             </div>
 
-                            <div id="docUploadedState" class="d-none">
-                                <div class="file-pill">
-                                    <div class="file-name-wrap">
-                                        <div class="file-name" id="uploadedFileName">--</div>
-                                        <div class="file-meta" id="uploadedFileMeta">--</div>
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <a href="javascript:void(0)" id="btnViewUploadedDoc" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteUploadedDoc" onclick="deleteCurrentDocument()">Delete</button>
-                                    </div>
-                                </div>
+                            <div class="form-group col-md-6">
+                                <label>Designation <span class="text-required">*</span></label>
+                                <select class="form-control" id="designation" onchange="onDesignationChange()">
+                                    <option value="">Loading...</option>
+                                </select>
                             </div>
+                        </div>
 
-                            <input type="hidden" id="hdnUploadedDocumentId" />
-                            <input type="hidden" id="hdnUploadedFilePath" />
-                            <input type="hidden" id="hdnUploadedFileName" />
-                            <div id="uploadStatus" class="mt-2 small"></div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Date of Birth <span class="text-required">*</span></label>
+                                <input type="date" class="form-control" id="dob">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>Date of Joining in the Nigam</label>
+                                <input type="date" class="form-control" id="joiningNigam">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Academic Qualification</label>
+                                <input type="text" class="form-control" id="academicQualification" maxlength="500">
+                            </div>
+                            <div class="form-group col-md-6" id="technicalDiv">
+                                <label>Technical Qualification</label>
+                                <input type="text" class="form-control" id="technicalQualification" maxlength="500">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Date of Joining to Present Rank</label>
+                                <input type="date" class="form-control" id="joiningRank">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>Date of Joining to Present Station</label>
+                                <input type="date" class="form-control" id="joiningStation">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Departmental Exam Passed</label>
+                            <input type="text" class="form-control" id="deptExam" maxlength="500">
                         </div>
                     </div>
 
-                    <div class="text-center mt-4">
+                    <div class="cca-form-section">
+                        <h5>Authorities</h5>
+
+                        <div class="form-row" id="authorityRow">
+                            <div class="form-group col-md-4">
+                                <label>Reporting Authority <span class="text-required">*</span></label>
+                                <select class="form-control authority-ddl" id="reportingAuthority"></select>
+                            </div>
+
+                            <div class="form-group col-md-4">
+                                <label>Review Authority <span class="text-required">*</span></label>
+                                <select class="form-control authority-ddl" id="reviewAuthority"></select>
+                            </div>
+
+                            <div class="form-group col-md-4">
+                                <label>Accepting Authority <span class="text-required">*</span></label>
+                                <select class="form-control authority-ddl" id="acceptingAuthority"></select>
+                            </div>
+                        </div>
+                        <div id="authoritySuggestionStatus" class="authority-status"></div>
+                    </div>
+
+                    <div class="cca-form-section">
+                        <h5>Other Information</h5>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Property Return Date</label>
+                                <input type="date" class="form-control" id="propertyReturnDate">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>Medical Exam Date</label>
+                                <input type="date" class="form-control" id="medicalExamDate">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cca-actions">
                         <button type="button" class="btn btn-secondary mr-2" id="btnSaveDraft">Save as Draft</button>
                         <button type="submit" class="btn btn-success" id="btnSubmit">Submit</button>
                     </div>
@@ -356,18 +629,13 @@ var isDraft = false;
 var currentAcrId = null;
 var isEditMode = false;
 var isSubmitting = false;
-var currentUploadedDocument = null;
-
-var DOCUMENT_TYPE = "MEDICAL_REPORT";
-var FINAL_STATUSES = ["APPROVED", "REJECTED"];
-var EDITABLE_DOC_STATUSES = ["DRAFT", "PENDING_OFFICER", "PENDING_REPORTING", "PENDING_REVIEWING", "PENDING_ACCEPTING"];
 
 var acrListData = [];
 var filteredAcrListData = [];
 var currentPage = 1;
 var pageSize = 10;
 var currentSortColumn = -1;
-var currentSortDirection = "asc";
+var currentSortDirection = "desc";
 
 $(document).ready(function () {
     var token = localStorage.getItem("token");
@@ -391,8 +659,6 @@ $(document).ready(function () {
         currentPage = 1;
         renderAcrTable();
     });
-
-    sortTable(0);
 });
 
 function applyTodayMaxToDates() {
@@ -545,7 +811,7 @@ function openAppraisalModal() {
 
     $("#reportingAuthority2Row").remove();
     bindAuthorityDropdowns();
-    resetDocumentSection();
+    $("#authoritySuggestionStatus").html("");
     setFormReadonly(false);
 
     $('#appraisalModal').modal('show');
@@ -564,7 +830,7 @@ function searchTable(value) {
         filteredAcrListData = acrListData.filter(function (a) {
             return (
                 (a.OfficerName || '').toLowerCase().includes(value) ||
-                (a.DsgDesc || '').toLowerCase().includes(value) ||
+                (a.Dsg || '').toLowerCase().includes(value) ||
                 (a.Location || '').toLowerCase().includes(value) ||
                 (a.PostingFrom || '').toLowerCase().includes(value) ||
                 (a.PostingTo || '').toLowerCase().includes(value) ||
@@ -611,8 +877,13 @@ function applySorting() {
         var valA = getSortValue(a, currentSortColumn);
         var valB = getSortValue(b, currentSortColumn);
 
-        valA = (valA || "").toString().toLowerCase();
-        valB = (valB || "").toString().toLowerCase();
+        if (currentSortColumn === -1) {
+            valA = new Date(valA || 0).getTime();
+            valB = new Date(valB || 0).getTime();
+        } else {
+            valA = (valA || "").toString().toLowerCase();
+            valB = (valB || "").toString().toLowerCase();
+        }
 
         if (valA < valB) return currentSortDirection === "asc" ? -1 : 1;
         if (valA > valB) return currentSortDirection === "asc" ? 1 : -1;
@@ -623,11 +894,11 @@ function applySorting() {
 function getSortValue(item, col) {
     switch (col) {
         case 0: return item.OfficerName || "";
-        case 1: return item.DsgDesc || "";
+        case 1: return item.Dsg || "";
         case 2: return item.Location || "";
         case 3: return item.PostingFrom || "";
         case 4: return item.PostingTo || "";
-        default: return "";
+        default: return item.CreatedAt || "";
     }
 }
 
@@ -657,7 +928,7 @@ function renderAcrTable() {
         tbody.append(
             '<tr>' +
                 '<td>' + (a.OfficerName || '--') + '</td>' +
-                '<td>' + (a.DsgDesc || '--') + '</td>' +
+                '<td>' + (a.Dsg || '--') + '</td>' +
                 '<td>' + (a.Location || '--') + '</td>' +
                 '<td>' + (a.PostingFrom || '--') + '</td>' +
                 '<td>' + (a.PostingTo || '--') + '</td>' +
@@ -937,21 +1208,6 @@ function getPatchPayload(payload) {
     return patchPayload;
 }
 
-function validateFile(file) {
-    if (!file) return { valid: true };
-
-    var allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
-    if (allowedTypes.indexOf(file.type) === -1) {
-        return { valid: false, message: "Only PDF, PNG, JPG, JPEG allowed." };
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-        return { valid: false, message: "Max file size is 5MB." };
-    }
-
-    return { valid: true };
-}
-
 function validatePayload(payload, saveAsDraft) {
     if (saveAsDraft) {
         if (!payload.OfficerUserId) return "Officer is required to save draft.";
@@ -1021,13 +1277,6 @@ $("#ccaForm").off("submit").on("submit", function (e) {
 
     if (isSubmitting) return;
 
-    var file = $("#medicalReport")[0].files[0] || null;
-    var fileValidation = validateFile(file);
-    if (!fileValidation.valid) {
-        alert(fileValidation.message);
-        return;
-    }
-
     var payload = buildPayload(false);
     var validationMessage = validatePayload(payload, false);
 
@@ -1040,7 +1289,7 @@ $("#ccaForm").off("submit").on("submit", function (e) {
     isSubmitting = true;
     toggleActionButtons(true);
 
-    submitAppraisal(payload, file);
+    submitAppraisal(payload);
 });
 
 $("#btnSaveDraft").off("click").on("click", function () {
@@ -1061,7 +1310,7 @@ $("#btnSaveDraft").off("click").on("click", function () {
 });
 
 function toggleActionButtons(disabled) {
-    $("#btnSaveDraft, #btnSubmit, #btnDeleteUploadedDoc").prop("disabled", disabled);
+    $("#btnSaveDraft, #btnSubmit").prop("disabled", disabled);
 }
 
 function unlockSubmission() {
@@ -1092,10 +1341,9 @@ function submitDraftAcr(acrId) {
 function setFormReadonly(flag) {
     $("#ccaForm :input").prop("disabled", flag);
     $("#btnSaveDraft, #btnSubmit").prop("disabled", flag);
-    applyDocumentReadonly(flag);
 }
 
-function submitAppraisal(payload, file) {
+function submitAppraisal(payload) {
     if (!payload || !payload.OfficerUserId) {
         alert("Invalid payload");
         unlockSubmission();
@@ -1132,13 +1380,7 @@ function submitAppraisal(payload, file) {
                     return;
                 }
 
-                if (file) {
-                    uploadFileToStorageAndAttach(currentAcrId, file, function () {
-                        submitDraftAcr(currentAcrId);
-                    });
-                } else {
-                    submitDraftAcr(currentAcrId);
-                }
+                submitDraftAcr(currentAcrId);
             },
             error: function (xhr) {
                 alert(apiErrorMessage(xhr, "Draft save failed"));
@@ -1181,13 +1423,7 @@ function submitAppraisal(payload, file) {
                 return;
             }
 
-            if (file) {
-                uploadFileToStorageAndAttach(acrId, file, function () {
-                    submitDraftAcr(acrId);
-                });
-            } else {
-                submitDraftAcr(acrId);
-            }
+            submitDraftAcr(acrId);
         },
         error: function (xhr) {
             alert(apiErrorMessage(xhr, "Create failed"));
@@ -1201,71 +1437,6 @@ function afterSuccess(msg) {
     closeModal();
     loadAcrList();
     unlockSubmission();
-}
-
-function uploadFileToStorageAndAttach(acrId, file, onSuccess) {
-    $('#uploadStatus').html('<span class="text-muted">Uploading file...</span>');
-
-    var formData = new FormData();
-    formData.append("file", file);
-
-    $.ajax({
-        url: BASE_URL + "Web/Shared/FileUploadHandler",
-        method: "POST",
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (uploadRes) {
-            if (!uploadRes || !uploadRes.success) {
-                alert((uploadRes && uploadRes.message) || "File upload failed.");
-                $('#uploadStatus').html('<span class="text-danger">File upload failed.</span>');
-                unlockSubmission();
-                return;
-            }
-
-            $('#hdnUploadedFilePath').val(uploadRes.filePath || '');
-            $('#hdnUploadedFileName').val(uploadRes.fileName || '');
-
-            attachDocumentToAcr(acrId, {
-                FileUrl: uploadRes.filePath,
-                FileName: uploadRes.fileName,
-                DocumentType: DOCUMENT_TYPE
-            }, onSuccess);
-        },
-        error: function (xhr) {
-            alert(apiErrorMessage(xhr, "File upload failed"));
-            $('#uploadStatus').html('<span class="text-danger">File upload failed.</span>');
-            unlockSubmission();
-        }
-    });
-}
-
-function attachDocumentToAcr(acrId, docPayload, onSuccess) {
-    $.ajax({
-        url: BASE_URL + "api/cca/acr/" + acrId + "/docs",
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + getToken(),
-            "Content-Type": "application/json"
-        },
-        data: JSON.stringify(docPayload),
-        success: function (res) {
-            if (!res.Success) {
-                alert(res.Message || "Document attach failed");
-                $('#uploadStatus').html('<span class="text-danger">' + (res.Message || 'Document attach failed') + '</span>');
-                unlockSubmission();
-                return;
-            }
-
-            $('#uploadStatus').html('<span class="text-success">Document uploaded successfully</span>');
-            if (typeof onSuccess === "function") onSuccess();
-        },
-        error: function (xhr) {
-            alert(apiErrorMessage(xhr, "Document attach failed"));
-            $('#uploadStatus').html('<span class="text-danger">Document attach failed</span>');
-            unlockSubmission();
-        }
-    });
 }
 
 function loadOfficers() {
@@ -1443,27 +1614,6 @@ function viewAcr(acrId) {
             $("#btnSubmit").toggle(canSubmitDraft);
             $("#btnSaveDraft").toggle(canEditForm);
             setFormReadonly(!canEditForm);
-
-            loadDocuments();
-
-            if (data.Documents && data.Documents.length) {
-                var medicalDoc = (data.Documents || []).find(function (d) {
-                    return (d.DocumentType || "").toUpperCase() === DOCUMENT_TYPE;
-                });
-
-                if (medicalDoc) {
-                    currentUploadedDocument = medicalDoc;
-                    showUploadedState(medicalDoc);
-                }
-            }
-
-            // if (!FINAL_STATUSES.includes(statusUpper)) {
-            //     applyDocumentReadonly(false);
-            // } else {
-            //     applyDocumentReadonly(true);
-            // }
-            var canEditDocs = statusUpper === "DRAFT";
-            applyDocumentReadonly(!canEditDocs);
         },
         error: function (xhr) {
             alert(apiErrorMessage(xhr, "Failed to load ACR detail"));
@@ -1471,181 +1621,21 @@ function viewAcr(acrId) {
     });
 }
 
-/* ---------------- DOCUMENT SECTION ---------------- */
-
-function resetDocumentSection() {
-    currentUploadedDocument = null;
-    $("#medicalReport").val("");
-    $("#hdnUploadedDocumentId").val("");
-    $("#hdnUploadedFilePath").val("");
-    $("#hdnUploadedFileName").val("");
-    $("#uploadStatus").html("");
-    showUploadState();
-}
-
-function showUploadState() {
-    $("#docUploadState").removeClass("d-none");
-    $("#docUploadedState").addClass("d-none");
-    $("#uploadedFileName").text("--");
-    $("#uploadedFileMeta").text("");
-    $("#btnViewUploadedDoc").attr("href", "javascript:void(0)");
-}
-
-function formatDisplayDateTime(dateStr) {
-    if (!dateStr) return "";
-    var d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleString();
-}
-
-function showUploadedState(doc) {
-    currentUploadedDocument = doc || null;
-
-    $("#docUploadState").addClass("d-none");
-    $("#docUploadedState").removeClass("d-none");
-
-    $("#uploadedFileName").text(doc.FileName || "--");
-    $("#uploadedFileMeta").text((doc.DocumentType || DOCUMENT_TYPE) + (doc.UploadedAt ? " | " + formatDisplayDateTime(doc.UploadedAt) : ""));
-    $("#btnViewUploadedDoc").attr("href", doc.FileUrl || "javascript:void(0)");
-
-    $("#hdnUploadedDocumentId").val(doc.DocumentId || "");
-    $("#hdnUploadedFilePath").val(doc.FileUrl || "");
-    $("#hdnUploadedFileName").val(doc.FileName || "");
-}
-
-function applyDocumentReadonly(flag) {
-    var statusUpper = "";
-    if (!flag && currentAcrId) {
-        // allowed
-    }
-
-    $("#medicalReport").prop("disabled", flag);
-    $("#btnDeleteUploadedDoc").prop("disabled", flag);
-
-    if (flag) {
-        $("#documentSection").addClass("readonly-mask");
-    } else {
-        $("#documentSection").removeClass("readonly-mask");
-    }
-}
-
-$("#medicalReport").off("change").on("change", function () {
-    var file = this.files && this.files[0] ? this.files[0] : null;
-    if (!file) return;
-
-    if (!currentAcrId) {
-        alert("Please save draft or create the ACR first before uploading document.");
-        $(this).val("");
-        return;
-    }
-
-    var currentStatus = ($("#btnDeleteUploadedDoc").prop("disabled") === true);
-    if (currentStatus) {
-        alert("Document changes are not allowed in current state.");
-        $(this).val("");
-        return;
-    }
-
-    var fileValidation = validateFile(file);
-    if (!fileValidation.valid) {
-        alert(fileValidation.message);
-        $(this).val("");
-        return;
-    }
-
-    uploadFileToStorageAndAttach(currentAcrId, file, function () {
-        $("#medicalReport").val("");
-        loadDocuments();
-        unlockSubmission();
-    });
-});
-
-function loadDocuments() {
-    if (!currentAcrId) {
-        resetDocumentSection();
-        return;
-    }
-
-    $.ajax({
-        url: BASE_URL + "api/cca/acr/" + currentAcrId + "/docs",
-        method: "GET",
-        headers: { "Authorization": "Bearer " + getToken() },
-        success: function (res) {
-            if (!res.Success) {
-                showUploadState();
-                return;
-            }
-
-            var docs = (res.Data && res.Data.Documents) ? res.Data.Documents : [];
-            var medicalDoc = docs.find(function (d) {
-                return (d.DocumentType || "").toUpperCase() === DOCUMENT_TYPE;
-            }) || null;
-
-            if (medicalDoc) {
-                showUploadedState(medicalDoc);
-            } else {
-                currentUploadedDocument = null;
-                showUploadState();
-            }
-        },
-        error: function () {
-            showUploadState();
-        }
-    });
-}
-
-function deleteCurrentDocument() {
-    if (!currentAcrId || !currentUploadedDocument || !currentUploadedDocument.DocumentId) {
-        alert("No document found to delete.");
-        return;
-    }
-
-    if (!confirm("Are you sure you want to delete this document?")) return;
-
-    $("#btnDeleteUploadedDoc").prop("disabled", true);
-
-    $.ajax({
-        url: BASE_URL + "api/cca/acr/" + currentAcrId + "/docs/" + currentUploadedDocument.DocumentId,
-        method: "DELETE",
-        headers: { "Authorization": "Bearer " + getToken() },
-        success: function (res) {
-            if (!res.Success) {
-                alert(res.Message || "Delete failed");
-                $("#btnDeleteUploadedDoc").prop("disabled", false);
-                return;
-            }
-
-            $("#uploadStatus").html('<span class="text-success">Document deleted successfully</span>');
-            currentUploadedDocument = null;
-            $("#hdnUploadedDocumentId").val("");
-            $("#hdnUploadedFilePath").val("");
-            $("#hdnUploadedFileName").val("");
-            $("#medicalReport").val("");
-            showUploadState();
-            $("#btnDeleteUploadedDoc").prop("disabled", false);
-        },
-        error: function (xhr) {
-            alert(apiErrorMessage(xhr, "Delete failed"));
-            $("#btnDeleteUploadedDoc").prop("disabled", false);
-        }
-    });
-}
-
 function suggestAuthorityChain(officerUserId) {
     if (!officerUserId) return;
 
-    $("#uploadStatus").html('<span class="text-muted">Fetching authority suggestions...</span>');
+    $("#authoritySuggestionStatus").html('<span class="text-muted">Fetching authority suggestions...</span>');
 
     $.ajax({
         url: BASE_URL + "api/cca/officers/" + officerUserId + "/authorities/suggestions",
         method: "GET",
         headers: { "Authorization": "Bearer " + getToken() },
         success: function (res) {
-            $("#uploadStatus").html("");
+            $("#authoritySuggestionStatus").html("");
 
             if (!res || !res.Success || !res.Data) {
                 if (res && res.Message) {
-                    $("#uploadStatus").html('<span class="text-warning">' + res.Message + '</span>');
+                    $("#authoritySuggestionStatus").html('<span class="text-warning">' + res.Message + '</span>');
                 }
                 return;
             }
@@ -1664,7 +1654,7 @@ function suggestAuthorityChain(officerUserId) {
         },
         error: function (xhr) {
             var msg = apiErrorMessage(xhr, "Authority suggestion not available.");
-            $("#uploadStatus").html('<span class="text-warning">' + msg + '</span>');
+            $("#authoritySuggestionStatus").html('<span class="text-warning">' + msg + '</span>');
         }
     });
 }
