@@ -24,6 +24,9 @@
             if (path.EndsWith("/home/dashboard"))
                 return true;
 
+            if (path.StartsWith("/web/shared"))
+                return true;
+
             switch (systemRole?.ToUpper())
             {
                 case "ADMIN":
