@@ -69,20 +69,487 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         padding: 16px;
         background: #fff;
     }
-</style>
-<div class="container-fluid px-0" id="employeeACRDiv" style="display:none;">
-    <h2 class="mb-4 page-title">Officer ACR Portal</h2>
 
-    <!-- ACR List Table -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                <h5 class="mb-0 text-primary">
-                    <i class="bi bi-table"></i> My ACR List
-                </h5>
-                <div class="d-flex gap-2 flex-wrap">
-                    <input type="text" id="acrSearchBox" class="form-control" placeholder="Search ACR..." style="width:260px;">
-                    <select id="pageSize" class="form-select" style="width:110px;">
+    .officer-page {
+        --officer-navy: #102542;
+        --officer-blue: #1d4ed8;
+        --officer-cyan: #06b6d4;
+        --officer-ink: #172033;
+        --officer-muted: #667085;
+        --officer-line: rgba(15, 23, 42, 0.08);
+        --officer-card: rgba(255, 255, 255, 0.94);
+        --officer-shadow: 0 24px 50px rgba(16, 37, 66, 0.12);
+        position: relative;
+        padding: 8px 0 24px;
+        color: var(--officer-ink);
+    }
+
+    .officer-page:before,
+    .officer-page:after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(12px);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .officer-page:before {
+        width: 220px;
+        height: 220px;
+        top: -10px;
+        right: 8%;
+        background: rgba(6, 182, 212, 0.16);
+    }
+
+    .officer-page:after {
+        width: 240px;
+        height: 240px;
+        left: 2%;
+        bottom: 5%;
+        background: rgba(29, 78, 216, 0.12);
+    }
+
+    .officer-hero {
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 32%),
+            radial-gradient(circle at bottom left, rgba(6,182,212,0.2), transparent 28%),
+            linear-gradient(135deg, #102542 0%, #1d4ed8 55%, #06b6d4 100%);
+        border-radius: 28px;
+        padding: 30px 32px;
+        margin-bottom: 22px;
+        box-shadow: 0 28px 50px rgba(29, 78, 216, 0.2);
+        color: #fff;
+    }
+
+    .officer-hero:after {
+        content: "";
+        position: absolute;
+        width: 250px;
+        height: 250px;
+        top: -90px;
+        right: -60px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(255,255,255,0.05);
+    }
+
+    .officer-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.12);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .officer-title {
+        margin: 18px 0 10px;
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.15;
+        color: #fff;
+    }
+
+    .officer-subtitle {
+        max-width: 680px;
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.84);
+    }
+
+    .hero-panel {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        padding: 22px;
+        border-radius: 22px;
+        background: rgba(8, 15, 31, 0.22);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: #fff;
+    }
+
+    .hero-panel-label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.72);
+    }
+
+    .hero-panel-value {
+        margin: 10px 0 8px;
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .hero-panel-copy {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.82);
+    }
+
+    .officer-shell-card {
+        background: var(--officer-card);
+        border: 1px solid rgba(255, 255, 255, 0.76);
+        border-radius: 24px;
+        box-shadow: var(--officer-shadow);
+    }
+
+    .officer-toolbar {
+        padding: 22px;
+        margin-bottom: 18px;
+    }
+
+    .officer-toolbar-title {
+        margin: 0 0 6px;
+        font-size: 19px;
+        font-weight: 700;
+    }
+
+    .officer-toolbar-copy {
+        margin: 0;
+        font-size: 14px;
+        color: var(--officer-muted);
+    }
+
+    .search-wrap {
+        position: relative;
+    }
+
+    .search-wrap i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+
+    .search-input,
+    .officer-select,
+    .modal .form-control {
+        min-height: 46px;
+        border-radius: 14px;
+        border: 1px solid var(--officer-line);
+        background: #fff;
+    }
+
+    .search-input {
+        padding-left: 42px;
+        background: #f8fbff;
+    }
+
+    .search-input:focus,
+    .officer-select:focus,
+    .modal .form-control:focus {
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12);
+    }
+
+    .officer-select {
+        background-color: #f8fbff;
+    }
+
+    .officer-table-card {
+        overflow: hidden;
+    }
+
+    #acrListTable {
+        margin-bottom: 0;
+    }
+
+    #acrListTable th {
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border-top: 0;
+        border-bottom: 0;
+        background: linear-gradient(135deg, #15314b, #2346a8);
+        color: #fff;
+    }
+
+    #acrListTable th:last-child {
+        cursor: default;
+    }
+
+    #acrListTable td {
+        padding: 16px 14px;
+        border-color: rgba(15, 23, 42, 0.06);
+    }
+
+    #acrListTable tbody tr:hover {
+        background: rgba(37, 99, 235, 0.04);
+    }
+
+    .officer-table-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 22px 22px;
+        flex-wrap: wrap;
+    }
+
+    .table-meta-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    #paginationContainer .page-link {
+        cursor: pointer;
+        border-radius: 10px;
+        margin: 0 2px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        color: #1d4ed8;
+    }
+
+    #paginationContainer .page-item.active .page-link {
+        background: linear-gradient(135deg, #2563eb, #0ea5e9);
+        border-color: transparent;
+    }
+
+    .upload-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, 0.08);
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .modal-dialog {
+        margin-top: 30px;
+    }
+
+    .modal-content {
+        border-radius: 24px;
+        box-shadow: 0 28px 60px rgba(15, 23, 42, 0.18);
+    }
+
+    .modal-header.bg-primary {
+        background: linear-gradient(135deg, #15314b, #2563eb) !important;
+        padding: 18px 24px;
+        border-bottom: 0;
+    }
+
+    .modal-body {
+        max-height: 80vh;
+        overflow-y: auto;
+        background:
+            radial-gradient(circle at top right, rgba(37,99,235,0.05), transparent 24%),
+            #f8fbff;
+        padding: 24px;
+    }
+
+    .officer-modal-intro {
+        margin-bottom: 20px;
+    }
+
+    .officer-modal-title {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--officer-ink);
+    }
+
+    .officer-modal-copy {
+        margin: 0;
+        font-size: 14px;
+        color: var(--officer-muted);
+        line-height: 1.6;
+    }
+
+    .nav-tabs {
+        gap: 10px;
+        border-bottom: 0;
+    }
+
+    .nav-tabs .nav-link {
+        border: 0;
+        border-radius: 999px;
+        padding: 11px 18px;
+        font-weight: 700;
+        color: var(--officer-muted);
+        background: rgba(226, 232, 240, 0.65);
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #fff;
+        background: linear-gradient(135deg, #15314b, #2563eb);
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
+    }
+
+    .officer-form-section {
+        background: rgba(255,255,255,0.9);
+        border: 1px solid rgba(219, 234, 254, 0.95);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 18px;
+        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .section-heading i {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+        color: #1d4ed8;
+        font-size: 18px;
+    }
+
+    .section-heading h6 {
+        margin: 0 0 3px;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--officer-ink);
+    }
+
+    .section-heading p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--officer-muted);
+    }
+
+    .compliance-card {
+        height: 100%;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 18px;
+        padding: 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98));
+    }
+
+    .help-text {
+        margin: 8px 0 0;
+        font-size: 12px;
+        color: var(--officer-muted);
+        line-height: 1.5;
+    }
+
+    #documentUploadSection {
+        border: 1px dashed #bfdbfe !important;
+        background: linear-gradient(180deg, #f8fbff, #eef6ff) !important;
+        border-radius: 18px !important;
+        padding: 18px !important;
+    }
+
+    .officer-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+    }
+
+    .officer-actions .btn {
+        min-width: 180px;
+        border-radius: 14px;
+        font-weight: 700;
+        padding: 11px 18px;
+    }
+
+    @media (max-width: 991.98px) {
+        .officer-hero {
+            padding: 26px 24px;
+        }
+
+        .officer-title {
+            font-size: 28px;
+        }
+
+        .hero-panel {
+            margin-top: 18px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .officer-page {
+            padding-top: 2px;
+        }
+
+        .officer-hero,
+        .officer-shell-card,
+        .modal-content {
+            border-radius: 22px;
+        }
+
+        .officer-toolbar,
+        .officer-table-meta,
+        .modal-body {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .officer-form-section {
+            padding: 16px;
+        }
+
+        .officer-actions .btn {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+</style>
+<div class="container-fluid officer-page" id="employeeACRDiv" style="display:none;">
+    <div class="officer-hero">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="officer-kicker">
+                    <i class="bi bi-person-badge"></i>
+                    Officer Self Appraisal
+                </span>
+                <h2 class="officer-title">A cleaner workspace for tracking and submitting your ACR cycle.</h2>
+                <p class="officer-subtitle">Review current postings, open appraisal details quickly, and complete self-appraisal steps in the same polished flow used across the refreshed CCA and dashboard screens.</p>
+            </div>
+            <div class="col-lg-4">
+                <div class="hero-panel">
+                    <div class="hero-panel-label">My Workspace</div>
+                    <div class="hero-panel-value">ACR</div>
+                    <p class="hero-panel-copy">Search your records, inspect ACR information, and finish pending self-appraisals without changing the underlying workflow.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="officer-shell-card officer-toolbar">
+        <div class="row align-items-center">
+            <div class="col-lg-7 mb-3 mb-lg-0">
+                <h4 class="officer-toolbar-title">My ACR records</h4>
+                <p class="officer-toolbar-copy">Browse, search, and open your appraisal records from a more readable table layout.</p>
+            </div>
+            <div class="col-lg-5">
+                <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
+                    <div class="search-wrap flex-grow-1" style="min-width:240px;">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="acrSearchBox" class="form-control search-input" placeholder="Search form type, location, designation...">
+                    </div>
+                    <select id="pageSize" class="form-select officer-select" style="width:110px;">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
@@ -90,30 +557,36 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     </select>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle mb-0" id="acrListTable">
-                    <thead class="table-primary">
+    <div class="officer-shell-card officer-table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="acrListTable">
+                    <thead>
                         <tr>
-                            <th onclick="sortTable(0)" style="cursor:pointer;">Form Type</th>
-                            <th onclick="sortTable(1)" style="cursor:pointer;">Location</th>
-                            <th onclick="sortTable(2)" style="cursor:pointer;">Designation</th>
-                            <th onclick="sortTable(3)" style="cursor:pointer;">Posting From</th>
-                            <th onclick="sortTable(4)" style="cursor:pointer;">Posting To</th>
-                            <th onclick="sortTable(5)" style="cursor:pointer;">Status</th>
+                            <th onclick="sortTable(0)">Form Type</th>
+                            <th onclick="sortTable(1)">Location</th>
+                            <th onclick="sortTable(2)">Designation</th>
+                            <th onclick="sortTable(3)">Posting From</th>
+                            <th onclick="sortTable(4)">Posting To</th>
+                            <th onclick="sortTable(5)">Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="acrListBody"></tbody>
                 </table>
-            </div>
+        </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-                <div id="paginationInfo" class="small text-muted"></div>
-                <nav>
-                    <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
-                </nav>
+        <div class="officer-table-meta">
+            <div class="table-meta-left">
+                <span class="small text-muted">Records per page</span>
+                <span class="upload-badge"><i class="bi bi-layout-text-window-reverse"></i> Active list</span>
             </div>
+            <div id="paginationInfo" class="small text-muted"></div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
+            </nav>
         </div>
     </div>
 
@@ -127,7 +600,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             </div>
 
             <div class="modal-body">
-                <!-- Tabs -->
+                <div class="officer-modal-intro">
+                    <h4 class="officer-modal-title">Officer ACR details</h4>
+                    <p class="officer-modal-copy">Review the cycle summary in one tab and complete the self-appraisal section in the other. Existing validation and workflow behavior remain unchanged.</p>
+                </div>
+
                 <ul class="nav nav-tabs" id="acrTab" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="view-tab" data-bs-toggle="tab" data-bs-target="#viewTab" type="button" role="tab">ACR Info</button>
@@ -140,7 +617,14 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <div class="tab-content mt-3">
                 <!-- View-Only Tab -->
                 <div class="tab-pane fade show active" id="viewTab" role="tabpanel">
-                    <div class="section-card">
+                    <div class="officer-form-section">
+                        <div class="section-heading">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <div>
+                                <h6>Cycle overview</h6>
+                                <p>Core ACR details for the selected posting period.</p>
+                            </div>
+                        </div>
                         <div class="row g-3">
                             <div class="col-6"><label class="form-label fw-bold">Form Type</label><input type="text" id="viewFormType" class="form-control" readonly></div>
                             <div class="col-6"><label class="form-label fw-bold">Status</label><input type="text" id="viewStatus" class="form-control" readonly></div>
@@ -165,9 +649,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
                 <!-- Self-Appraisal Tab -->
                 <div class="tab-pane fade" id="selfTab" role="tabpanel">
+                    <div class="officer-form-section">
+                        <div class="section-heading">
+                            <i class="bi bi-journal-check"></i>
+                            <div>
+                                <h6>Self-appraisal details</h6>
+                                <p>Capture summary points, training history, and your core performance narrative.</p>
+                            </div>
+                        </div>
                     <div class="row g-3">
-                    <div class="col-6"><label for="leaveDetails" class="form-label">Leave Details</label><textarea id="leaveDetails" class="form-control" rows="2"></textarea></div>
-                    <div class="col-6"><label for="membershipBodies" class="form-label">Membership Bodies</label><textarea id="membershipBodies" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="leaveDetails" class="form-label">Leave Details</label><textarea id="leaveDetails" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="membershipBodies" class="form-label">Membership Bodies</label><textarea id="membershipBodies" class="form-control" rows="2"></textarea></div>
                     <div class="col-12">
                         <label class="form-label fw-bold">Training Details</label>
                         <table class="table table-bordered" id="trainingTable" style="width:100%;">
@@ -188,55 +680,88 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                             <i class="bi bi-plus-circle"></i> Add Training
                         </button>
                     </div>
-                    <div class="col-6"><label for="awardsHonours" class="form-label">Awards / Honours</label><textarea id="awardsHonours" class="form-control" rows="2"></textarea></div>
-                    <div class="col-6"><label for="dutiesDescription" class="form-label">Duties Description <span class="text-danger">*</span></label><textarea id="dutiesDescription" class="form-control" rows="2"></textarea></div>
-                    <div class="col-6"><label for="targetsSet" class="form-label">Targets Set <span class="text-danger">*</span></label><textarea id="targetsSet" class="form-control" rows="2"></textarea></div>
-                    <div class="col-6"><label for="targetsAchieved" class="form-label">Targets Achieved <span class="text-danger">*</span></label><textarea id="targetsAchieved" class="form-control" rows="2"></textarea></div>
-                    <div class="col-6"><label for="shortfallReasons" class="form-label">Shortfall Reasons</label><textarea id="shortfallReasons" class="form-control" rows="2"></textarea></div>
-                    <div class="col-6"><label for="majorAchievements" class="form-label">Major Achievements</label><textarea id="majorAchievements" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="awardsHonours" class="form-label">Awards / Honours</label><textarea id="awardsHonours" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="dutiesDescription" class="form-label">Duties Description <span class="text-danger">*</span></label><textarea id="dutiesDescription" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="targetsSet" class="form-label">Targets Set <span class="text-danger">*</span></label><textarea id="targetsSet" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="targetsAchieved" class="form-label">Targets Achieved <span class="text-danger">*</span></label><textarea id="targetsAchieved" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="shortfallReasons" class="form-label">Shortfall Reasons</label><textarea id="shortfallReasons" class="form-control" rows="2"></textarea></div>
+                    <div class="col-md-6"><label for="majorAchievements" class="form-label">Major Achievements</label><textarea id="majorAchievements" class="form-control" rows="2"></textarea></div>
+                    </div>
+                    </div>
 
                     <!-- Compliance -->
-                    <div class="row mt-3">
-                        <div class="col-4"><div class="form-check"><input type="checkbox" class="form-check-input" id="auditorCompliance"><label class="form-check-label" for="auditorCompliance">Auditor Compliance</label></div></div>
-                        <div class="col-4">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="propertyDeclared">
-                                <label class="form-check-label" for="propertyDeclared">Property Declared</label>
-                            </div>
-                            <!-- Wrap date input in a div for toggling -->
-                            <div id="propertyDeclaredDateDiv" class="mt-1" style="display:none;">
-                                <label for="propertyDeclaredDate" class="form-label">Property Declared Date</label>
-                                <input type="date" class="form-control" id="propertyDeclaredDate">
+                    <div class="officer-form-section">
+                        <div class="section-heading">
+                            <i class="bi bi-shield-check"></i>
+                            <div>
+                                <h6>Compliance checks</h6>
+                                <p>Record declaration and medical compliance items with supporting dates where needed.</p>
                             </div>
                         </div>
-                        <div class="col-4">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="medicalCompliance">
-                                <label class="form-check-label" for="medicalCompliance">Medical Compliance</label>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="compliance-card">
+                                <div class="form-check"><input type="checkbox" class="form-check-input" id="auditorCompliance"><label class="form-check-label" for="auditorCompliance">Auditor Compliance</label></div>
+                                <p class="help-text">Mark this when audit observations and related compliance are up to date.</p>
                             </div>
-
-                            <!-- Wrap date input in a div for toggling -->
-                            <div id="medicalComplianceDateDiv" class="mt-1" style="display:none;">
-                                <label for="medicalComplianceDate" class="form-label">Medical Compliance Date</label>
-                                <input type="date" class="form-control" id="medicalComplianceDate">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="compliance-card">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="propertyDeclared">
+                                    <label class="form-check-label" for="propertyDeclared">Property Declared</label>
+                                </div>
+                                <p class="help-text">If declared, provide the declaration date below.</p>
+                                <div id="propertyDeclaredDateDiv" class="mt-3" style="display:none;">
+                                    <label for="propertyDeclaredDate" class="form-label">Property Declared Date</label>
+                                    <input type="date" class="form-control" id="propertyDeclaredDate">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="compliance-card">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="medicalCompliance">
+                                    <label class="form-check-label" for="medicalCompliance">Medical Compliance</label>
+                                </div>
+                                <p class="help-text">If completed, capture the medical compliance date for the record.</p>
+                                <div id="medicalComplianceDateDiv" class="mt-3" style="display:none;">
+                                    <label for="medicalComplianceDate" class="form-label">Medical Compliance Date</label>
+                                    <input type="date" class="form-control" id="medicalComplianceDate">
+                                </div>
                             </div>
                         </div>
                     </div>
+                    </div>
 
                     <!-- Document upload -->
-                     <div class="col-12 mt-3">
+                     <div class="officer-form-section">
+                        <div class="section-heading">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <div>
+                                <h6>Medical report upload</h6>
+                                <p>Attach the supporting document when required for the current officer age and compliance rules.</p>
+                            </div>
+                        </div>
                         <label class="form-label fw-bold">
                             Medical Report
                             <span id="docMandatoryMsg" class="text-danger" style="display:none;">* Required for age 40+</span>
                         </label>
 
                         <div id="documentUploadSection" class="border rounded p-3 bg-light">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                <div>
+                                    <div class="fw-semibold">Supporting document</div>
+                                    <div class="small text-muted">Accepted formats: PDF, JPG, JPEG, PNG. Maximum size: 5 MB.</div>
+                                </div>
+                                <span class="upload-badge"><i class="bi bi-file-earmark-medical"></i> Verification file</span>
+                            </div>
                             <!-- Upload state -->
                             <div id="docUploadBox">
                                 <input type="file" id="fuAutoUpload" class="form-control"
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     onchange="uploadFile(this)" />
-                                <div class="form-text">Allowed: PDF, JPG, JPEG, PNG | Max size: 5 MB</div>
+                                <div class="form-text">Upload starts automatically after you choose a file.</div>
                             </div>
 
                             <!-- Uploaded state -->
@@ -268,10 +793,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     </div>
                     <!-- Document upload -->
 
-                    <div class="d-flex justify-content-end gap-2 mt-4">
+                    <div class="officer-actions">
                         <button class="btn btn-primary" id="saveDraftBtn"><i class="bi bi-save"></i> Save Draft</button>
                         <button class="btn btn-success d-none" id="submitBtn"><i class="bi bi-send"></i> Submit Self-Appraisal</button>
-                    </div>
                     </div>
                 </div>
                 </div>
@@ -984,7 +1508,7 @@ function renderAcrTable() {
             <td>${a.PostingTo || ''}</td>
             <td>${getStatusBadge(a.Status)}</td>
             <td>
-                <button class="btn btn-sm btn-info" onclick="viewAcr('${a.AcrId}')">
+                <button class="btn btn-sm btn-info officer-action-btn" onclick="viewAcr('${a.AcrId}')">
                     <i class="bi bi-eye"></i> View
                 </button>
             </td>

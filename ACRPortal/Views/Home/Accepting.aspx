@@ -9,84 +9,392 @@
     <script src="<%= Url.Content("~/assets/js/lib/jquery-3.7.1.min.js") %>"></script>
 
 <style>
-    .page-title {
-        color: #0d6efd;
+    .accepting-page {
+        --brand-ink: #172033;
+        --brand-muted: #667085;
+        --brand-line: rgba(15, 23, 42, 0.08);
+        --brand-card: rgba(255, 255, 255, 0.94);
+        --brand-shadow: 0 24px 50px rgba(16, 37, 66, 0.12);
+        position: relative;
+        padding: 8px 0 24px;
+        color: var(--brand-ink);
+    }
+
+    .accepting-page:before,
+    .accepting-page:after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(12px);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .accepting-page:before {
+        width: 220px;
+        height: 220px;
+        top: -10px;
+        right: 8%;
+        background: rgba(6, 182, 212, 0.16);
+    }
+
+    .accepting-page:after {
+        width: 240px;
+        height: 240px;
+        left: 2%;
+        bottom: 5%;
+        background: rgba(29, 78, 216, 0.12);
+    }
+
+    .authority-hero {
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 32%),
+            radial-gradient(circle at bottom left, rgba(6,182,212,0.2), transparent 28%),
+            linear-gradient(135deg, #102542 0%, #1d4ed8 55%, #06b6d4 100%);
+        border-radius: 28px;
+        padding: 30px 32px;
+        margin-bottom: 22px;
+        box-shadow: 0 28px 50px rgba(29, 78, 216, 0.2);
+        color: #fff;
+    }
+
+    .authority-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.12);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .authority-title {
+        margin: 18px 0 10px;
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .authority-subtitle {
+        max-width: 680px;
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.84);
+    }
+
+    .hero-panel {
+        height: 100%;
+        padding: 22px;
+        border-radius: 22px;
+        background: rgba(8, 15, 31, 0.22);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: #fff;
+    }
+
+    .hero-panel-label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.72);
+    }
+
+    .hero-panel-value {
+        margin: 10px 0 8px;
+        font-size: 34px;
         font-weight: 700;
     }
 
-    .page-block {
-        background: #fff;
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
+    .hero-panel-copy {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.6;
+        color: rgba(255,255,255,0.82);
     }
 
-    .section-card {
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 16px;
+    .authority-shell-card {
+        background: var(--brand-card);
+        border: 1px solid rgba(255, 255, 255, 0.76);
+        border-radius: 24px;
+        box-shadow: var(--brand-shadow);
+    }
+
+    .authority-toolbar {
+        padding: 22px;
+        margin-bottom: 18px;
+    }
+
+    .authority-toolbar-title {
+        margin: 0 0 6px;
+        font-size: 19px;
+        font-weight: 700;
+    }
+
+    .authority-toolbar-copy {
+        margin: 0;
+        font-size: 14px;
+        color: var(--brand-muted);
+    }
+
+    .search-wrap {
+        position: relative;
+    }
+
+    .search-wrap i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+
+    .search-input,
+    .table-select,
+    .modal .form-control,
+    .modal .form-select {
+        min-height: 46px;
+        border-radius: 14px;
+        border: 1px solid var(--brand-line);
         background: #fff;
     }
 
+    .search-input {
+        padding-left: 42px;
+        background: #f8fbff;
+    }
+
+    .table-select {
+        background: #f8fbff;
+    }
+
+    .section-card,
+    .form-section,
     .rating-card {
-        border: 1px solid #e9ecef;
-        border-radius: 10px;
-        background: #fff;
-        padding: 14px;
-        height: 100%;
+        border: 1px solid rgba(219, 234, 254, 0.95);
+        border-radius: 20px;
+        background: rgba(255,255,255,0.92);
+        padding: 20px;
+        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.05);
     }
 
     .rating-card h5 {
-        color: #0d6efd;
+        color: #1d4ed8;
         font-size: 16px;
         margin-bottom: 14px;
-        font-weight: 600;
+        font-weight: 700;
     }
 
     #acceptingTable th {
         white-space: nowrap;
         user-select: none;
         cursor: pointer;
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border-top: 0;
+        border-bottom: 0;
+        background: linear-gradient(135deg, #15314b, #2346a8);
+        color: #fff;
+    }
+
+    #acceptingTable th:last-child {
+        cursor: default;
     }
 
     #acceptingTable td {
         vertical-align: middle;
+        padding: 16px 14px;
+        border-color: rgba(15, 23, 42, 0.06);
+    }
+
+    #acceptingTable tbody tr:hover {
+        background: rgba(37, 99, 235, 0.04);
+    }
+
+    .table-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 22px 22px;
+        flex-wrap: wrap;
+    }
+
+    .table-meta-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, 0.08);
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .modal-dialog {
+        margin-top: 30px;
     }
 
     .modal-content {
         border: 0;
-        border-radius: 12px;
+        border-radius: 24px;
         overflow: hidden;
+        box-shadow: 0 28px 60px rgba(15, 23, 42, 0.18);
     }
 
     .modal-header.bg-primary {
-        background: linear-gradient(90deg, #0d6efd, #0b5ed7) !important;
+        background: linear-gradient(135deg, #15314b, #2563eb) !important;
+        padding: 18px 24px;
+        border-bottom: 0;
+    }
+
+    .modal-body {
+        max-height: 80vh;
+        overflow-y: auto;
+        background:
+            radial-gradient(circle at top right, rgba(37,99,235,0.05), transparent 24%),
+            #f8fbff;
+        padding: 24px;
+    }
+
+    .modal-intro {
+        margin-bottom: 20px;
+    }
+
+    .modal-title-lg {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--brand-ink);
+    }
+
+    .modal-copy {
+        margin: 0;
+        font-size: 14px;
+        color: var(--brand-muted);
+        line-height: 1.6;
+    }
+
+    .nav-tabs {
+        gap: 10px;
+        border-bottom: 0;
     }
 
     .nav-tabs .nav-link {
-        font-weight: 600;
+        border: 0;
+        border-radius: 999px;
+        padding: 11px 18px;
+        font-weight: 700;
+        color: var(--brand-muted);
+        background: rgba(226, 232, 240, 0.65);
     }
 
     .nav-tabs .nav-link.active {
-        color: #0d6efd;
-        border-color: #dee2e6 #dee2e6 #fff;
+        color: #fff;
+        background: linear-gradient(135deg, #15314b, #2563eb);
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
+    }
+
+    .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .section-heading i {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+        color: #1d4ed8;
+        font-size: 18px;
+    }
+
+    .section-heading h6 {
+        margin: 0 0 3px;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    .section-heading p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--brand-muted);
     }
 
     #pagination .page-link {
         cursor: pointer;
+        border-radius: 10px;
+        margin: 0 2px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        color: #1d4ed8;
+    }
+
+    #pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #2563eb, #0ea5e9);
+        border-color: transparent;
+    }
+
+    .authority-action-btn {
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 8px 14px;
     }
 </style>
-<div class="container-fluid px-0" id="acceptingDiv" style="display:none;">
-    <h2 class="mb-4 page-title">Accepting Authority Dashboard</h2>
+<div class="container-fluid accepting-page" id="acceptingDiv" style="display:none;">
+    <div class="authority-hero">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="authority-kicker">
+                    <i class="bi bi-check2-square"></i>
+                    Accepting Authority
+                </span>
+                <h2 class="authority-title">A sharper final-approval workspace for closing the ACR cycle.</h2>
+                <p class="authority-subtitle">Scan the accepting queue more comfortably, compare reporting and reviewing inputs, and take the final decision from the same upgraded UI pattern.</p>
+            </div>
+            <div class="col-lg-4">
+                <div class="hero-panel">
+                    <div class="hero-panel-label">Final Decision</div>
+                    <div class="hero-panel-value">Accept</div>
+                    <p class="hero-panel-copy">The visual layer is refreshed here too, while the accepting API flow and validation stay exactly as they are.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="card shadow-sm border-0 page-block">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                <h5 class="mb-0 text-primary">
-                    <i class="bi bi-table"></i> Accepting Queue
-                </h5>
-                <div class="d-flex gap-2 flex-wrap">
-                    <input type="text" id="searchBox" class="form-control" placeholder="Search ACR..." style="width:260px;">
-                    <select id="pageSize" class="form-select" style="width:110px;">
+    <div class="authority-shell-card authority-toolbar">
+        <div class="row align-items-center">
+            <div class="col-lg-7 mb-3 mb-lg-0">
+                <h4 class="authority-toolbar-title">Accepting queue</h4>
+                <p class="authority-toolbar-copy">Search, sort, and open final-approval cases from a lighter and more readable queue layout.</p>
+            </div>
+            <div class="col-lg-5">
+                <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
+                    <div class="search-wrap flex-grow-1" style="min-width:240px;">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="searchBox" class="form-control search-input" placeholder="Search officer, location, year...">
+                    </div>
+                    <select id="pageSize" class="form-select table-select" style="width:110px;">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
@@ -94,10 +402,13 @@
                     </select>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle mb-0" id="acceptingTable">
-                    <thead class="table-primary">
+    <div class="authority-shell-card">
+        <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="acceptingTable">
+                    <thead>
                         <tr>
                             <th onclick="sortTable('OfficerName')">Officer</th>
                             <th onclick="sortTable('Location')">Location</th>
@@ -110,14 +421,16 @@
                     </thead>
                     <tbody id="acrTableBody"></tbody>
                 </table>
+        </div>
+        <div class="table-meta">
+            <div class="table-meta-left">
+                <span class="small text-muted">Records per page</span>
+                <span class="pill-badge"><i class="bi bi-shield-check"></i> Final approval</span>
             </div>
-
-            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-                <div id="tableInfo" class="small text-muted"></div>
-                <nav>
-                    <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
-                </nav>
-            </div>
+            <div id="tableInfo" class="small text-muted"></div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+            </nav>
         </div>
     </div>
 </div>
@@ -133,7 +446,10 @@
                 </div>
 
                 <div class="modal-body">
-
+                    <div class="modal-intro">
+                        <h4 class="modal-title-lg">Accepting assessment details</h4>
+                        <p class="modal-copy">Move through officer information, earlier authority inputs, and the final decision from a cleaner modal flow built to match the refreshed portal screens.</p>
+                    </div>
                     <ul class="nav nav-tabs" role="tablist">
                         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
                                 data-bs-target="#infoTab">ACR Info</button></li>
@@ -149,7 +465,14 @@
 
                         <!-- INFO -->
                         <div class="tab-pane fade show active" id="infoTab">
-                            <div class="section-card">
+                            <div class="form-section">
+                                <div class="section-heading">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                    <div>
+                                        <h6>Cycle overview</h6>
+                                        <p>Reference officer and posting details before making the final decision.</p>
+                                    </div>
+                                </div>
 
                                 <div class="row g-3">
                                     <div class="col-md-6"><label class="form-label fw-bold">Officer</label><input
@@ -229,6 +552,13 @@
 
                         <!-- REPORTING -->
                         <div class="tab-pane fade" id="reportingTab">
+                            <div class="section-heading mb-3">
+                                <i class="bi bi-diagram-3"></i>
+                                <div>
+                                    <h6>Reporting inputs</h6>
+                                    <p>Review the reporting authority details before final approval or rejection.</p>
+                                </div>
+                            </div>
                             <div class="rating-card">
                                 <h5>RA1 Assessment</h5>
                                 <div class="row g-3 mb-3">
@@ -278,6 +608,13 @@
 
                         <!-- REVIEWING -->
                         <div class="tab-pane fade" id="reviewingTab">
+                            <div class="section-heading mb-3">
+                                <i class="bi bi-journal-check"></i>
+                                <div>
+                                    <h6>Reviewing inputs</h6>
+                                    <p>Check the reviewing authority conclusion alongside the reporting record.</p>
+                                </div>
+                            </div>
                             <div class="rating-card">
                                 <h5>Reviewing Assessment</h5>
 
@@ -424,7 +761,7 @@
                         <td>${x.AcrYear || ''}</td>
                         <td>${getStatusBadge(x.Status)}</td>
                         <td>
-                            <button class="btn btn-sm btn-info" onclick="openAcr('${x.AcrId}')">
+                            <button class="btn btn-sm btn-info authority-action-btn" onclick="openAcr('${x.AcrId}')">
                                 <i class="bi bi-eye"></i> View
                             </button>
                         </td>
