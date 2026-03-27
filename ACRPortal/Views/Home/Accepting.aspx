@@ -689,17 +689,21 @@
                             <div class="rating-card">
                                 <h5>RA1 Assessment</h5>
                                 <div class="row g-3 mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold">Work Targets</label>
-                                        <input id="ra1Targets" class="form-control" readonly>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Work Overall</label>
+                                        <input id="ra1WorkOverall" class="form-control" readonly>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold">Work Quality</label>
-                                        <input id="ra1Quality" class="form-control" readonly>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Attribute Overall</label>
+                                        <input id="ra1AttrOverall" class="form-control" readonly>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold">Overall</label>
-                                        <input id="ra1Overall" class="form-control" readonly>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Competency Overall</label>
+                                        <input id="ra1CompOverall" class="form-control" readonly>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Overall Grade</label>
+                                        <input id="ra1OverallGrade" class="form-control" readonly>
                                     </div>
                                 </div>
                                 <div>
@@ -712,17 +716,21 @@
                                 <div class="rating-card">
                                     <h5>Second Reporting Officer (RA2)</h5>
                                     <div class="row g-3 mb-3">
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-bold">Work Targets</label>
-                                            <input id="ra2Targets" class="form-control" readonly>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold">Work Overall</label>
+                                            <input id="ra2WorkOverall" class="form-control" readonly>
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-bold">Work Quality</label>
-                                            <input id="ra2Quality" class="form-control" readonly>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold">Attribute Overall</label>
+                                            <input id="ra2AttrOverall" class="form-control" readonly>
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-bold">Overall</label>
-                                            <input id="ra2Overall" class="form-control" readonly>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold">Competency Overall</label>
+                                            <input id="ra2CompOverall" class="form-control" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold">Overall Grade</label>
+                                            <input id="ra2OverallGrade" class="form-control" readonly>
                                         </div>
                                     </div>
                                     <div>
@@ -1089,18 +1097,20 @@
 
                     // REPORTING TAB - RA1 Data
                     const ra1 = d.Ra1Assessment || {};
-                    $("#ra1Targets").val(safeRating(ra1.WorkTargets));
-                    $("#ra1Quality").val(safeRating(ra1.WorkQuality));
-                    $("#ra1Overall").val(safeRating(ra1.OverallGrade));
+                    $("#ra1WorkOverall").val(safeRating(ra1.WorkOverall));
+                    $("#ra1AttrOverall").val(safeRating(ra1.AttrOverall));
+                    $("#ra1CompOverall").val(safeRating(ra1.CompOverall));
+                    $("#ra1OverallGrade").val(safeRating(ra1.OverallGrade));
                     $("#ra1Remarks").val(ra1.Remarks || '');
 
                     // REPORTING TAB - RA2 Data
                     const ra2 = d.Ra2Assessment || {};
                     if (ra2.Exists) {
                         $("#ra2Section").show();
-                        $("#ra2Targets").val(safeRating(ra2.WorkTargets));
-                        $("#ra2Quality").val(safeRating(ra2.WorkQuality));
-                        $("#ra2Overall").val(safeRating(ra2.OverallGrade));
+                        $("#ra2WorkOverall").val(safeRating(ra2.WorkOverall));
+                        $("#ra2AttrOverall").val(safeRating(ra2.AttrOverall));
+                        $("#ra2CompOverall").val(safeRating(ra2.CompOverall));
+                        $("#ra2OverallGrade").val(safeRating(ra2.OverallGrade));
                         $("#ra2Remarks").val(ra2.Remarks || '');
                     } else {
                         $("#ra2Section").hide();
