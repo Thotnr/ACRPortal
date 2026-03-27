@@ -740,11 +740,39 @@ function bindDesignationDropdown() {
 
     designationsList.forEach(function (d) {
         ddl.append(
-            '<option value="' + d.DsgId + '" data-formtype="' + (d.FormType || '') + '">' +
+            '<option value="' + d.DsgId + '" data-formtype="' + (d.FormType || '') + '" data-dsg="' + (d.Dsg || '') + '">' +
             (d.Dsg || '') + ' - ' + (d.DsgDesc || '') +
             '</option>'
         );
     });
+}
+
+function setDesignationValue(data) {
+    var ddl = $("#designation");
+    var dsgId = data && data.DsgId ? data.DsgId.toString() : "";
+    var dsgCode = data && data.Dsg ? data.Dsg.toString().trim().toLowerCase() : "";
+
+    if (dsgId) {
+        ddl.val(dsgId).trigger("change");
+        if (ddl.val()) return;
+    }
+
+    if (!dsgCode) {
+        ddl.val("").trigger("change");
+        return;
+    }
+
+    var matchedValue = "";
+    ddl.find("option").each(function () {
+        var option = $(this);
+        var optionDsg = (option.data("dsg") || "").toString().trim().toLowerCase();
+        if (optionDsg === dsgCode) {
+            matchedValue = option.val();
+            return false;
+        }
+    });
+
+    ddl.val(matchedValue).trigger("change");
 }
 
 function onDesignationChange() {
@@ -1570,7 +1598,7 @@ function bindAcrDetail(data) {
     $("#medicalExamDate").val(formatDate(data.LastMedicalExamDate));
 
     $("#officerName").val(data.OfficerUserId || "").trigger("change");
-    $("#designation").val(data.DsgId || "").trigger("change");
+    setDesignationValue(data);
     setSelect2ByText("#placePosting", data.Location || "");
 
     setTimeout(function () {

@@ -48,5 +48,41 @@ namespace ACRPortal.Controllers
             ViewBag.Title = "Accepting Dashboard";
             return View();
         }
+
+        // Legacy aliases so old /Home/* master URLs still resolve under the current Masters controller.
+        public ActionResult Designation()
+        {
+            return RedirectToAction("Designation", "Masters");
+        }
+
+        public ActionResult State()
+        {
+            return RedirectToAction("State", "Masters");
+        }
+
+        public ActionResult Zone()
+        {
+            return RedirectToAction("Zone", "Masters");
+        }
+
+        public ActionResult Circle()
+        {
+            return RedirectToAction("Circle", "Masters");
+        }
+
+        public ActionResult Division()
+        {
+            return RedirectToAction("Division", "Masters");
+        }
+
+        public ActionResult SubDivision()
+        {
+            return RedirectToAction("SubDivision", "Masters");
+        }
+
+        public ActionResult AddEmployee()
+        {
+            return RedirectToAction("AddEmployee", "Masters");
+        }
     }
 }

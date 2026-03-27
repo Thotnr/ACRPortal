@@ -366,6 +366,35 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         font-weight: 600;
         padding: 8px 14px;
     }
+
+    .readonly-check-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+    }
+
+    .readonly-check-card {
+        border: 1px solid rgba(219, 234, 254, 0.95);
+        border-radius: 16px;
+        background: rgba(248, 251, 255, 0.92);
+        padding: 14px 16px;
+    }
+
+    .readonly-check-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: var(--brand-muted);
+        margin-bottom: 6px;
+    }
+
+    .readonly-check-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--brand-ink);
+    }
 </style>
 
 <div class="container-fluid reviewing-page" id="reviewingDiv" style="display:none;">
@@ -462,6 +491,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#infoTab">ACR Info</button>
                     </li>
                     <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#officerInfoTab">Officer Info</button>
+                    </li>
+                    <li class="nav-item">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#raTab">
                             Reporting Details
                         </button>
@@ -515,6 +547,102 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     
                                 <div class="col-md-12"><label class="form-label fw-bold">Career Posting Summary</label><textarea class="form-control" id="infoCareerSummary" readonly></textarea></div>
     
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="officerInfoTab">
+                        <div class="form-section">
+                            <div class="section-heading">
+                                <i class="bi bi-person-vcard"></i>
+                                <div>
+                                    <h6>Officer self-appraisal</h6>
+                                    <p>Read-only self-appraisal details submitted by the officer for this ACR cycle.</p>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Submitted</label>
+                                    <input class="form-control" id="selfSubmitted" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Submitted At</label>
+                                    <input class="form-control" id="selfSubmittedAt" readonly>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Leave Details</label>
+                                    <textarea class="form-control" id="selfLeaveDetails" rows="2" readonly></textarea>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Membership Bodies</label>
+                                    <textarea class="form-control" id="selfMembershipBodies" rows="2" readonly></textarea>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Awards / Honours</label>
+                                    <textarea class="form-control" id="selfAwardsHonours" rows="2" readonly></textarea>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Duties Description</label>
+                                    <textarea class="form-control" id="selfDutiesDescription" rows="3" readonly></textarea>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Targets Set</label>
+                                    <textarea class="form-control" id="selfTargetsSet" rows="3" readonly></textarea>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Targets Achieved</label>
+                                    <textarea class="form-control" id="selfTargetsAchieved" rows="3" readonly></textarea>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Shortfall Reasons</label>
+                                    <textarea class="form-control" id="selfShortfallReasons" rows="3" readonly></textarea>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Major Achievements</label>
+                                    <textarea class="form-control" id="selfMajorAchievements" rows="3" readonly></textarea>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Training Details</label>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered bg-white mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date From</th>
+                                                    <th>Date To</th>
+                                                    <th>Institute</th>
+                                                    <th>Subject</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="selfTrainingBody">
+                                                <tr><td colspan="4" class="text-center text-muted">No training details</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="readonly-check-grid mt-3">
+                                <div class="readonly-check-card">
+                                    <span class="readonly-check-label">Auditor Compliance</span>
+                                    <div class="readonly-check-value" id="selfAuditorCompliance">No</div>
+                                </div>
+                                <div class="readonly-check-card">
+                                    <span class="readonly-check-label">Property Declared</span>
+                                    <div class="readonly-check-value" id="selfPropertyDeclared">No</div>
+                                </div>
+                                <div class="readonly-check-card">
+                                    <span class="readonly-check-label">Property Declared Date</span>
+                                    <div class="readonly-check-value" id="selfPropertyDeclaredDate">-</div>
+                                </div>
+                                <div class="readonly-check-card">
+                                    <span class="readonly-check-label">Medical Compliance</span>
+                                    <div class="readonly-check-value" id="selfMedicalCompliance">No</div>
+                                </div>
+                                <div class="readonly-check-card">
+                                    <span class="readonly-check-label">Medical Compliance Date</span>
+                                    <div class="readonly-check-value" id="selfMedicalComplianceDate">-</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -806,6 +934,72 @@ function formatDate(d){
     return new Date(d).toLocaleDateString('en-GB');
 }
 
+function formatDateTime(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleString('en-GB');
+}
+
+function safeText(val) {
+    return val || '';
+}
+
+function boolText(val) {
+    return val === true ? 'Yes' : val === false ? 'No' : '-';
+}
+
+function parseTrainingDetails(trainingDetails) {
+    if (!trainingDetails) return [];
+
+    if (Array.isArray(trainingDetails)) return trainingDetails;
+
+    try {
+        var parsed = JSON.parse(trainingDetails);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function bindOfficerInfo(selfAppraisal) {
+    var self = selfAppraisal || {};
+    var trainingList = parseTrainingDetails(self.TrainingDetails);
+    var trainingBody = $("#selfTrainingBody");
+
+    $("#selfSubmitted").val(self.Exists ? (self.IsSubmitted ? "Yes" : "No") : "Not Available");
+    $("#selfSubmittedAt").val(formatDateTime(self.SubmittedAt));
+    $("#selfLeaveDetails").val(safeText(self.LeaveDetails));
+    $("#selfMembershipBodies").val(safeText(self.MembershipBodies));
+    $("#selfAwardsHonours").val(safeText(self.AwardsHonours));
+    $("#selfDutiesDescription").val(safeText(self.DutiesDescription));
+    $("#selfTargetsSet").val(safeText(self.TargetsSet));
+    $("#selfTargetsAchieved").val(safeText(self.TargetsAchieved));
+    $("#selfShortfallReasons").val(safeText(self.ShortfallReasons));
+    $("#selfMajorAchievements").val(safeText(self.MajorAchievements));
+    $("#selfAuditorCompliance").text(boolText(self.AuditorCompliance));
+    $("#selfPropertyDeclared").text(boolText(self.PropertyDeclared));
+    $("#selfPropertyDeclaredDate").text(formatDate(self.PropertyDeclaredDate) || '-');
+    $("#selfMedicalCompliance").text(boolText(self.MedicalCompliance));
+    $("#selfMedicalComplianceDate").text(formatDate(self.MedicalComplianceDate) || '-');
+
+    trainingBody.empty();
+
+    if (!trainingList.length) {
+        trainingBody.html('<tr><td colspan="4" class="text-center text-muted">No training details</td></tr>');
+        return;
+    }
+
+    trainingList.forEach(function (item) {
+        trainingBody.append(
+            '<tr>' +
+                '<td>' + safeText(formatDate(item.DateFrom)) + '</td>' +
+                '<td>' + safeText(formatDate(item.DateTo)) + '</td>' +
+                '<td>' + safeText(item.Institute) + '</td>' +
+                '<td>' + safeText(item.Subject) + '</td>' +
+            '</tr>'
+        );
+    });
+}
+
 let reviewingModal = new bootstrap.Modal(document.getElementById('reviewingModal'));
 
 function openReview(id){
@@ -850,7 +1044,7 @@ function openReview(id){
             $("#infoStatus").val(d.Status);
             $("#infoFormType").val(d.FormType || '');
             $("#infoLocation").val(d.Location || '');
-            $("#infoDesignation").val(d.Designation || '');
+            $("#infoDesignation").val(d.Dsg || d.Designation || '');
             $("#infoAcrYear").val(d.AcrYear || '');
 
             $("#infoPostingFrom").val(formatDate(d.PostingFrom));
@@ -866,6 +1060,7 @@ function openReview(id){
             $("#infoTechnical").val(d.TechnicalQualification || '');
             $("#infoDeptExam").val(d.DepartmentalExamPassed || '');
             $("#infoCareerSummary").val(d.CareerPostingSummary || '');
+            bindOfficerInfo(d.SelfAppraisal);
             if(d.Status === "PENDING_ACCEPTING"){
                 setReviewReadOnly(true);
             } else {

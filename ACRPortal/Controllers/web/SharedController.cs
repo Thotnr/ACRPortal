@@ -68,7 +68,7 @@ namespace ACRPortal.Controllers.Web
                 {
                     success = true,
                     fileName = fileName,
-                    filePath = "/Uploads/" + fileName,
+                    filePath = Url.Content("~/Uploads/" + fileName),
                     originalFileName = file.FileName
                 });
             }

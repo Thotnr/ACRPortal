@@ -888,7 +888,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     function loadAcrList() {
         $.ajax({
-            url: '/api/acr/my',
+            url: BASE_URL + 'api/acr/my',
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             success: function (res) {
                 if (res.Success) {
@@ -917,7 +917,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     function viewAcr(acrId){
         selectedAcrId = acrId;
         $.ajax({
-            url: `/api/acr/${acrId}`,
+            url: BASE_URL + `api/acr/${acrId}`,
             headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
             success: function(res){
                 if(res.Success){
@@ -1040,7 +1040,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         };
 
         $.ajax({
-            url: `/api/acr/${selectedAcrId}/self-appraisal/draft`,
+            url: BASE_URL + `api/acr/${selectedAcrId}/self-appraisal/draft`,
             type: 'PATCH',
             contentType: 'application/json',
             data: JSON.stringify(draft),
@@ -1082,7 +1082,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         }
 
         $.ajax({
-            url: `/api/acr/${selectedAcrId}/self-appraisal/submit`,
+            url: BASE_URL + `api/acr/${selectedAcrId}/self-appraisal/submit`,
             type: 'POST',
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             success: function (res) {
@@ -1110,7 +1110,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             };
 
             $.ajax({
-                url: `/api/acr/${selectedAcrId}/docs`,
+                url: BASE_URL + `api/acr/${selectedAcrId}/docs`,
                 type: 'POST',
                 headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 contentType: 'application/json',
@@ -1137,7 +1137,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     function loadDocuments() {
         if (!selectedAcrId) return;
         $.ajax({
-            url: `/api/acr/${selectedAcrId}/docs`,
+            url: BASE_URL + `api/acr/${selectedAcrId}/docs`,
             type: 'GET',
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             success: function (res) {
@@ -1295,7 +1295,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         formData.append("file", file);
 
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/Web/Shared/FileUploadHandler", true);
+        xhr.open("POST", BASE_URL + "Web/Shared/FileUploadHandler", true);
 
         xhr.upload.onprogress = function (e) {
             if (e.lengthComputable) {
@@ -1381,7 +1381,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         $('#deleteDocumentBtn').prop('disabled', true);
 
         $.ajax({
-            url: `/api/acr/${selectedAcrId}/docs/${currentUploadedDocument.DocumentId}`,
+            url: BASE_URL + `api/acr/${selectedAcrId}/docs/${currentUploadedDocument.DocumentId}`,
             type: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             success: function (res) {

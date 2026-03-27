@@ -15,7 +15,7 @@ margin:0;
 min-height:100vh;
 background:
 linear-gradient(135deg, rgba(10,24,44,0.82), rgba(29,78,216,0.72)),
-url('/assets/image/haryana_power.jpg');
+url('@Url.Content("~/assets/image/haryana_power.jpg")');
 background-size:cover;
 background-position:center;
 background-repeat:no-repeat;
@@ -265,7 +265,7 @@ font-weight:600;
 
 <div class="header">
 <div class="d-flex align-items-center" style="gap:14px;">
-<img src="~/assets/image/dhbvn_logo.png" class="logo">
+<img src="@Url.Content("~/assets/image/dhbvn_logo.png")" class="logo">
 <div class="brand-copy">
 <span class="brand-title">ACR Portal</span>
 <span class="brand-subtitle">Performance Workflow System</span>
