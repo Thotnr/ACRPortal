@@ -7,55 +7,65 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-
-.page-card{
-background:#fff;
-border-radius:10px;
-padding:20px;
-box-shadow:0 2px 10px rgba(0,0,0,0.06);
-}
-
-.page-title{
-font-weight:600;
-font-size:22px;
-}
-
-.table thead th{
-background:#f8f9fa;
-cursor:pointer;
-}
-
-.table-hover tbody tr:hover{
-background:#f6f9ff;
-}
-
-.action-btn{
-border:none;
-background:none;
-color:#007bff;
-cursor:pointer;
-}
-
-.pagination{
-margin-top:15px;
-}
-
-.table-info-bar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:10px;
-}
+.master-page{--master-ink:#172033;--master-muted:#667085;--master-line:rgba(15,23,42,0.08);--master-card:rgba(255,255,255,0.94);--master-shadow:0 24px 50px rgba(16,37,66,0.12);position:relative;padding:8px 0 24px;color:var(--master-ink);}
+.master-page:before,.master-page:after{content:"";position:absolute;border-radius:50%;filter:blur(12px);opacity:.55;pointer-events:none;}
+.master-page:before{width:220px;height:220px;top:-10px;right:8%;background:rgba(6,182,212,0.16);}
+.master-page:after{width:240px;height:240px;left:2%;bottom:5%;background:rgba(29,78,216,0.12);}
+.master-hero{position:relative;overflow:hidden;background:radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 32%),radial-gradient(circle at bottom left, rgba(6,182,212,0.2), transparent 28%),linear-gradient(135deg, #102542 0%, #1d4ed8 55%, #06b6d4 100%);border-radius:28px;padding:30px 32px;margin-bottom:22px;box-shadow:0 28px 50px rgba(29,78,216,0.2);color:#fff;}
+.master-kicker{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,0.12);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.master-title{margin:18px 0 10px;font-size:34px;font-weight:700;line-height:1.15;}
+.master-subtitle{max-width:720px;margin:0;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.84);}
+.master-panel{height:100%;padding:22px;border-radius:22px;background:rgba(8,15,31,0.22);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.16);color:#fff;}
+.master-panel-label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,0.72);}
+.master-panel-value{margin:10px 0 8px;font-size:34px;font-weight:700;}
+.master-panel-copy{margin:0;font-size:14px;line-height:1.6;color:rgba(255,255,255,0.82);}
+.page-card{background:var(--master-card);border:1px solid rgba(255,255,255,0.76);border-radius:24px;padding:22px;box-shadow:var(--master-shadow);}
+.page-title{font-weight:700;font-size:22px;margin:0;}
+.page-subtitle{margin:6px 0 0;font-size:14px;color:var(--master-muted);}
+.table thead th{background:linear-gradient(135deg, #15314b, #2346a8);color:#fff;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-top:0;border-bottom:0;}
+.table-hover tbody tr:hover{background:#f6f9ff;}
+.table td{vertical-align:middle;padding:16px 14px;border-color:rgba(15,23,42,0.06);}
+.action-btn{border:none;background:none;color:#1d4ed8;cursor:pointer;width:38px;height:38px;border-radius:12px;background:rgba(37,99,235,0.08);}
+.pagination{margin-top:18px;}
+.pagination .page-link{border-radius:10px;margin:0 2px;border:1px solid rgba(15,23,42,0.08);color:#1d4ed8;}
+.pagination .page-item.active .page-link{background:linear-gradient(135deg, #2563eb, #0ea5e9);border-color:transparent;}
+.table-info-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
+.form-control,.form-control-sm,.custom-select,select{min-height:46px;border-radius:14px !important;border:1px solid var(--master-line);background:#fff;}
+.form-control:focus,select:focus{border-color:#93c5fd;box-shadow:0 0 0 .2rem rgba(37,99,235,.12);}
+.modal-content{border:0;border-radius:24px;overflow:hidden;box-shadow:0 28px 60px rgba(15,23,42,0.18);}
+.modal-header{background:linear-gradient(135deg, #15314b, #2563eb);color:#fff;border-bottom:0;padding:18px 24px;}
+.modal-body{padding:24px;background:#f8fbff;}
+.btn{border-radius:14px;font-weight:700;padding:10px 16px;}
 
 </style>
 
-<div class="container-fluid">
+<div class="container-fluid master-page">
+
+<div class="master-hero">
+<div class="row align-items-center">
+<div class="col-lg-8">
+<span class="master-kicker"><i class="fa fa-ring"></i> Masters</span>
+<h2 class="master-title">Manage circles with a cleaner hierarchy-focused workspace.</h2>
+<p class="master-subtitle">Use filters, review mapped zones, and update circle records from the same refreshed UI language used across the admin module.</p>
+</div>
+<div class="col-lg-4">
+<div class="master-panel">
+<div class="master-panel-label">Master Module</div>
+<div class="master-panel-value">Circle</div>
+<p class="master-panel-copy">The circle page keeps its current logic while the layout is redesigned for better readability.</p>
+</div>
+</div>
+</div>
+</div>
 
 <div class="page-card">
 
 <div class="d-flex justify-content-between align-items-center mb-3">
 
+<div>
 <div class="page-title">Circle Master</div>
+<div class="page-subtitle">Maintain circles and their zone mappings in a more structured table view.</div>
+</div>
 
 <button class="btn btn-primary btn-sm" onclick="openCircleModal()">
 <i class="fa fa-plus"></i> Add Circle
