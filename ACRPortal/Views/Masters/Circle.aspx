@@ -4,7 +4,6 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
 .master-page{--master-ink:#172033;--master-muted:#667085;--master-line:rgba(15,23,42,0.08);--master-card:rgba(255,255,255,0.94);--master-shadow:0 24px 50px rgba(16,37,66,0.12);position:relative;padding:8px 0 24px;color:var(--master-ink);}
@@ -44,7 +43,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 <div class="master-hero">
 <div class="row align-items-center">
 <div class="col-lg-8">
-<span class="master-kicker"><i class="fa fa-ring"></i> Masters</span>
+<span class="master-kicker"><i class="fa fa-circle-notch"></i> Masters</span>
 <h2 class="master-title">Manage circles with a cleaner hierarchy-focused workspace.</h2>
 <p class="master-subtitle">Use filters, review mapped zones, and update circle records from the same refreshed UI language used across the admin module.</p>
 </div>

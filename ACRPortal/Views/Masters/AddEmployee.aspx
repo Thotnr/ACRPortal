@@ -4,7 +4,6 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -745,8 +744,8 @@ onclick="editEmployee('${e.UserId}')">
 onclick="confirmStatusChange('${e.UserId}','${e.UserStatus}')">
 
 ${e.UserStatus==="ACTIVE"
-? '<i class="fa-solid fa-toggle-on text-success"></i>'
-: '<i class="fa-solid fa-toggle-off text-danger"></i>'}
+? '<i class="fas fa-toggle-on text-success"></i>'
+: '<i class="fas fa-toggle-off text-danger"></i>'}
 
 </button>
 
