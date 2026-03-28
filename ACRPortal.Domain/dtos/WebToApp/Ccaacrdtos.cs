@@ -209,9 +209,15 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string CreatedAt { get; set; }
     }
 
+
     public class AcrListResponse
     {
         public List<AcrListItem> AcrCycles { get; set; } = new List<AcrListItem>();
+
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
     }
 
     public class DesignationLookupItem

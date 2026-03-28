@@ -58,6 +58,7 @@
     <Compile Include="dtos\WebToApp\LoginStep1Request.cs" />
     <Compile Include="dtos\WebToApp\MastersDTOs.cs" />
     <Compile Include="dtos\WebToApp\OfficerDTOs.cs" />
+    <Compile Include="dtos\WebToApp\PagedResult.cs" />
     <Compile Include="dtos\WebToApp\ReportingDTOs.cs" />
     <Compile Include="dtos\WebToApp\Reviewingdtos.cs" />
     <Compile Include="dtos\WebToApp\SignupRequest.cs" />

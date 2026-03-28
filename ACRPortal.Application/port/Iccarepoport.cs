@@ -76,10 +76,10 @@ namespace ACRPortal.Application.port
         /// <summary>
         /// Fetches full Section I detail for a single ACR including resolved authority names.
         /// Returns null when the ACR does not exist.
-        /// No CCA ownership check — any CCA can view any ACR.
+        /// No CCA ownership check ï¿½ any CCA can view any ACR.
         /// </summary>
         CcaAcrDetailResponse GetAcrDetail(Guid acrId);
 
-        List<AcrListItem> GetAcrList();
+        PagedResult<AcrListItem> GetCcaAcrs(Guid userId, int pageNumber, int pageSize);
     }
 }

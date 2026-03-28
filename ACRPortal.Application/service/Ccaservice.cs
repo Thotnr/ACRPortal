@@ -364,12 +364,28 @@ namespace ACRPortal.Application.service
             }
         }
 
-        public ApiResponse<AcrListResponse> GetAcrList()
+        public ApiResponse<AcrListResponse> GetAcrList(int pageNumber, int pageSize, string ccaUserId)
         {
             try
             {
-                var list = _repo.GetAcrList();
-                return ApiResponse<AcrListResponse>.Ok(new AcrListResponse { AcrCycles = list });
+                if (!Guid.TryParse(ccaUserId, out Guid ccaGuid))
+                    return ApiResponse<AcrListResponse>.Fail("Invalid CCA session", "TOKEN_INVALID");
+
+                if (pageNumber <= 0) pageNumber = 1;
+                if (pageSize <= 0 || pageSize > 100) pageSize = 10;
+
+                var pagedResult = _repo.GetCcaAcrs(ccaGuid, pageNumber, pageSize);
+
+                var response = new AcrListResponse
+                {
+                    AcrCycles = pagedResult.Items,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalCount = pagedResult.TotalCount,
+                    TotalPages = (int)Math.Ceiling((double)pagedResult.TotalCount / pageSize)
+                };
+
+                return ApiResponse<AcrListResponse>.Ok(response);
             }
             catch (Exception ex)
             {
