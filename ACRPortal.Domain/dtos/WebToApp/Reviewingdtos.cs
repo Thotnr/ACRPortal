@@ -23,11 +23,6 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string CreatedAt { get; set; }   // ISO 8601
     }
 
-    public class MyReviewingQueueResponse
-    {
-        public List<MyReviewingQueueItem> AcrCycles { get; set; } = new List<MyReviewingQueueItem>();
-    }
-
     // ------------------------------------------------------------------ //
     //  Draft request                                                      //
     //  DocumentPath removed — documents go through /api/acr/{id}/docs    //
