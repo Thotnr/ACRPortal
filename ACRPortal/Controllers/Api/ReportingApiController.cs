@@ -22,7 +22,7 @@ namespace ACRPortal.Controllers.Api
         // GET /api/acr/reporting/my
         [HttpGet]
         [Route("reporting/my")]
-        public HttpResponseMessage MyQueue()
+        public HttpResponseMessage MyQueue(int pageNumber = 1, int pageSize = 10)
         {
             try
             {
@@ -30,7 +30,8 @@ namespace ACRPortal.Controllers.Api
                 if (string.IsNullOrWhiteSpace(userId))
                     return Fail("Token missing or invalid", "TOKEN_INVALID", HttpStatusCode.Unauthorized);
 
-                var result = _reporting.GetMyReportingQueue(userId);
+                var result = _reporting.GetMyReportingQueue(userId, pageNumber, pageSize);
+
                 return Respond(MapStatus(result.ErrorCode, result.Success, HttpStatusCode.OK), result);
             }
             catch (Exception ex) { return Fail(ex.Message); }

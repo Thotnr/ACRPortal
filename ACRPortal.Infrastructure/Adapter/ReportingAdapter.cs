@@ -16,41 +16,63 @@ namespace ACRPortal.Infrastructure.Adapter
         // ================================================================== //
         //  GetMyReportingQueue  (unchanged)                                   //
         // ================================================================== //
-        public MyReportingQueueResponse GetMyReportingQueue(Guid userId)
+        public PagedResult<MyReportingQueueItem> GetMyReportingQueue(Guid userId, int pageNumber, int pageSize)
         {
-            const string sql = @"
-                SELECT  ac.acr_id,
-                        u.display_name,
-                        u.login_id,
-                        ac.form_type,
-                        ac.department,
-                        ac.location,
-                        ac.posting_from,
-                        ac.posting_to,
-                        ac.acr_year,
-                        ac.status,
-                        ac.created_at,
-                        ac.reporting_user_id,
-                        ac.ra2_user_id,
-                        ra.ra1_submitted_at,
-                        ra.ra2_submitted_at,
-                        d.dsg
-                FROM    dbo.acr_cycles ac
-                JOIN    dbo.users u ON u.user_id = ac.officer_user_id
-                LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
-                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
-                WHERE  (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
-                  AND   ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')
-                ORDER BY ac.created_at DESC";
+            string sql = @"
+        SELECT COUNT(1)
+        FROM dbo.acr_cycles ac
+        WHERE (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
+          AND ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED');
 
-            var resp = new MyReportingQueueResponse();
+        SELECT  ac.acr_id,
+                u.display_name,
+                u.login_id,
+                ac.form_type,
+                ac.department,
+                ac.location,
+                ac.posting_from,
+                ac.posting_to,
+                ac.acr_year,
+                ac.status,
+                ac.created_at,
+                ac.reporting_user_id,
+                ac.ra2_user_id,
+                ra.ra1_submitted_at,
+                ra.ra2_submitted_at,
+                d.dsg
+        FROM    dbo.acr_cycles ac
+        JOIN    dbo.users u ON u.user_id = ac.officer_user_id
+        LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
+        LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
+        WHERE  (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
+          AND   ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')
+        ORDER BY ac.created_at DESC
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
+    ";
+
+            var resp = new PagedResult<MyReportingQueueItem>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
             {
                 cmd.Parameters.Add("@uid", SqlDbType.UniqueIdentifier).Value = userId;
+                cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
+                cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
+
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
                 {
+                    // total count
+                    if (r.Read())
+                        resp.TotalCount = r.GetInt32(0);
+
+                    r.NextResult();
+
                     while (r.Read())
                     {
                         string status = r.IsDBNull(9) ? null : r.GetString(9);
@@ -62,7 +84,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         DateTime? ra2Sub = r.IsDBNull(14) ? (DateTime?)null : r.GetDateTime(14);
                         bool submitted = isRa2 ? ra2Sub.HasValue : ra1Sub.HasValue;
 
-                        resp.AcrCycles.Add(new MyReportingQueueItem
+                        resp.Items.Add(new MyReportingQueueItem
                         {
                             AcrId = r.GetGuid(0).ToString(),
                             OfficerName = r.IsDBNull(1) ? null : r.GetString(1),
@@ -77,11 +99,14 @@ namespace ACRPortal.Infrastructure.Adapter
                             ReportingRole = isRa2 ? "RA2" : "RA1",
                             IsSubmitted = submitted,
                             CreatedAt = r.IsDBNull(10) ? null : r.GetDateTime(10).ToString("o"),
-                            Dsg = r.IsDBNull(15) ? null : r.GetString(15),
+                            Dsg = r.IsDBNull(15) ? null : r.GetString(15)
                         });
                     }
                 }
             }
+
+            resp.TotalPages = (int)Math.Ceiling((double)resp.TotalCount / pageSize);
+
             return resp;
         }
 
