@@ -14,7 +14,7 @@ namespace ACRPortal.Infrastructure.Adapter
             .ConnectionStrings["ACRPortalContext"].ConnectionString;
 
         // ================================================================== //
-        //  GetMyReviewingQueue                                                //
+        //  GetMyReviewingQueue                                               //
         // ================================================================== //
         public PagedResult<MyReviewingQueueItem> GetMyReviewingQueue(Guid userId, int pageNumber, int pageSize)
         {

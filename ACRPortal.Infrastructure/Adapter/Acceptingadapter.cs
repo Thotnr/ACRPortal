@@ -16,39 +16,63 @@ namespace ACRPortal.Infrastructure.Adapter
         // ================================================================== //
         //  GetMyAcceptingQueue — unchanged from original                      //
         // ================================================================== //
-        public MyAcceptingQueueResponse GetMyAcceptingQueue(Guid userId)
+        public PagedResult<MyAcceptingQueueItem> GetMyAcceptingQueue(Guid userId, int pageNumber, int pageSize)
         {
             const string sql = @"
-                SELECT  ac.acr_id,
-                        u.display_name,
-                        u.login_id,
-                        ac.form_type,
-                        ac.department,
-                        ac.location,
-                        ac.posting_from,
-                        ac.posting_to,
-                        ac.acr_year,
-                        ac.status,
-                        ac.created_at,
-                        ad.decided_at,
-                        d.dsg
-                FROM    dbo.acr_cycles ac
-                JOIN    dbo.users u ON u.user_id = ac.officer_user_id
-                LEFT JOIN dbo.accepting_decisions ad ON ad.acr_id = ac.acr_id
-                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
-                WHERE   ac.accepting_user_id = @uid
-                  AND   ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED')
-                ORDER BY ac.created_at DESC";
+        SELECT COUNT(1)
+        FROM dbo.acr_cycles ac
+        WHERE ac.accepting_user_id = @uid
+          AND ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED');
 
-            var resp = new MyAcceptingQueueResponse();
+        SELECT  ac.acr_id,
+                u.display_name,
+                u.login_id,
+                ac.form_type,
+                ac.department,
+                ac.location,
+                ac.posting_from,
+                ac.posting_to,
+                ac.acr_year,
+                ac.status,
+                ac.created_at,
+                ad.decided_at,
+                d.dsg
+        FROM    dbo.acr_cycles ac
+        JOIN    dbo.users u ON u.user_id = ac.officer_user_id
+        LEFT JOIN dbo.accepting_decisions ad ON ad.acr_id = ac.acr_id
+        LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
+        WHERE   ac.accepting_user_id = @uid
+          AND   ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED')
+        ORDER BY ac.created_at DESC
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
+    ";
+
+            var resp = new PagedResult<MyAcceptingQueueItem>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
             {
                 cmd.Parameters.Add("@uid", SqlDbType.UniqueIdentifier).Value = userId;
+                cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
+                cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
+
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
+                {
+                    // total count
+                    if (r.Read())
+                        resp.TotalCount = r.GetInt32(0);
+
+                    r.NextResult();
+
                     while (r.Read())
-                        resp.AcrCycles.Add(new MyAcceptingQueueItem
+                    {
+                        resp.Items.Add(new MyAcceptingQueueItem
                         {
                             AcrId = r.GetGuid(0).ToString(),
                             OfficerName = r.IsDBNull(1) ? null : r.GetString(1),
@@ -62,9 +86,14 @@ namespace ACRPortal.Infrastructure.Adapter
                             Status = r.IsDBNull(9) ? null : r.GetString(9),
                             CreatedAt = r.IsDBNull(10) ? null : r.GetDateTime(10).ToString("o"),
                             IsDecided = !r.IsDBNull(11),
-                            Dsg = r.IsDBNull(12) ? null : r.GetString(12),
+                            Dsg = r.IsDBNull(12) ? null : r.GetString(12)
                         });
+                    }
+                }
             }
+
+            resp.TotalPages = (int)Math.Ceiling((double)resp.TotalCount / pageSize);
+
             return resp;
         }
 

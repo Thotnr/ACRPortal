@@ -16,19 +16,23 @@ namespace ACRPortal.Application.service
             _docs = docs;
         }
 
-        public ApiResponse<MyAcceptingQueueResponse> GetMyAcceptingQueue(string userId)
+        public ApiResponse<PagedResult<MyAcceptingQueueItem>> GetMyAcceptingQueue(string userId, int pageNumber, int pageSize)
         {
             try
             {
                 if (!Guid.TryParse(userId, out Guid guid))
-                    return ApiResponse<MyAcceptingQueueResponse>.Fail("Invalid user id in token", "TOKEN_INVALID");
+                    return ApiResponse<PagedResult<MyAcceptingQueueItem>>.Fail("Invalid user id", "TOKEN_INVALID");
 
-                var result = _repo.GetMyAcceptingQueue(guid);
-                return ApiResponse<MyAcceptingQueueResponse>.Ok(result, "Success");
+                if (pageNumber <= 0) pageNumber = 1;
+                if (pageSize <= 0 || pageSize > 100) pageSize = 10;
+
+                var result = _repo.GetMyAcceptingQueue(guid, pageNumber, pageSize);
+
+                return ApiResponse<PagedResult<MyAcceptingQueueItem>>.Ok(result);
             }
             catch (Exception ex)
             {
-                return ApiResponse<MyAcceptingQueueResponse>.Fail(ex.Message, "INTERNAL_ERROR");
+                return ApiResponse<PagedResult<MyAcceptingQueueItem>>.Fail(ex.Message, "INTERNAL_ERROR");
             }
         }
 
