@@ -16,21 +16,23 @@ namespace ACRPortal.Application.service
             _docs = docs;
         }
 
-        public ApiResponse<MyAcrListResponse> GetMyAcrs(string officerUserId, string status)
+        public ApiResponse<PagedResult<MyAcrListItem>> GetMyAcrs(string officerUserId, string status, int pageNumber, int pageSize)
         {
             try
             {
                 if (!Guid.TryParse(officerUserId, out Guid officerGuid))
-                    return ApiResponse<MyAcrListResponse>.Fail("Invalid user id in token", "TOKEN_INVALID");
+                    return ApiResponse<PagedResult<MyAcrListItem>>.Fail("Invalid user id", "TOKEN_INVALID");
 
-                var result = _repo.GetMyAcrs(officerGuid,
-                    string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpper());
+                if (pageNumber <= 0) pageNumber = 1;
+                if (pageSize <= 0 || pageSize > 100) pageSize = 10;
 
-                return ApiResponse<MyAcrListResponse>.Ok(result, "Success");
+                var result = _repo.GetMyAcrs(officerGuid, status, pageNumber, pageSize);
+
+                return ApiResponse<PagedResult<MyAcrListItem>>.Ok(result);
             }
             catch (Exception ex)
             {
-                return ApiResponse<MyAcrListResponse>.Fail(ex.Message, "INTERNAL_ERROR");
+                return ApiResponse<PagedResult<MyAcrListItem>>.Fail(ex.Message, "INTERNAL_ERROR");
             }
         }
 

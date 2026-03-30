@@ -21,10 +21,14 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string CreatedAt { get; set; }   // ISO 8601
     }
 
-    public class MyAcrListResponse
+    /*public class MyAcrListResponse
     {
         public List<MyAcrListItem> AcrCycles { get; set; } = new List<MyAcrListItem>();
-    }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+    }*/
 
     // ------------------------------------------------------------------ //
     //  Self-appraisal draft request (Section II — filled by Officer)      //

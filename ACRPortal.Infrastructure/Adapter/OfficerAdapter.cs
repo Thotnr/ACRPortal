@@ -15,46 +15,70 @@ namespace ACRPortal.Infrastructure.Adapter
         // ================================================================== //
         //  GetMyAcrs                                                          //
         // ================================================================== //
-        public MyAcrListResponse GetMyAcrs(Guid officerUserId, string status)
+        public PagedResult<MyAcrListItem> GetMyAcrs(Guid officerUserId, string status, int pageNumber, int pageSize)
         {
             string statusFilter = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpper();
 
             string sql = @"
-                SELECT  ac.acr_id,
-                        ac.form_type,
-                        ac.department,
-                        ac.location,
-                        d.dsg,
-                        ac.posting_from,
-                        ac.posting_to,
-                        ac.acr_year,
-                        ac.status,
-                        ac.created_at,
-                        sa.submitted_at
-                FROM    dbo.acr_cycles ac
-                LEFT JOIN dbo.self_appraisals sa ON sa.acr_id = ac.acr_id
-                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
-                WHERE   ac.officer_user_id = @uid
-                  AND   ac.status <> 'DRAFT' ";
+        SELECT COUNT(1)
+        FROM dbo.acr_cycles ac
+        WHERE ac.officer_user_id = @uid
+          AND ac.status <> 'DRAFT' " +
+                (statusFilter != null ? " AND ac.status = @status " : "") +
 
-            if (!string.IsNullOrWhiteSpace(statusFilter))
-                sql += " AND ac.status = @status ";
+                @";
 
-            sql += " ORDER BY ac.created_at DESC";
+        SELECT  ac.acr_id,
+                ac.form_type,
+                ac.department,
+                ac.location,
+                d.dsg,
+                ac.posting_from,
+                ac.posting_to,
+                ac.acr_year,
+                ac.status,
+                ac.created_at,
+                sa.submitted_at
+        FROM dbo.acr_cycles ac
+        LEFT JOIN dbo.self_appraisals sa ON sa.acr_id = ac.acr_id
+        LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
+        WHERE ac.officer_user_id = @uid
+          AND ac.status <> 'DRAFT' " +
+                (statusFilter != null ? " AND ac.status = @status " : "") +
 
-            var resp = new MyAcrListResponse();
+                @"
+        ORDER BY ac.created_at DESC
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
+    ";
+
+            var resp = new PagedResult<MyAcrListItem>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
             {
                 cmd.Parameters.Add("@uid", SqlDbType.UniqueIdentifier).Value = officerUserId;
-                if (!string.IsNullOrWhiteSpace(statusFilter))
+                cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
+                cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
+
+                if (statusFilter != null)
                     cmd.Parameters.Add("@status", SqlDbType.VarChar).Value = statusFilter;
 
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
                 {
+                    if (r.Read())
+                        resp.TotalCount = r.GetInt32(0);
+
+                    r.NextResult();
+
                     while (r.Read())
-                        resp.AcrCycles.Add(new MyAcrListItem
+                    {
+                        resp.Items.Add(new MyAcrListItem
                         {
                             AcrId = r.GetGuid(0).ToString(),
                             FormType = r.IsDBNull(1) ? null : r.GetString(1),
@@ -68,8 +92,12 @@ namespace ACRPortal.Infrastructure.Adapter
                             CreatedAt = r.IsDBNull(9) ? null : r.GetDateTime(9).ToString("o"),
                             SelfAppraisalSubmitted = !r.IsDBNull(10)
                         });
+                    }
                 }
             }
+
+            resp.TotalPages = (int)Math.Ceiling((double)resp.TotalCount / pageSize);
+
             return resp;
         }
 

@@ -19,18 +19,17 @@ namespace ACRPortal.Controllers.Api
             _officer = officer;
         }
 
-        // GET /api/acr/my?status=PENDING_OFFICER
+        // GET /api/acr/my
         [HttpGet]
         [Route("my")]
-        public HttpResponseMessage My([FromUri] string status = null)
+        public HttpResponseMessage My([FromUri] string status = null, int pageNumber = 1, int pageSize = 10)
         {
             try
             {
                 string officerUserId = GetCallerUserId();
-                if (string.IsNullOrWhiteSpace(officerUserId))
-                    return Fail("Token missing or invalid", "TOKEN_INVALID", HttpStatusCode.Unauthorized);
 
-                var result = _officer.GetMyAcrs(officerUserId, status);
+                var result = _officer.GetMyAcrs(officerUserId, status, pageNumber, pageSize);
+
                 return Respond(MapStatus(result.ErrorCode, result.Success, HttpStatusCode.OK), result);
             }
             catch (Exception ex) { return Fail(ex.Message); }
