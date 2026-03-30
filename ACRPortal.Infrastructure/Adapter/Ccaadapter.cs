@@ -543,27 +543,60 @@ namespace ACRPortal.Infrastructure.Adapter
         // ================================================================== //
         //  GetAcrList                                                         //
         // ================================================================== //
-        public List<AcrListItem> GetAcrList()
-        {
-            const string sql = @"
-                SELECT ac.acr_id, u.display_name, u.login_id,
-                       d.dsg, ac.form_type,
-                       ac.department, ac.location,
-                       ac.posting_from, ac.posting_to,
-                       ac.acr_year, ac.status, ac.created_at
-                FROM   dbo.acr_cycles ac
-                JOIN   dbo.users  u ON u.user_id = ac.officer_user_id
-                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
-                ORDER BY ac.created_at DESC";
 
-            var list = new List<AcrListItem>();
+        public PagedResult<AcrListItem> GetCcaAcrs(Guid ccaUserId, int pageNumber, int pageSize)
+        {
+            string sql = @"
+        SELECT COUNT(1)
+        FROM dbo.acr_cycles
+        WHERE cca_user_id = @ccaUserId;
+
+        SELECT ac.acr_id,
+               u.display_name,
+               u.login_id,
+               d.dsg,
+               ac.form_type,
+               ac.department,
+               ac.location,
+               ac.posting_from,
+               ac.posting_to,
+               ac.acr_year,
+               ac.status,
+               ac.created_at
+        FROM dbo.acr_cycles ac
+        JOIN dbo.users u ON u.user_id = ac.officer_user_id
+        LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
+        WHERE ac.cca_user_id = @ccaUserId
+        ORDER BY ac.created_at DESC
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
+    ";
+
+            var resp = new PagedResult<AcrListItem>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
             {
+                cmd.Parameters.Add("@ccaUserId", SqlDbType.UniqueIdentifier).Value = ccaUserId;
+                cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
+                cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
+
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
+                {
+                    // total count
+                    if (r.Read())
+                        resp.TotalCount = r.GetInt32(0);
+
+                    r.NextResult();
+
                     while (r.Read())
-                        list.Add(new AcrListItem
+                    {
+                        resp.Items.Add(new AcrListItem
                         {
                             AcrId = r.GetGuid(0).ToString(),
                             OfficerName = r.IsDBNull(1) ? null : r.GetString(1),
@@ -578,70 +611,13 @@ namespace ACRPortal.Infrastructure.Adapter
                             Status = r.IsDBNull(10) ? null : r.GetString(10),
                             CreatedAt = r.IsDBNull(11) ? null : r.GetDateTime(11).ToString("o")
                         });
-            }
-            return list;
-        }
-
-        public PagedResult<AcrListItem> GetCcaAcrs(Guid userId, int pageNumber, int pageSize)
-        {
-            const string sql = @"
-        SELECT COUNT(1)
-        FROM dbo.acr_cycles
-        WHERE cca_user_id = @ccaUserId;
-
-        SELECT ac.acr_id, u.display_name, u.login_id,
-               d.dsg, ac.form_type,
-               ac.department, ac.location,
-               ac.posting_from, ac.posting_to,
-               ac.acr_year, ac.status, ac.created_at
-        FROM dbo.acr_cycles ac
-        JOIN dbo.users u ON u.user_id = ac.officer_user_id
-        LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
-        WHERE ac.cca_user_id = @ccaUserId
-        ORDER BY ac.created_at DESC
-        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
-    ";
-
-            var result = new PagedResult<AcrListItem>();
-
-            using (var con = new SqlConnection(_conn))
-            using (var cmd = new SqlCommand(sql, con))
-            {
-                cmd.Parameters.Add("@ccaUserId", SqlDbType.UniqueIdentifier).Value = userId;
-                cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
-                cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
-
-                con.Open();
-                using (var reader = cmd.ExecuteReader())
-                {
-                    // total count
-                    if (reader.Read())
-                        result.TotalCount = reader.GetInt32(0);
-
-                    reader.NextResult();
-
-                    while (reader.Read())
-                    {
-                        result.Items.Add(new AcrListItem
-                        {
-                            AcrId = reader.GetGuid(0).ToString(),
-                            OfficerName = reader.IsDBNull(1) ? null : reader.GetString(1),
-                            OfficerLoginId = reader.IsDBNull(2) ? null : reader.GetString(2),
-                            Dsg = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            FormType = reader.IsDBNull(4) ? null : reader.GetString(4),
-                            Department = reader.IsDBNull(5) ? null : reader.GetString(5),
-                            Location = reader.IsDBNull(6) ? null : reader.GetString(6),
-                            PostingFrom = reader.IsDBNull(7) ? null : reader.GetDateTime(7).ToString("yyyy-MM-dd"),
-                            PostingTo = reader.IsDBNull(8) ? null : reader.GetDateTime(8).ToString("yyyy-MM-dd"),
-                            AcrYear = reader.IsDBNull(9) ? 0 : reader.GetInt32(9),
-                            Status = reader.IsDBNull(10) ? null : reader.GetString(10),
-                            CreatedAt = reader.IsDBNull(11) ? null : reader.GetDateTime(11).ToString("o")
-                        });
                     }
                 }
             }
 
-            return result;
+            resp.TotalPages = (int)Math.Ceiling((double)resp.TotalCount / pageSize);
+
+            return resp;
         }
 
         // ================================================================== //

@@ -101,8 +101,10 @@ namespace ACRPortal.Controllers
         {
             try
             {
-                var ccaUserId = GetCallerUserId(); // assuming you already have this
-                var result = _cca.GetAcrList(pageNumber, pageSize, ccaUserId);
+                var ccaUserId = GetCallerUserId();
+
+                var result = _cca.GetAcrList(ccaUserId, pageNumber, pageSize);
+
                 return Respond(result.Success ? HttpStatusCode.OK : HttpStatusCode.InternalServerError, result);
             }
             catch (Exception ex) { return Fail(ex.Message); }

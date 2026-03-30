@@ -364,32 +364,23 @@ namespace ACRPortal.Application.service
             }
         }
 
-        public ApiResponse<AcrListResponse> GetAcrList(int pageNumber, int pageSize, string ccaUserId)
+        public ApiResponse<PagedResult<AcrListItem>> GetAcrList(string ccaUserId, int pageNumber, int pageSize)
         {
             try
             {
                 if (!Guid.TryParse(ccaUserId, out Guid ccaGuid))
-                    return ApiResponse<AcrListResponse>.Fail("Invalid CCA session", "TOKEN_INVALID");
+                    return ApiResponse<PagedResult<AcrListItem>>.Fail("Invalid CCA session", "TOKEN_INVALID");
 
                 if (pageNumber <= 0) pageNumber = 1;
                 if (pageSize <= 0 || pageSize > 100) pageSize = 10;
 
-                var pagedResult = _repo.GetCcaAcrs(ccaGuid, pageNumber, pageSize);
+                var result = _repo.GetCcaAcrs(ccaGuid, pageNumber, pageSize);
 
-                var response = new AcrListResponse
-                {
-                    AcrCycles = pagedResult.Items,
-                    PageNumber = pageNumber,
-                    PageSize = pageSize,
-                    TotalCount = pagedResult.TotalCount,
-                    TotalPages = (int)Math.Ceiling((double)pagedResult.TotalCount / pageSize)
-                };
-
-                return ApiResponse<AcrListResponse>.Ok(response);
+                return ApiResponse<PagedResult<AcrListItem>>.Ok(result);
             }
             catch (Exception ex)
             {
-                return ApiResponse<AcrListResponse>.Fail(ex.Message, "INTERNAL_ERROR");
+                return ApiResponse<PagedResult<AcrListItem>>.Fail(ex.Message, "INTERNAL_ERROR");
             }
         }
 
