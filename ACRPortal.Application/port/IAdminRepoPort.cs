@@ -91,14 +91,8 @@ namespace ACRPortal.Application.port
         void UpdateUserStatus(Guid userId, string userStatus);
 
         // ---- Reads -------------------------------------------------------
-        UserListResponse GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId);
+        PagedResult<UserListItem> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId, int pageNumber, int pageSize);
         UserDetailResponse GetUserById(Guid userId);
-
-        /// <summary>
-        /// Returns all ACTIVE EMPLOYEE users for the manager dropdown.
-        /// Ordered by display_name ascending.
-        /// </summary>
-        ManagerListResponse GetManagers();
 
         PagedResult<AcrListItem> GetAllAcrs(int pageNumber, int pageSize);
     }

@@ -101,24 +101,29 @@ namespace ACRPortal.Application.service
         // ------------------------------------------------------------------ //
         //  Get All Users                                                       //
         // ------------------------------------------------------------------ //
-        public ApiResponse<UserListResponse> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId)
+        public ApiResponse<PagedResult<UserListItem>> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId, int pageNumber, int pageSize)
         {
             try
             {
-                // Only CCA and EMPLOYEE users are managed through this API
                 if (!string.IsNullOrWhiteSpace(role))
                 {
                     role = role.ToUpper();
                     if (role != "CCA" && role != "EMPLOYEE")
-                        return ApiResponse<UserListResponse>.Fail("Role filter must be CCA or EMPLOYEE", "BAD_REQUEST");
+                        return ApiResponse<PagedResult<UserListItem>>
+                            .Fail("Role filter must be CCA or EMPLOYEE", "BAD_REQUEST");
                 }
 
-                var result = _repo.GetAllUsers(role, status, dsgId, zoneId, divisionId);
-                return ApiResponse<UserListResponse>.Ok(result, "Success");
+                if (pageNumber <= 0) pageNumber = 1;
+                if (pageSize <= 0 || pageSize > 100) pageSize = 10;
+
+                var result = _repo.GetAllUsers(role, status, dsgId, zoneId, divisionId, pageNumber, pageSize);
+
+                return ApiResponse<PagedResult<UserListItem>>.Ok(result);
             }
             catch (Exception ex)
             {
-                return ApiResponse<UserListResponse>.Fail("An unexpected error occurred: " + ex.Message, "INTERNAL_ERROR");
+                return ApiResponse<PagedResult<UserListItem>>
+                    .Fail("An unexpected error occurred: " + ex.Message, "INTERNAL_ERROR");
             }
         }
 
@@ -265,22 +270,6 @@ namespace ACRPortal.Application.service
             catch (Exception ex)
             {
                 return ApiResponse<EmptyResponse>.Fail("An unexpected error occurred: " + ex.Message, "INTERNAL_ERROR");
-            }
-        }
-
-        // ------------------------------------------------------------------ //
-        //  Get Managers (dropdown)                                             //
-        // ------------------------------------------------------------------ //
-        public ApiResponse<ManagerListResponse> GetManagers()
-        {
-            try
-            {
-                var result = _repo.GetManagers();
-                return ApiResponse<ManagerListResponse>.Ok(result, "Success");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<ManagerListResponse>.Fail("An unexpected error occurred: " + ex.Message, "INTERNAL_ERROR");
             }
         }
 

@@ -91,11 +91,6 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string CreatedAt { get; set; }     // ISO 8601
     }
 
-    public class UserListResponse
-    {
-        public List<UserListItem> Users { get; set; }
-        public int TotalCount { get; set; }
-    }
 
     public class UserDetailResponse
     {
@@ -120,22 +115,6 @@ namespace ACRPortal.Domain.DTOs.WebToApp
 
         // Manager
         public string ManagerId { get; set; }     // manager's login_id, nullable
-    }
-
-    // ------------------------------------------------------------------ //
-    //  Manager lookup (for dropdown population)                           //
-    // ------------------------------------------------------------------ //
-
-    public class ManagerListItem
-    {
-        public string UserId { get; set; }
-        public string DisplayName { get; set; }
-        public string LoginId { get; set; }
-    }
-
-    public class ManagerListResponse
-    {
-        public List<ManagerListItem> Managers { get; set; }
     }
 
     // ------------------------------------------------------------------ //

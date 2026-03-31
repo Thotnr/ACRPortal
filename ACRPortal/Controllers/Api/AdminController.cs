@@ -18,18 +18,6 @@ namespace ACRPortal.Controllers.Api
         }
 
         // ------------------------------------------------------------------ //
-        //  GET api/admin/users/managers                                       //
-        //  Must be declared BEFORE users/{userId} to prevent route ambiguity. //
-        // ------------------------------------------------------------------ //
-        [HttpGet]
-        [Route("users/managers")]
-        public HttpResponseMessage GetManagers()
-        {
-            var result = _admin.GetManagers();
-            return Request.CreateResponse(MapStatus(result.ErrorCode), result);
-        }
-
-        // ------------------------------------------------------------------ //
         //  GET api/admin/users                                                //
         // ------------------------------------------------------------------ //
         [HttpGet]
@@ -39,9 +27,14 @@ namespace ACRPortal.Controllers.Api
             [FromUri] string status = null,
             [FromUri] int? dsgId = null,
             [FromUri] int? zoneId = null,
-            [FromUri] int? divisionId = null)
+            [FromUri] int? divisionId = null,
+            [FromUri] int pageNumber = 1,
+            [FromUri] int pageSize = 10)
         {
-            var result = _admin.GetAllUsers(role, status, dsgId, zoneId, divisionId);
+            var result = _admin.GetAllUsers(
+                role, status, dsgId, zoneId, divisionId,
+                pageNumber, pageSize);
+
             return Request.CreateResponse(MapStatus(result.ErrorCode), result);
         }
 

@@ -354,12 +354,13 @@ namespace ACRPortal.Infrastructure.Adapter
         //  List users                                                         //
         // ================================================================== //
 
-        public UserListResponse GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId)
+        public PagedResult<UserListItem> GetAllUsers(
+    string role, string status, int? dsgId, int? zoneId, int? divisionId,
+    int pageNumber, int pageSize)
         {
             var where = new List<string>();
             var parms = new List<SqlParameter>();
 
-            // Always restrict to CCA and EMPLOYEE — ADMIN accounts are never returned
             if (!string.IsNullOrWhiteSpace(role))
             {
                 where.Add("u.system_role = @role");
@@ -370,42 +371,84 @@ namespace ACRPortal.Infrastructure.Adapter
                 where.Add("u.system_role IN ('CCA', 'EMPLOYEE')");
             }
 
-            if (!string.IsNullOrWhiteSpace(status)) { where.Add("u.user_status = @status"); parms.Add(new SqlParameter("@status", status.ToUpper())); }
-            if (dsgId.HasValue) { where.Add("u.dsg_id = @dsgId"); parms.Add(new SqlParameter("@dsgId", dsgId.Value)); }
-            if (zoneId.HasValue) { where.Add("u.zone_id = @zoneId"); parms.Add(new SqlParameter("@zoneId", zoneId.Value)); }
-            if (divisionId.HasValue) { where.Add("u.division_id = @divisionId"); parms.Add(new SqlParameter("@divisionId", divisionId.Value)); }
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                where.Add("u.user_status = @status");
+                parms.Add(new SqlParameter("@status", status.ToUpper()));
+            }
+
+            if (dsgId.HasValue)
+            {
+                where.Add("u.dsg_id = @dsgId");
+                parms.Add(new SqlParameter("@dsgId", dsgId.Value));
+            }
+
+            if (zoneId.HasValue)
+            {
+                where.Add("u.zone_id = @zoneId");
+                parms.Add(new SqlParameter("@zoneId", zoneId.Value));
+            }
+
+            if (divisionId.HasValue)
+            {
+                where.Add("u.division_id = @divisionId");
+                parms.Add(new SqlParameter("@divisionId", divisionId.Value));
+            }
 
             string whereClause = where.Count > 0 ? "WHERE " + string.Join(" AND ", where) : "";
 
             string sql = $@"
-                SELECT u.user_id, u.login_id, u.display_name, u.system_role, u.user_status,
-                       u.dsg_id, u.state_id, u.zone_id, u.circle_id, u.division_id, u.sub_division_id,
-                       u.created_at,
-                       u.manager_id,
-                       ei.identity_value AS email_enc,
-                       pi.identity_value AS phone_enc
-                FROM   dbo.users u
-                LEFT   JOIN dbo.user_identities ei ON ei.user_id = u.user_id
-                                                   AND ei.identity_type = 'EMAIL'
-                                                   AND ei.is_primary = 1
-                LEFT   JOIN dbo.user_identities pi ON pi.user_id = u.user_id
-                                                   AND pi.identity_type = 'PHONE'
-                                                   AND pi.is_primary = 1
-                {whereClause}
-                ORDER  BY u.created_at DESC";
+        SELECT COUNT(1)
+        FROM dbo.users u
+        {whereClause};
 
-            var list = new List<UserListItem>();
+        SELECT u.user_id, u.login_id, u.display_name, u.system_role, u.user_status,
+               u.dsg_id, u.state_id, u.zone_id, u.circle_id, u.division_id, u.sub_division_id,
+               u.created_at,
+               u.manager_id,
+               ei.identity_value AS email_enc,
+               pi.identity_value AS phone_enc
+        FROM   dbo.users u
+        LEFT   JOIN dbo.user_identities ei ON ei.user_id = u.user_id
+                                           AND ei.identity_type = 'EMAIL'
+                                           AND ei.is_primary = 1
+        LEFT   JOIN dbo.user_identities pi ON pi.user_id = u.user_id
+                                           AND pi.identity_type = 'PHONE'
+                                           AND pi.is_primary = 1
+        {whereClause}
+        ORDER  BY u.created_at DESC
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
+    ";
+
+            var resp = new PagedResult<UserListItem>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
             {
                 cmd.Parameters.AddRange(parms.ToArray());
+                cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
+                cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
+
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
+                {
+                    // total count
+                    if (r.Read())
+                        resp.TotalCount = r.GetInt32(0);
+
+                    r.NextResult();
+
                     while (r.Read())
                     {
                         string emailEnc = r.IsDBNull(13) ? null : r.GetString(13);
                         string phoneEnc = r.IsDBNull(14) ? null : r.GetString(14);
-                        list.Add(new UserListItem
+
+                        resp.Items.Add(new UserListItem
                         {
                             UserId = r.GetGuid(0).ToString(),
                             LoginId = r.GetString(1),
@@ -424,9 +467,12 @@ namespace ACRPortal.Infrastructure.Adapter
                             Phone = phoneEnc == null ? null : _security.DecryptWithAes(phoneEnc),
                         });
                     }
+                }
             }
 
-            return new UserListResponse { Users = list, TotalCount = list.Count };
+            resp.TotalPages = (int)Math.Ceiling((double)resp.TotalCount / pageSize);
+
+            return resp;
         }
 
         // ================================================================== //
@@ -482,37 +528,6 @@ namespace ACRPortal.Infrastructure.Adapter
                     };
                 }
             }
-        }
-
-        // ================================================================== //
-        //  Get managers (dropdown)                                            //
-        // ================================================================== //
-
-        public ManagerListResponse GetManagers()
-        {
-            const string sql = @"
-                SELECT user_id, display_name, login_id
-                FROM   dbo.users
-                WHERE  system_role = 'EMPLOYEE'
-                  AND  user_status = 'ACTIVE'
-                ORDER  BY display_name ASC";
-
-            var list = new List<ManagerListItem>();
-            using (var con = new SqlConnection(_conn))
-            using (var cmd = new SqlCommand(sql, con))
-            {
-                con.Open();
-                using (var r = cmd.ExecuteReader())
-                    while (r.Read())
-                        list.Add(new ManagerListItem
-                        {
-                            UserId = r.GetGuid(0).ToString(),
-                            DisplayName = r.IsDBNull(1) ? null : r.GetString(1),
-                            LoginId = r.GetString(2),
-                        });
-            }
-
-            return new ManagerListResponse { Managers = list };
         }
 
         // ================================================================== //
