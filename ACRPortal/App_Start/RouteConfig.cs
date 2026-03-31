@@ -57,12 +57,20 @@ namespace ACRPortal
             routes.MapRoute(
                 name: "Masters",
                 url: "Masters/{action}",
-                defaults: new { controller = "Masters", action = "State" }
+                defaults: new { controller = "Masters", action = "State" },
+                constraints: new { action = "Designation|State|Zone|Circle|Division|SubDivision|AddEmployee" }
             );
 
             routes.MapRoute(
-                name: "SharedUpload",
-                url: "web/Shared/FileUploadHandler",
+                name: "LegacyHomeMasters",
+                url: "Home/{action}",
+                defaults: new { controller = "Masters" },
+                constraints: new { action = "Designation|State|Zone|Circle|Division|SubDivision|AddEmployee" }
+            );
+
+            _ = routes.MapRoute(
+                name: "FileUpload",
+                url: "Web/Shared/FileUploadHandler",  // ✅ Fixed
                 defaults: new { controller = "Shared", action = "FileUploadHandler" }
             );
 
