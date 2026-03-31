@@ -99,6 +99,8 @@ namespace ACRPortal.Application.port
         /// Ordered by display_name ascending.
         /// </summary>
         ManagerListResponse GetManagers();
+
+        PagedResult<AcrListItem> GetAllAcrs(int pageNumber, int pageSize);
     }
 
     /// <summary>

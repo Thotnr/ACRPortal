@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http;
 using System.Web.Http;
+using System;
 using ACRPortal.Application.usecase;
 using ACRPortal.Domain.DTOs.WebToApp;
 
@@ -114,5 +115,21 @@ namespace ACRPortal.Controllers.Api
                     return HttpStatusCode.InternalServerError;
             }
         }
+
+        [HttpGet]
+        [Route("acr")]
+        public HttpResponseMessage GetAcrList(int pageNumber = 1, int pageSize = 10)
+        {
+            try
+            {
+                var result = _admin.GetAcrList(pageNumber, pageSize);
+                return Request.CreateResponse(result.Success ? HttpStatusCode.OK : HttpStatusCode.InternalServerError, result);
+            }
+            catch (Exception ex) { return Fail(ex.Message); }
+        }
+
+        private HttpResponseMessage Fail(string message, string errorCode = "INTERNAL_ERROR",
+            HttpStatusCode code = HttpStatusCode.InternalServerError)
+            => Request.CreateResponse(code, ApiResponse<EmptyResponse>.Fail(message, errorCode));
     }
 }

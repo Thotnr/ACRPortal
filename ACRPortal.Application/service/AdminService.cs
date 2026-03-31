@@ -403,5 +403,21 @@ namespace ACRPortal.Application.service
 
             return null;  // no error
         }
+
+        public ApiResponse<PagedResult<AcrListItem>> GetAcrList(int pageNumber, int pageSize)
+        {
+            try
+            {
+                if (pageNumber <= 0) pageNumber = 1;
+                if (pageSize <= 0 || pageSize > 100) pageSize = 10;
+
+                var result = _repo.GetAllAcrs(pageNumber, pageSize);
+                return ApiResponse<PagedResult<AcrListItem>>.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedResult<AcrListItem>>.Fail(ex.Message, "INTERNAL_ERROR");
+            }
+        }
     }
 }

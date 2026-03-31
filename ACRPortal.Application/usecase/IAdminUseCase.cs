@@ -15,5 +15,7 @@ namespace ACRPortal.Application.usecase
         /// manager dropdown on Create / Edit User forms.
         /// </summary>
         ApiResponse<ManagerListResponse> GetManagers();
+
+        ApiResponse<PagedResult<AcrListItem>> GetAcrList(int pageNumber, int pageSize);
     }
 }

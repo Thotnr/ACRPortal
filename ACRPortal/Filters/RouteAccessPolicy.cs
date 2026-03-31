@@ -35,6 +35,7 @@
                         || path.StartsWith("/admin")
                         || path.StartsWith("/masters")
                         || path.StartsWith("/api/dashboard")
+                        || path.StartsWith("/api/cca")
                         || path.EndsWith("/home/dashboard")
                         || path.EndsWith("/home/cca")
                         || path.EndsWith("/home/officer");
