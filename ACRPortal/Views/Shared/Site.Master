@@ -547,7 +547,7 @@ if(role === "ADMIN"){
     // show Masters + all menus
     $("#mastersToggle").show();
     $("#mastersSubmenu").show();
-    $("#menuCCA").hide();
+    $("#menuCCA").show();
     $("#menuReports").show();
     $("#menuDashboard").show();
 }
