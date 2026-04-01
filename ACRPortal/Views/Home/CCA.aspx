@@ -888,10 +888,6 @@ function getFormTitle(type) {
 }
 
 function openAppraisalModal() {
-    if (isAdminUser() && !currentAcrId) {
-        return;
-    }
-
     applyTodayMaxToDates();
 
     $("#ccaForm")[0].reset();
@@ -1822,7 +1818,7 @@ $("#officerName").off("change").on("change", function () {
         $("#reportingAuthority2").val(null).trigger("change");
     }
 
-    if (officerUserId) {
+    if (officerUserId && !isAdminUser()) {
         suggestAuthorityChain(officerUserId);
     }
 });
@@ -1961,7 +1957,10 @@ function viewAcr(acrId) {
 }
 
 function suggestAuthorityChain(officerUserId) {
-    if (!officerUserId) return;
+    if (!officerUserId || isAdminUser()) {
+        $("#authoritySuggestionStatus").html("");
+        return;
+    }
 
     $("#authoritySuggestionStatus").html('<span class="text-muted">Fetching authority suggestions...</span>');
 

@@ -205,6 +205,16 @@ border:1px solid rgba(15,23,42,0.08);
 color:#1d4ed8;
 }
 
+.pagination .page-item.disabled .page-link{
+cursor:not-allowed;
+pointer-events:none;
+color:#94a3b8;
+background:#f8fafc;
+border-color:rgba(148,163,184,0.25);
+box-shadow:none;
+opacity:1;
+}
+
 .pagination .page-item.active .page-link{
 background:linear-gradient(135deg, #2563eb, #0ea5e9);
 border-color:transparent;
@@ -233,6 +243,19 @@ background:#f8fbff;
 border-radius:14px;
 font-weight:700;
 padding:10px 16px;
+}
+
+.btn-export-master{
+border:1px solid rgba(29,78,216,0.14);
+background:rgba(37,99,235,0.08);
+color:#1d4ed8;
+margin-right:10px;
+}
+
+.btn-export-master:hover,
+.btn-export-master:focus{
+background:rgba(37,99,235,0.14);
+color:#1d4ed8;
 }
 
 </style>
@@ -265,9 +288,15 @@ padding:10px 16px;
 <div class="page-subtitle">Maintain employee master records, reporting managers, and role mappings in one place.</div>
 </div>
 
-<button class="btn btn-primary btn-sm" onclick="openEmployeeModal()">
+<div>
+<button class="btn btn-export-master btn-sm" type="button" onclick="exportEmployeesToXlsx()">
+<i class="fa fa-file-excel"></i> Export
+</button>
+
+<button class="btn btn-primary btn-sm" type="button" onclick="openEmployeeModal()">
 <i class="fa fa-plus"></i> Add Employee
 </button>
+</div>
 
 </div>
 
@@ -332,6 +361,7 @@ onchange="changePageSize()">
 <option value="10" selected>10</option>
 <option value="25">25</option>
 <option value="50">50</option>
+<option value="100">100</option>
 
 </select>
 entries
@@ -505,6 +535,9 @@ var token=null;
 
 var pageSize=10;
 var currentPage=1;
+var totalCount=0;
+var totalPages=0;
+var currentSearchTerm="";
 
 var sortAsc=true;
 var currentSortColumn="";
@@ -665,7 +698,7 @@ var zoneId=$("#filterZone").val();
 var dsgId=$("#filterDesignation").val();
 var divisionId=$("#filterDivision").val();
 
-var url= BASE_URL + "api/admin/users";
+var url= BASE_URL + "api/admin/users?pageNumber=" + currentPage + "&pageSize=" + pageSize;
 
 if(zoneId) url+="&zoneId="+zoneId;
 if(dsgId) url+="&dsgId="+dsgId;
@@ -681,12 +714,20 @@ headers:{ "Authorization":"Bearer "+token },
 success:function(res){
 
 if(res.Success){
-debugger
-employees=res.Data.Users || [];
+employees=(res.Data && res.Data.Items) || [];
 filteredEmployees=[...employees];
+totalCount=(res.Data && typeof res.Data.TotalCount==="number") ? res.Data.TotalCount : employees.length;
+totalPages=(res.Data && typeof res.Data.TotalPages==="number") ? res.Data.TotalPages : (totalCount ? Math.ceil(totalCount/pageSize) : 0);
+currentPage=(res.Data && typeof res.Data.PageNumber==="number") ? res.Data.PageNumber : currentPage;
+pageSize=(res.Data && typeof res.Data.PageSize==="number") ? res.Data.PageSize : pageSize;
+$("#pageSizeSelect").val(pageSize.toString());
 
-currentPage=1;
-renderTable();
+if(currentSearchTerm){
+searchTable(currentSearchTerm);
+return;
+}
+
+applyFilters(false);
 
 }
 
@@ -713,12 +754,14 @@ body.empty();
 
 var total=filteredEmployees.length;
 
-var start=(currentPage-1)*pageSize;
-var end=start+pageSize;
+if(!total){
+body.html('<tr><td colspan="6" class="text-center text-muted">No records found</td></tr>');
+updateTableInfo(0,0,totalCount);
+renderPagination();
+return;
+}
 
-var pageData=filteredEmployees.slice(start,end);
-
-pageData.forEach(function(e){
+filteredEmployees.forEach(function(e){
 // var statusIcon = e.UserStatus === "ACTIVE"
 // ? '<i class="fa-solid fa-toggle-on text-success"></i>'
 // : '<i class="fa-solid fa-toggle-off text-danger"></i>';
@@ -757,16 +800,23 @@ ${e.UserStatus==="ACTIVE"
 
 });
 
-updateTableInfo(start,end,total);
+var start=((currentPage-1)*pageSize)+1;
+var end=Math.min(((currentPage-1)*pageSize)+filteredEmployees.length,totalCount);
+
+updateTableInfo(start,end,totalCount,total);
 renderPagination();
 
 }
 
-function updateTableInfo(start,end,total){
+function updateTableInfo(start,end,total,filteredCount){
 
-$("#tableInfo").text(
-"Showing "+(start+1)+" to "+Math.min(end,total)+" of "+total+" entries"
-);
+var text="Showing "+start+" to "+end+" of "+total+" entries";
+
+if(currentSearchTerm || filteredCount !== employees.length){
+text+=" | Visible on current page: "+filteredCount;
+}
+
+$("#tableInfo").text(text);
 
 }
 
@@ -774,19 +824,9 @@ $("#tableInfo").text(
 
 function searchTable(val){
 
-val=val.toLowerCase();
+currentSearchTerm=(val || "").toLowerCase();
 
-filteredEmployees=employees.filter(function(e){
-
-return (
-(e.DisplayName||"").toLowerCase().includes(val) ||
-(e.LoginId||"").toLowerCase().includes(val)
-);
-
-});
-
-currentPage=1;
-renderTable();
+applyFilters(false);
 
 }
 
@@ -798,18 +838,25 @@ function sortTable(col){
 sortAsc=currentSortColumn===col ? !sortAsc : true;
 currentSortColumn=col;
 
+applyCurrentSort();
+renderTable();
+
+}
+
+function applyCurrentSort(){
+
+if(!currentSortColumn) return;
+
 filteredEmployees.sort(function(a,b){
 
-var x=a[col];
-var y=b[col];
+var x=a[currentSortColumn];
+var y=b[currentSortColumn];
 
 if(x>y) return sortAsc?1:-1;
 if(x<y) return sortAsc?-1:1;
 return 0;
 
 });
-
-renderTable();
 
 }
 
@@ -818,38 +865,27 @@ renderTable();
 
 function renderPagination(){
 
-var totalPages=Math.ceil(filteredEmployees.length/pageSize);
-
 if(totalPages===0){
 $("#pagination").html("");
 return;
 }
 
 var html="";
+var isPrevDisabled=currentPage===1;
+var isNextDisabled=currentPage===totalPages || employees.length<pageSize;
 
 /* PREV */
 
-html+=`<li class="page-item ${currentPage==1?'disabled':''}">
+html+=`<li class="page-item ${isPrevDisabled?'disabled':''}">
 <a class="page-link" href="javascript:void(0)"
-onclick="gotoPage(${currentPage-1})">Prev</a>
+${isPrevDisabled ? 'aria-disabled="true"' : `onclick="gotoPage(${currentPage-1})"`}>Prev</a>
 </li>`;
-
-/* PAGE NUMBERS */
-
-for(var i=1;i<=totalPages;i++){
-
-html+=`<li class="page-item ${i==currentPage?'active':''}">
-<a class="page-link" href="javascript:void(0)"
-onclick="gotoPage(${i})">${i}</a>
-</li>`;
-
-}
 
 /* NEXT */
 
-html+=`<li class="page-item ${currentPage==totalPages?'disabled':''}">
+html+=`<li class="page-item ${isNextDisabled?'disabled':''}">
 <a class="page-link" href="javascript:void(0)"
-onclick="gotoPage(${currentPage+1})">Next</a>
+${isNextDisabled ? 'aria-disabled="true"' : `onclick="gotoPage(${currentPage+1})"`}>Next</a>
 </li>`;
 
 $("#pagination").html(html);
@@ -858,12 +894,10 @@ $("#pagination").html(html);
 
 function gotoPage(p){
 
-var totalPages=Math.ceil(filteredEmployees.length/pageSize);
-
 if(p<1 || p>totalPages) return;
 
 currentPage=p;
-renderTable();
+loadEmployees();
 
 }
 
@@ -1230,11 +1264,17 @@ pageSize=parseInt($("#pageSizeSelect").val());
 
 currentPage=1;
 
-renderTable();
+loadEmployees();
 
 }
 
-function applyFilters(){
+function applyFilters(shouldReload){
+
+if(shouldReload!==false){
+currentPage=1;
+loadEmployees();
+return;
+}
 
 var zoneId=$("#filterZone").val();
 var dsgId=$("#filterDesignation").val();
@@ -1242,7 +1282,21 @@ var circleId=$("#filterCircle").val();
 var divisionId=$("#filterDivision").val();
 var subDivisionId=$("#filterSubDivision").val();
 
-filteredEmployees=employees.filter(function(e){
+var baseEmployees=employees.filter(function(e){
+
+if(currentSearchTerm){
+var matchesSearch=
+(e.DisplayName||"").toLowerCase().includes(currentSearchTerm) ||
+(e.LoginId||"").toLowerCase().includes(currentSearchTerm);
+
+if(!matchesSearch) return false;
+}
+
+return true;
+
+});
+
+filteredEmployees=baseEmployees.filter(function(e){
 
 if(zoneId && e.ZoneId!=zoneId) return false;
 if(dsgId && e.DsgId!=dsgId) return false;
@@ -1254,7 +1308,7 @@ return true;
 
 });
 
-currentPage=1;
+applyCurrentSort();
 renderTable();
 
 }
@@ -1366,6 +1420,274 @@ alert("Failed to update status");
 
 });
 
+}
+
+function exportEmployeesToXlsx(){
+
+if(!filteredEmployees.length){
+alert("No records available to export.");
+return;
+}
+
+var headers=[
+"Login ID",
+"Display Name",
+"Email",
+"Phone",
+"System Role",
+"User Status",
+"Designation",
+"Reporting Manager",
+"State Id",
+"Zone Id",
+"Circle Id",
+"Division Id",
+"SubDivision Id",
+"Created At"
+];
+
+var rows=filteredEmployees.map(function(e){
+return [
+e.LoginId || "",
+e.DisplayName || "",
+e.Email || "",
+e.Phone || "",
+e.SystemRole || "",
+e.UserStatus || "",
+getDesignationName(e.DsgId) || "",
+e.ManagerId || "",
+e.StateId || "",
+e.ZoneId || "",
+e.CircleId || "",
+e.DivisionId || "",
+e.SubDivisionId || "",
+e.CreatedAt || ""
+];
+});
+
+downloadXlsxFile("Employee_Records_Page_" + currentPage + ".xlsx","Employees",headers,rows);
+
+}
+
+function downloadXlsxFile(fileName,sheetName,headers,rows){
+var encoder=new TextEncoder();
+var workbookFiles=[
+{ name:"[Content_Types].xml", data:encoder.encode(buildContentTypesXml()) },
+{ name:"_rels/.rels", data:encoder.encode(buildRootRelsXml()) },
+{ name:"xl/workbook.xml", data:encoder.encode(buildWorkbookXml(sheetName)) },
+{ name:"xl/_rels/workbook.xml.rels", data:encoder.encode(buildWorkbookRelsXml()) },
+{ name:"xl/worksheets/sheet1.xml", data:encoder.encode(buildWorksheetXml(headers,rows)) },
+{ name:"xl/styles.xml", data:encoder.encode(buildStylesXml()) }
+];
+
+var blob=createZipBlob(workbookFiles);
+var url=URL.createObjectURL(blob);
+var link=document.createElement("a");
+link.href=url;
+link.download=fileName;
+document.body.appendChild(link);
+link.click();
+document.body.removeChild(link);
+setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+}
+
+function buildContentTypesXml(){
+return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+'<Default Extension="xml" ContentType="application/xml"/>' +
+'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+'</Types>';
+}
+
+function buildRootRelsXml(){
+return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+'</Relationships>';
+}
+
+function buildWorkbookXml(sheetName){
+return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+'<sheets>' +
+'<sheet name="' + escapeXml(sheetName) + '" sheetId="1" r:id="rId1"/>' +
+'</sheets>' +
+'</workbook>';
+}
+
+function buildWorkbookRelsXml(){
+return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+'</Relationships>';
+}
+
+function buildStylesXml(){
+return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+'<fonts count="2">' +
+'<font><sz val="11"/><name val="Calibri"/></font>' +
+'<font><b/><sz val="11"/><name val="Calibri"/></font>' +
+'</fonts>' +
+'<fills count="2">' +
+'<fill><patternFill patternType="none"/></fill>' +
+'<fill><patternFill patternType="gray125"/></fill>' +
+'</fills>' +
+'<borders count="1">' +
+'<border><left/><right/><top/><bottom/><diagonal/></border>' +
+'</borders>' +
+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+'<cellXfs count="2">' +
+'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+'<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+'</cellXfs>' +
+'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+'</styleSheet>';
+}
+
+function buildWorksheetXml(headers,rows){
+var allRows=[headers].concat(rows);
+var rowXml=allRows.map(function(columns,rowIndex){
+var cellXml=columns.map(function(value,columnIndex){
+var cellRef=getExcelColumnName(columnIndex + 1) + (rowIndex + 1);
+var styleId=rowIndex===0 ? ' s="1"' : "";
+return '<c r="' + cellRef + '" t="inlineStr"' + styleId + '><is><t>' + escapeXml(value == null ? "" : value.toString()) + '</t></is></c>';
+}).join("");
+
+return '<row r="' + (rowIndex + 1) + '">' + cellXml + '</row>';
+}).join("");
+
+return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+'<sheetData>' + rowXml + '</sheetData>' +
+'</worksheet>';
+}
+
+function getExcelColumnName(columnNumber){
+var columnName="";
+while(columnNumber > 0){
+var remainder=(columnNumber - 1) % 26;
+columnName=String.fromCharCode(65 + remainder) + columnName;
+columnNumber=Math.floor((columnNumber - 1) / 26);
+}
+return columnName;
+}
+
+function escapeXml(value){
+return (value || "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/\"/g,"&quot;")
+.replace(/'/g,"&apos;");
+}
+
+function createZipBlob(files){
+var localParts=[];
+var centralParts=[];
+var offset=0;
+
+files.forEach(function(file){
+var nameBytes=new TextEncoder().encode(file.name);
+var crc=crc32(file.data);
+var localHeader=createZipHeader(0x04034b50,nameBytes,crc,file.data.length,offset,false);
+localParts.push(localHeader.header,nameBytes,file.data);
+
+var centralHeader=createZipHeader(0x02014b50,nameBytes,crc,file.data.length,offset,true);
+centralParts.push(centralHeader.header,nameBytes);
+
+offset += localHeader.header.length + nameBytes.length + file.data.length;
+});
+
+var centralSize=centralParts.reduce(function(sum,part){ return sum + part.length; },0);
+var endRecord=createZipEndRecord(files.length,centralSize,offset);
+
+return new Blob(localParts.concat(centralParts,[endRecord]),{
+type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+});
+}
+
+function createZipHeader(signature,nameBytes,crc,size,offset,isCentral){
+var header=new Uint8Array(isCentral ? 46 : 30);
+var view=new DataView(header.buffer);
+var now=new Date();
+var dosTime=((now.getHours() & 31) << 11) | ((now.getMinutes() & 63) << 5) | Math.floor((now.getSeconds() || 0) / 2);
+var dosDate=((((now.getFullYear() - 1980) & 127) << 9) | (((now.getMonth() + 1) & 15) << 5) | (now.getDate() & 31));
+
+view.setUint32(0,signature,true);
+
+if(isCentral){
+view.setUint16(4,20,true);
+view.setUint16(6,20,true);
+view.setUint16(8,0,true);
+view.setUint16(10,0,true);
+view.setUint16(12,dosTime,true);
+view.setUint16(14,dosDate,true);
+view.setUint32(16,crc,true);
+view.setUint32(20,size,true);
+view.setUint32(24,size,true);
+view.setUint16(28,nameBytes.length,true);
+view.setUint16(30,0,true);
+view.setUint16(32,0,true);
+view.setUint16(34,0,true);
+view.setUint16(36,0,true);
+view.setUint32(38,0,true);
+view.setUint32(42,offset,true);
+}else{
+view.setUint16(4,20,true);
+view.setUint16(6,0,true);
+view.setUint16(8,0,true);
+view.setUint16(10,dosTime,true);
+view.setUint16(12,dosDate,true);
+view.setUint32(14,crc,true);
+view.setUint32(18,size,true);
+view.setUint32(22,size,true);
+view.setUint16(26,nameBytes.length,true);
+view.setUint16(28,0,true);
+}
+
+return { header:header };
+}
+
+function createZipEndRecord(fileCount,centralSize,centralOffset){
+var endRecord=new Uint8Array(22);
+var view=new DataView(endRecord.buffer);
+
+view.setUint32(0,0x06054b50,true);
+view.setUint16(4,0,true);
+view.setUint16(6,0,true);
+view.setUint16(8,fileCount,true);
+view.setUint16(10,fileCount,true);
+view.setUint32(12,centralSize,true);
+view.setUint32(16,centralOffset,true);
+view.setUint16(20,0,true);
+
+return endRecord;
+}
+
+var crcTable=null;
+
+function crc32(data){
+if(!crcTable){
+crcTable=[];
+for(var n=0;n<256;n++){
+var c=n;
+for(var k=0;k<8;k++){
+c=(c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+}
+crcTable[n]=c >>> 0;
+}
+}
+
+var crc=0 ^ (-1);
+for(var i=0;i<data.length;i++){
+crc=(crc >>> 8) ^ crcTable[(crc ^ data[i]) & 0xff];
+}
+return (crc ^ (-1)) >>> 0;
 }
 
 function loadFilterDivisions(circleId){
