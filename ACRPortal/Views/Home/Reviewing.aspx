@@ -356,6 +356,16 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         color: #1d4ed8;
     }
 
+    #reviewPagination .page-item.disabled .page-link {
+        cursor: not-allowed;
+        pointer-events: none;
+        color: #94a3b8;
+        background: #f8fafc;
+        border-color: rgba(148, 163, 184, 0.25);
+        box-shadow: none;
+        opacity: 1;
+    }
+
     #reviewPagination .page-item.active .page-link {
         background: linear-gradient(135deg, #2563eb, #0ea5e9);
         border-color: transparent;
@@ -405,14 +415,14 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     <i class="bi bi-search-heart"></i>
                     Reviewing Authority
                 </span>
-                <h2 class="authority-title">A more readable workspace for cross-checking reporting assessments.</h2>
-                <p class="authority-subtitle">Open reviewing cases faster, compare reporting details more comfortably, and complete the reviewing step in the same polished authority layout.</p>
+                <h2 class="authority-title">Review submitted assessments and complete the reviewing stage.</h2>
+                <p class="authority-subtitle">Check officer details, compare reporting inputs, review overall grading, and record reviewing observations for the assigned ACR cases.</p>
             </div>
             <div class="col-lg-4">
                 <div class="hero-panel">
                     <div class="hero-panel-label">Reviewing Workspace</div>
                     <div class="hero-panel-value">Review</div>
-                    <p class="hero-panel-copy">The queue and modal are redesigned for clarity while keeping your current reviewing behavior exactly the same.</p>
+                    <p class="hero-panel-copy">This workspace helps you inspect the reporting assessment and submit the reviewing decision for each pending record.</p>
                 </div>
             </div>
         </div>
@@ -435,6 +445,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
                         <option value="50">50</option>
+                        <option value="100">100</option>
                     </select>
                 </div>
             </div>
@@ -773,10 +784,13 @@ let reviewingData = [];
 let filteredReviewing = [];
 let reviewPageSize = 10;
 let reviewCurrentPage = 1;
+let reviewTotalCount = 0;
+let reviewTotalPages = 0;
 let isDirty = false;
 
 let reviewSortColumn = "";
 let reviewSortAsc = true;
+let reviewSearchTerm = "";
 
 $(document).ready(function(){
     $("#reviewingDiv").show();
@@ -791,99 +805,70 @@ $(document).ready(function(){
 
 
 function changeReviewPageSize(){
-    reviewPageSize = parseInt($("#reviewPageSizeSelect").val());
+    reviewPageSize = parseInt($("#reviewPageSizeSelect").val(), 10) || 10;
     reviewCurrentPage = 1;
-    renderReviewingTable();
+    loadReviewingQueue();
 }
 
 function updateReviewInfo(start, end){
-    const total = filteredReviewing.length;
-
-    if(total === 0){
-        $("#reviewTableInfo").text("");
+    if(filteredReviewing.length === 0){
+        $("#reviewTableInfo").text(reviewTotalCount ? `Showing 0 records on page ${reviewCurrentPage} of ${reviewTotalPages} (${reviewTotalCount} total entries)` : "");
         return;
     }
 
-    $("#reviewTableInfo").text(
-        `Showing ${start+1} to ${Math.min(end,total)} of ${total} entries`
-    );
+    let info = `Showing ${start} to ${end} of ${reviewTotalCount} entries`;
+    if (reviewSearchTerm) {
+        info += ` | Filtered on current page: ${filteredReviewing.length}`;
+    }
+    $("#reviewTableInfo").text(info);
 }
 
 function searchReviewingQueue(value){
-    value = (value || "").toLowerCase().trim();
-    if (!value) {
+    reviewSearchTerm = (value || "").toLowerCase().trim();
+    if (!reviewSearchTerm) {
         filteredReviewing = [...reviewingData];
     } else {
         filteredReviewing = reviewingData.filter(a => {
             return (
-                (a.FormType || "").toLowerCase().includes(value) ||
-                (a.OfficerName || "").toLowerCase().includes(value) ||
-                (a.Location || "").toLowerCase().includes(value) ||
-                (a.Status || "").toLowerCase().includes(value)
+                (a.FormType || "").toLowerCase().includes(reviewSearchTerm) ||
+                (a.OfficerName || "").toLowerCase().includes(reviewSearchTerm) ||
+                (a.Location || "").toLowerCase().includes(reviewSearchTerm) ||
+                (a.Status || "").toLowerCase().includes(reviewSearchTerm)
             );
         });
     }
-    reviewCurrentPage = 1;
+    if (reviewSortColumn) {
+        sortReviewingTable(reviewSortColumn);
+        return;
+    }
     renderReviewingTable();
 }
 
 function gotoReviewPage(p){
-    const totalPages = Math.ceil(filteredReviewing.length / reviewPageSize);
-
-    if(p < 1 || p > totalPages) return;
-
+    if(p < 1 || p > reviewTotalPages) return;
     reviewCurrentPage = p;
-    renderReviewingTable();
+    loadReviewingQueue();
 }
 
 function renderReviewPagination() {
-    const totalPages = Math.ceil(filteredReviewing.length / reviewPageSize);
     const container = $("#reviewPagination");
     container.empty();
 
-    if (totalPages <= 1) return;
+    if (reviewTotalPages <= 1) return;
 
-    const prevDisabled = reviewCurrentPage === 1 ? "disabled" : "";
+    const isPrevDisabled = reviewCurrentPage === 1;
+    const isNextDisabled = reviewCurrentPage === reviewTotalPages || reviewingData.length < reviewPageSize;
+    const prevDisabled = isPrevDisabled ? "disabled" : "";
     container.append(`
         <li class="page-item ${prevDisabled}">
-            <a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(${reviewCurrentPage - 1})">Previous</a>
+            <a class="page-link" href="javascript:void(0)" ${isPrevDisabled ? 'aria-disabled="true"' : `onclick="gotoReviewPage(${reviewCurrentPage - 1})"`}>Previous</a>
         </li>
     `);
 
-    const startPage = Math.max(1, reviewCurrentPage - 2);
-    const endPage = Math.min(totalPages, reviewCurrentPage + 2);
-
-    if (startPage > 1) {
-        container.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(1)">1</a></li>`);
-        if (startPage > 2) {
-            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
-        }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        const active = i === reviewCurrentPage ? "active" : "";
-        container.append(`
-            <li class="page-item ${active}">
-                <a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(${i})">${i}</a>
-            </li>
-        `);
-    }
-
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
-        }
-        container.append(`
-            <li class="page-item">
-                <a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(${totalPages})">${totalPages}</a>
-            </li>
-        `);
-    }
-
-    const nextDisabled = reviewCurrentPage === totalPages ? "disabled" : "";
+    const nextDisabled = isNextDisabled ? "disabled" : "";
     container.append(`
         <li class="page-item ${nextDisabled}">
-            <a class="page-link" href="javascript:void(0)" onclick="gotoReviewPage(${reviewCurrentPage + 1})">Next</a>
+            <a class="page-link" href="javascript:void(0)" ${isNextDisabled ? 'aria-disabled="true"' : `onclick="gotoReviewPage(${reviewCurrentPage + 1})"`}>Next</a>
         </li>
     `);
 }
@@ -895,14 +880,10 @@ function renderReviewingTable() {
     const tbody = $("#reviewingBody");
     tbody.empty();
 
-    const start = (reviewCurrentPage - 1) * reviewPageSize;
-    const end = start + reviewPageSize;
-    const pageData = filteredReviewing.slice(start, end);
-
-    if (pageData.length === 0) {
+    if (filteredReviewing.length === 0) {
         tbody.append(`<tr><td colspan="5" class="text-center">No entries found</td></tr>`);
     } else {
-        pageData.forEach(a => {
+        filteredReviewing.forEach(a => {
             tbody.append(`<tr>
                 <td>${a.FormType || ''}</td>
                 <td>${a.OfficerName || ''}</td>
@@ -913,21 +894,31 @@ function renderReviewingTable() {
         });
     }
 
+    const start = reviewTotalCount ? (((reviewCurrentPage - 1) * reviewPageSize) + 1) : 0;
+    const end = reviewTotalCount ? Math.min(((reviewCurrentPage - 1) * reviewPageSize) + reviewingData.length, reviewTotalCount) : filteredReviewing.length;
     updateReviewInfo(start, end);
     renderReviewPagination();
 }
 
 function loadReviewingQueue() {
     $.ajax({
-        url: BASE_URL + "api/acr/reviewing/my",
+        url: BASE_URL + "api/acr/reviewing/my?pageNumber=" + reviewCurrentPage + "&pageSize=" + reviewPageSize,
         headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
         success: function (res) {
             if (res.Success) {
-                reviewingData = (res.Data && res.Data.AcrCycles) ? res.Data.AcrCycles : [];
+                reviewingData = (res.Data && res.Data.Items) ? res.Data.Items : [];
+                reviewTotalCount = (res.Data && typeof res.Data.TotalCount === "number") ? res.Data.TotalCount : reviewingData.length;
+                reviewTotalPages = (res.Data && typeof res.Data.TotalPages === "number") ? res.Data.TotalPages : (reviewTotalCount ? Math.ceil(reviewTotalCount / reviewPageSize) : 0);
+                reviewCurrentPage = (res.Data && typeof res.Data.PageNumber === "number") ? res.Data.PageNumber : reviewCurrentPage;
+                reviewPageSize = (res.Data && typeof res.Data.PageSize === "number") ? res.Data.PageSize : reviewPageSize;
+                $("#reviewPageSizeSelect").val(reviewPageSize.toString());
                 filteredReviewing = [...reviewingData];
-                reviewCurrentPage = 1;
                 reviewSortColumn = "OfficerName";
                 reviewSortAsc = true;
+                if (reviewSearchTerm) {
+                    searchReviewingQueue(reviewSearchTerm);
+                    return;
+                }
                 sortReviewingTable("OfficerName");
             }
         }
