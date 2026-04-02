@@ -544,32 +544,51 @@ namespace ACRPortal.Infrastructure.Adapter
         //  GetAcrList                                                         //
         // ================================================================== //
 
-        public PagedResult<AcrListItem> GetCcaAcrs(Guid ccaUserId, int pageNumber, int pageSize)
+        public PagedResult<AcrListItem> GetCcaAcrs(
+            Guid ccaUserId, 
+            int pageNumber, 
+            int pageSize, 
+            string Status, 
+            string Officer_name)
         {
-            string sql = @"
-        SELECT COUNT(1)
-        FROM dbo.acr_cycles
-        WHERE cca_user_id = @ccaUserId;
+            var where = new List<string>();
+            var parms = new List<SqlParameter>();
 
-        SELECT ac.acr_id,
-               u.display_name,
-               u.login_id,
-               d.dsg,
-               ac.form_type,
-               ac.department,
-               ac.location,
-               ac.posting_from,
-               ac.posting_to,
-               ac.acr_year,
-               ac.status,
-               ac.created_at
-        FROM dbo.acr_cycles ac
-        JOIN dbo.users u ON u.user_id = ac.officer_user_id
-        LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
-        WHERE ac.cca_user_id = @ccaUserId
-        ORDER BY ac.created_at DESC
-        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
-    ";
+            where.Add("cca_user_id = @ccaUserId");
+            parms.Add(new SqlParameter("@ccaUserId", ccaUserId));
+
+            if (!string.IsNullOrWhiteSpace(Status))
+            {
+                where.Add("ac.status = @status");
+                parms.Add(new SqlParameter("@status", Status.ToUpper()));
+            }
+
+            string whereClause = where.Count > 0 ? "WHERE " + string.Join(" AND ", where) : "";
+
+            string sql = $@"
+                SELECT COUNT(1)
+                FROM dbo.acr_cycles ac
+                {whereClause};
+
+                SELECT ac.acr_id,
+                       u.display_name,
+                       u.login_id,
+                       d.dsg,
+                       ac.form_type,
+                       ac.department,
+                       ac.location,
+                       ac.posting_from,
+                       ac.posting_to,
+                       ac.acr_year,
+                       ac.status,
+                       ac.created_at
+                FROM dbo.acr_cycles ac
+                JOIN dbo.users u ON u.user_id = ac.officer_user_id
+                LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
+                {whereClause}
+                ORDER BY ac.created_at DESC
+                OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
+            ";
 
             var resp = new PagedResult<AcrListItem>
             {
@@ -580,7 +599,8 @@ namespace ACRPortal.Infrastructure.Adapter
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
             {
-                cmd.Parameters.Add("@ccaUserId", SqlDbType.UniqueIdentifier).Value = ccaUserId;
+                cmd.Parameters.AddRange(parms.ToArray());
+                // cmd.Parameters.Add("@ccaUserId", SqlDbType.UniqueIdentifier).Value = ccaUserId;
                 cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
                 cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
 

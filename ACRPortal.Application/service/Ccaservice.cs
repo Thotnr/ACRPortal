@@ -364,7 +364,7 @@ namespace ACRPortal.Application.service
             }
         }
 
-        public ApiResponse<PagedResult<AcrListItem>> GetAcrList(string ccaUserId, int pageNumber, int pageSize)
+        public ApiResponse<PagedResult<AcrListItem>> GetAcrList(string ccaUserId, int pageNumber, int pageSize, string Status, string Officer_name)
         {
             try
             {
@@ -374,7 +374,7 @@ namespace ACRPortal.Application.service
                 if (pageNumber <= 0) pageNumber = 1;
                 if (pageSize <= 0 || pageSize > 100) pageSize = 10;
 
-                var result = _repo.GetCcaAcrs(ccaGuid, pageNumber, pageSize);
+                var result = _repo.GetCcaAcrs(ccaGuid, pageNumber, pageSize, Status, Officer_name);
 
                 return ApiResponse<PagedResult<AcrListItem>>.Ok(result);
             }

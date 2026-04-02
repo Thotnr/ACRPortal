@@ -97,13 +97,17 @@ namespace ACRPortal.Controllers
         // Must be declared BEFORE /api/cca/acr/{acrId} to avoid route ambiguity
         [HttpGet]
         [Route("acr")]
-        public HttpResponseMessage GetAcrList(int pageNumber = 1, int pageSize = 10)
-        {
+        public HttpResponseMessage GetAcrList(
+            int pageNumber = 1, 
+            int pageSize = 10, 
+            [FromUri] string Status = null, 
+            [FromUri] string Officer_name = null
+        ){
             try
             {
                 var ccaUserId = GetCallerUserId();
 
-                var result = _cca.GetAcrList(ccaUserId, pageNumber, pageSize);
+                var result = _cca.GetAcrList(ccaUserId, pageNumber, pageSize, Status, Officer_name);
 
                 return Respond(result.Success ? HttpStatusCode.OK : HttpStatusCode.InternalServerError, result);
             }
