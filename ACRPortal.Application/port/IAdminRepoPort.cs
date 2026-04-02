@@ -94,7 +94,7 @@ namespace ACRPortal.Application.port
         PagedResult<UserListItem> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId, int pageNumber, int pageSize);
         UserDetailResponse GetUserById(Guid userId);
 
-        PagedResult<AcrListItem> GetAllAcrs(int pageNumber, int pageSize);
+        PagedResult<AcrListItem> GetAllAcrs(int pageNumber, int pageSize, string Status, string Officer_name);
     }
 
     /// <summary>

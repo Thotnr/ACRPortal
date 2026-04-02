@@ -556,11 +556,14 @@ namespace ACRPortal.Infrastructure.Adapter
             }
         }
 
-        public PagedResult<AcrListItem> GetAllAcrs(int pageNumber, int pageSize)
+        public PagedResult<AcrListItem> GetAllAcrs(int pageNumber, int pageSize, string Status, string Officer_name)
         {
+            Status = string.IsNullOrWhiteSpace(Status) ? null : Status.Trim().ToUpper();
             string sql = @"
             SELECT COUNT(1)
-            FROM dbo.acr_cycles;
+            FROM dbo.acr_cycles ac " +
+            (Status != null ? " WHERE ac.status = @status " : "") +
+            @";
 
             SELECT ac.acr_id,
                     u.display_name,
@@ -576,7 +579,9 @@ namespace ACRPortal.Infrastructure.Adapter
                     ac.created_at
             FROM dbo.acr_cycles ac
             JOIN dbo.users u ON u.user_id = ac.officer_user_id
-            LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
+            LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation " +
+            (Status != null ? " WHERE ac.status = @status " : "") +
+            @"
             ORDER BY ac.created_at DESC
             OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
             ";
@@ -592,6 +597,9 @@ namespace ACRPortal.Infrastructure.Adapter
             {
                 cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
                 cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
+                if (Status != null)
+                    cmd.Parameters.Add("@status", SqlDbType.VarChar).Value = Status;
+
                 con.Open();
                 using (var r = cmd.ExecuteReader())
                 {
