@@ -126,6 +126,32 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         color: #15314b;
     }
 
+    .btn-raise-appraisal:disabled,
+    .btn-raise-appraisal.disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        box-shadow: none;
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        color: #64748b;
+    }
+
+    .btn-export-cca {
+        border: 1px solid rgba(255,255,255,0.28);
+        border-radius: 16px;
+        padding: 12px 18px;
+        font-weight: 700;
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+        margin-right: 12px;
+        backdrop-filter: blur(8px);
+    }
+
+    .btn-export-cca:hover,
+    .btn-export-cca:focus {
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+    }
+
     .cca-shell-card {
         background: var(--cca-surface);
         border: 1px solid rgba(255,255,255,0.75);
@@ -324,6 +350,16 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     color: #1d4ed8;
 }
 
+#paginationContainer .page-item.disabled .page-link {
+    cursor: not-allowed;
+    pointer-events: none;
+    color: #94a3b8;
+    background: #f8fafc;
+    border-color: rgba(148, 163, 184, 0.25);
+    box-shadow: none;
+    opacity: 1;
+}
+
 #paginationContainer .page-item.active .page-link {
     background: linear-gradient(135deg, #2563eb, #0ea5e9);
     border-color: transparent;
@@ -415,7 +451,10 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             </div>
             <div class="col-lg-4">
                 <div class="cca-hero-actions">
-                    <button class="btn btn-raise-appraisal" onclick="openAppraisalModal()">
+                    <button class="btn btn-export-cca" type="button" onclick="exportAcrToXlsx()">
+                        <i class="fas fa-file-excel mr-2"></i>Export
+                    </button>
+                    <button class="btn btn-raise-appraisal" id="btnRaiseAppraisal" type="button" onclick="openAppraisalModal()">
                         <i class="fas fa-plus mr-2"></i>Raise Appraisal
                     </button>
                 </div>
@@ -473,6 +512,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     <option value="10" selected>10</option>
                     <option value="20">20</option>
                     <option value="50">50</option>
+                    <option value="100">100</option>
                 </select>
             </div>
 
@@ -629,13 +669,17 @@ var isDraft = false;
 var currentAcrId = null;
 var isEditMode = false;
 var isSubmitting = false;
+var currentUserRole = (localStorage.getItem("role") || "").toUpperCase();
 
 var acrListData = [];
 var filteredAcrListData = [];
 var currentPage = 1;
 var pageSize = 10;
+var totalCount = 0;
+var totalPages = 0;
 var currentSortColumn = -1;
 var currentSortDirection = "desc";
+var currentSearchTerm = "";
 
 $(document).ready(function () {
     var token = localStorage.getItem("token");
@@ -646,6 +690,7 @@ $(document).ready(function () {
 
     applyTodayMaxToDates();
 
+    syncAdminUiState();
     loadCurrentUser(token);
 
     loadDesignations()
@@ -657,7 +702,7 @@ $(document).ready(function () {
     $("#pageSize").on("change", function () {
         pageSize = parseInt($(this).val(), 10) || 10;
         currentPage = 1;
-        renderAcrTable();
+        loadAcrList();
     });
 });
 
@@ -707,12 +752,33 @@ function loadCurrentUser(token) {
         success: function (res) {
             if (!res.Success) {
                 window.location = BASE_URL + "Login/UserAuth";
+                return;
             }
+
+            var user = res.Data || {};
+            currentUserRole = (user.SystemRole || user.Role || currentUserRole || "").toUpperCase();
+            if (currentUserRole) {
+                localStorage.setItem("role", currentUserRole);
+            }
+            syncAdminUiState();
         },
         error: function () {
             window.location = BASE_URL + "Login/UserAuth";
         }
     });
+}
+
+function getAcrListApiUrl() {
+    var endpoint = currentUserRole === "ADMIN" ? "api/admin/acr" : "api/cca/acr";
+    return BASE_URL + endpoint + "?pageNumber=" + currentPage + "&pageSize=" + pageSize;
+}
+
+function isAdminUser() {
+    return currentUserRole === "ADMIN";
+}
+
+function syncAdminUiState() {
+    $("#btnRaiseAppraisal").prop("disabled", isAdminUser());
 }
 
 function loadDesignations() {
@@ -850,24 +916,23 @@ function closeModal() {
 }
 
 function searchTable(value) {
-    value = (value || "").toLowerCase().trim();
+    currentSearchTerm = (value || "").toLowerCase().trim();
 
-    if (!value) {
+    if (!currentSearchTerm) {
         filteredAcrListData = acrListData.slice();
     } else {
         filteredAcrListData = acrListData.filter(function (a) {
             return (
-                (a.OfficerName || '').toLowerCase().includes(value) ||
-                (a.Dsg || '').toLowerCase().includes(value) ||
-                (a.Location || '').toLowerCase().includes(value) ||
-                (a.PostingFrom || '').toLowerCase().includes(value) ||
-                (a.PostingTo || '').toLowerCase().includes(value) ||
-                (a.Status || '').toLowerCase().includes(value)
+                (a.OfficerName || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.Dsg || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.Location || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.PostingFrom || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.PostingTo || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.Status || '').toLowerCase().includes(currentSearchTerm)
             );
         });
     }
 
-    currentPage = 1;
     applySorting();
     renderAcrTable();
 }
@@ -936,23 +1001,12 @@ function renderAcrTable() {
 
     if (!filteredAcrListData.length) {
         tbody.html('<tr><td colspan="7" class="text-center text-muted">No records found</td></tr>');
-        $("#paginationContainer").empty();
-        $("#paginationInfo").text("Showing 0 to 0 of 0 entries");
+        renderPagination();
+        $("#paginationInfo").text(totalCount ? "Showing 0 records on page " + currentPage + " of " + totalPages + " (" + totalCount + " total entries)" : "Showing 0 to 0 of 0 entries");
         return;
     }
 
-    var totalRecords = filteredAcrListData.length;
-    var totalPages = Math.ceil(totalRecords / pageSize);
-
-    if (currentPage > totalPages) {
-        currentPage = totalPages;
-    }
-
-    var startIndex = (currentPage - 1) * pageSize;
-    var endIndex = Math.min(startIndex + pageSize, totalRecords);
-    var pageData = filteredAcrListData.slice(startIndex, endIndex);
-
-    $.each(pageData, function (i, a) {
+    $.each(filteredAcrListData, function (i, a) {
         tbody.append(
             '<tr>' +
                 '<td>' + (a.OfficerName || '--') + '</td>' +
@@ -966,69 +1020,305 @@ function renderAcrTable() {
         );
     });
 
-    $("#paginationInfo").text(
-        "Showing " + (startIndex + 1) + " to " + endIndex + " of " + totalRecords + " entries"
-    );
+    var startIndex = totalCount ? ((currentPage - 1) * pageSize) + 1 : 0;
+    var endIndex = totalCount ? Math.min(((currentPage - 1) * pageSize) + acrListData.length, totalCount) : filteredAcrListData.length;
+    var infoText = "Showing " + startIndex + " to " + endIndex + " of " + totalCount + " entries";
 
-    renderPagination(totalPages);
+    if (currentSearchTerm) {
+        infoText += " | Filtered on current page: " + filteredAcrListData.length;
+    }
+
+    $("#paginationInfo").text(infoText);
+    renderPagination();
 }
 
-function renderPagination(totalPages) {
+function renderPagination() {
     var container = $("#paginationContainer");
     container.empty();
 
     if (totalPages <= 1) return;
 
-    var prevDisabled = currentPage === 1 ? "disabled" : "";
+    var isPrevDisabled = currentPage === 1;
+    var isNextDisabled = currentPage === totalPages || acrListData.length < pageSize;
+    var prevDisabled = isPrevDisabled ? "disabled" : "";
     container.append(
         '<li class="page-item ' + prevDisabled + '">' +
-            '<a class="page-link" href="javascript:void(0)" onclick="goToPage(' + (currentPage - 1) + ')">Previous</a>' +
+            '<a class="page-link" href="javascript:void(0)"' + (isPrevDisabled ? ' aria-disabled="true"' : ' onclick="goToPage(' + (currentPage - 1) + ')"') + '>Previous</a>' +
         '</li>'
     );
 
-    var startPage = Math.max(1, currentPage - 2);
-    var endPage = Math.min(totalPages, currentPage + 2);
-
-    if (startPage > 1) {
-        container.append('<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="goToPage(1)">1</a></li>');
-        if (startPage > 2) {
-            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
-        }
-    }
-
-    for (var i = startPage; i <= endPage; i++) {
-        var active = currentPage === i ? "active" : "";
-        container.append(
-            '<li class="page-item ' + active + '">' +
-                '<a class="page-link" href="javascript:void(0)" onclick="goToPage(' + i + ')">' + i + '</a>' +
-            '</li>'
-        );
-    }
-
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
-        }
-        container.append(
-            '<li class="page-item">' +
-                '<a class="page-link" href="javascript:void(0)" onclick="goToPage(' + totalPages + ')">' + totalPages + '</a>' +
-            '</li>'
-        );
-    }
-
-    var nextDisabled = currentPage === totalPages ? "disabled" : "";
+    var nextDisabled = isNextDisabled ? "disabled" : "";
     container.append(
         '<li class="page-item ' + nextDisabled + '">' +
-            '<a class="page-link" href="javascript:void(0)" onclick="goToPage(' + (currentPage + 1) + ')">Next</a>' +
+            '<a class="page-link" href="javascript:void(0)"' + (isNextDisabled ? ' aria-disabled="true"' : ' onclick="goToPage(' + (currentPage + 1) + ')"') + '>Next</a>' +
         '</li>'
     );
 }
 
 function goToPage(page) {
-    var totalPages = Math.ceil(filteredAcrListData.length / pageSize);
     if (page < 1 || page > totalPages) return;
     currentPage = page;
-    renderAcrTable();
+    loadAcrList();
+}
+
+function exportAcrToXlsx() {
+    if (!filteredAcrListData.length) {
+        alert("No records available to export.");
+        return;
+    }
+
+    var headers = [
+        "Officer Name",
+        "Officer Login Id",
+        "Designation",
+        "Form Type",
+        "Department",
+        "Location",
+        "Posting From",
+        "Posting To",
+        "ACR Year",
+        "Status",
+        "Created At"
+    ];
+
+    var rows = filteredAcrListData.map(function (item) {
+        return [
+            item.OfficerName || "",
+            item.OfficerLoginId || "",
+            item.Dsg || "",
+            item.FormType || "",
+            item.Department || "",
+            item.Location || "",
+            item.PostingFrom || "",
+            item.PostingTo || "",
+            item.AcrYear || "",
+            item.Status || "",
+            item.CreatedAt || ""
+        ];
+    });
+
+    downloadXlsxFile("CCA_Appraisal_Records_Page_" + currentPage + ".xlsx", "CCA Records", headers, rows);
+}
+
+function downloadXlsxFile(fileName, sheetName, headers, rows) {
+    var encoder = new TextEncoder();
+    var workbookFiles = [
+        { name: "[Content_Types].xml", data: encoder.encode(buildContentTypesXml()) },
+        { name: "_rels/.rels", data: encoder.encode(buildRootRelsXml()) },
+        { name: "xl/workbook.xml", data: encoder.encode(buildWorkbookXml(sheetName)) },
+        { name: "xl/_rels/workbook.xml.rels", data: encoder.encode(buildWorkbookRelsXml()) },
+        { name: "xl/worksheets/sheet1.xml", data: encoder.encode(buildWorksheetXml(headers, rows)) },
+        { name: "xl/styles.xml", data: encoder.encode(buildStylesXml()) }
+    ];
+
+    var blob = createZipBlob(workbookFiles);
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+
+function buildContentTypesXml() {
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
+}
+
+function buildRootRelsXml() {
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>';
+}
+
+function buildWorkbookXml(sheetName) {
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<sheets>' +
+                '<sheet name="' + escapeXml(sheetName) + '" sheetId="1" r:id="rId1"/>' +
+            '</sheets>' +
+        '</workbook>';
+}
+
+function buildWorkbookRelsXml() {
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>';
+}
+
+function buildStylesXml() {
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<fonts count="2">' +
+                '<font><sz val="11"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="11"/><name val="Calibri"/></font>' +
+            '</fonts>' +
+            '<fills count="2">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+            '</fills>' +
+            '<borders count="1">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+            '</borders>' +
+            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+            '<cellXfs count="2">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+            '</cellXfs>' +
+            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>';
+}
+
+function buildWorksheetXml(headers, rows) {
+    var allRows = [headers].concat(rows);
+    var rowXml = allRows.map(function (columns, rowIndex) {
+        var cellXml = columns.map(function (value, columnIndex) {
+            var cellRef = getExcelColumnName(columnIndex + 1) + (rowIndex + 1);
+            var styleId = rowIndex === 0 ? ' s="1"' : "";
+            return '<c r="' + cellRef + '" t="inlineStr"' + styleId + '><is><t>' + escapeXml(value == null ? "" : value.toString()) + '</t></is></c>';
+        }).join("");
+
+        return '<row r="' + (rowIndex + 1) + '">' + cellXml + '</row>';
+    }).join("");
+
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<sheetData>' + rowXml + '</sheetData>' +
+        '</worksheet>';
+}
+
+function getExcelColumnName(columnNumber) {
+    var columnName = "";
+    while (columnNumber > 0) {
+        var remainder = (columnNumber - 1) % 26;
+        columnName = String.fromCharCode(65 + remainder) + columnName;
+        columnNumber = Math.floor((columnNumber - 1) / 26);
+    }
+    return columnName;
+}
+
+function escapeXml(value) {
+    return (value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
+function createZipBlob(files) {
+    var localParts = [];
+    var centralParts = [];
+    var offset = 0;
+
+    files.forEach(function (file) {
+        var nameBytes = new TextEncoder().encode(file.name);
+        var crc = crc32(file.data);
+        var localHeader = createZipHeader(0x04034b50, nameBytes, crc, file.data.length, offset, false);
+        localParts.push(localHeader.header, nameBytes, file.data);
+
+        var centralHeader = createZipHeader(0x02014b50, nameBytes, crc, file.data.length, offset, true);
+        centralParts.push(centralHeader.header, nameBytes);
+
+        offset += localHeader.header.length + nameBytes.length + file.data.length;
+    });
+
+    var centralSize = centralParts.reduce(function (sum, part) { return sum + part.length; }, 0);
+    var endRecord = createZipEndRecord(files.length, centralSize, offset);
+
+    return new Blob(localParts.concat(centralParts, [endRecord]), {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+}
+
+function createZipHeader(signature, nameBytes, crc, size, offset, isCentral) {
+    var header = new Uint8Array(isCentral ? 46 : 30);
+    var view = new DataView(header.buffer);
+    var now = new Date();
+    var dosTime = ((now.getHours() & 31) << 11) | ((now.getMinutes() & 63) << 5) | Math.floor((now.getSeconds() || 0) / 2);
+    var dosDate = ((((now.getFullYear() - 1980) & 127) << 9) | (((now.getMonth() + 1) & 15) << 5) | (now.getDate() & 31));
+
+    view.setUint32(0, signature, true);
+
+    if (isCentral) {
+        view.setUint16(4, 20, true);
+        view.setUint16(6, 20, true);
+        view.setUint16(8, 0, true);
+        view.setUint16(10, 0, true);
+        view.setUint16(12, dosTime, true);
+        view.setUint16(14, dosDate, true);
+        view.setUint32(16, crc, true);
+        view.setUint32(20, size, true);
+        view.setUint32(24, size, true);
+        view.setUint16(28, nameBytes.length, true);
+        view.setUint16(30, 0, true);
+        view.setUint16(32, 0, true);
+        view.setUint16(34, 0, true);
+        view.setUint16(36, 0, true);
+        view.setUint32(38, 0, true);
+        view.setUint32(42, offset, true);
+    } else {
+        view.setUint16(4, 20, true);
+        view.setUint16(6, 0, true);
+        view.setUint16(8, 0, true);
+        view.setUint16(10, dosTime, true);
+        view.setUint16(12, dosDate, true);
+        view.setUint32(14, crc, true);
+        view.setUint32(18, size, true);
+        view.setUint32(22, size, true);
+        view.setUint16(26, nameBytes.length, true);
+        view.setUint16(28, 0, true);
+    }
+
+    return { header: header };
+}
+
+function createZipEndRecord(fileCount, centralSize, centralOffset) {
+    var endRecord = new Uint8Array(22);
+    var view = new DataView(endRecord.buffer);
+
+    view.setUint32(0, 0x06054b50, true);
+    view.setUint16(4, 0, true);
+    view.setUint16(6, 0, true);
+    view.setUint16(8, fileCount, true);
+    view.setUint16(10, fileCount, true);
+    view.setUint32(12, centralSize, true);
+    view.setUint32(16, centralOffset, true);
+    view.setUint16(20, 0, true);
+
+    return endRecord;
+}
+
+var crcTable = null;
+
+function crc32(data) {
+    if (!crcTable) {
+        crcTable = [];
+        for (var n = 0; n < 256; n++) {
+            var c = n;
+            for (var k = 0; k < 8; k++) {
+                c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+            }
+            crcTable[n] = c >>> 0;
+        }
+    }
+
+    var crc = 0 ^ (-1);
+    for (var i = 0; i < data.length; i++) {
+        crc = (crc >>> 8) ^ crcTable[(crc ^ data[i]) & 0xff];
+    }
+    return (crc ^ (-1)) >>> 0;
 }
 
 function loadEmployees() {
@@ -1338,7 +1628,7 @@ $("#btnSaveDraft").off("click").on("click", function () {
 });
 
 function toggleActionButtons(disabled) {
-    $("#btnSaveDraft, #btnSubmit").prop("disabled", disabled);
+    $("#btnSaveDraft, #btnSubmit").prop("disabled", disabled || isAdminUser());
 }
 
 function unlockSubmission() {
@@ -1368,7 +1658,7 @@ function submitDraftAcr(acrId) {
 
 function setFormReadonly(flag) {
     $("#ccaForm :input").prop("disabled", flag);
-    $("#btnSaveDraft, #btnSubmit").prop("disabled", flag);
+    $("#btnSaveDraft, #btnSubmit").prop("disabled", flag || isAdminUser());
 }
 
 function submitAppraisal(payload) {
@@ -1528,7 +1818,7 @@ $("#officerName").off("change").on("change", function () {
         $("#reportingAuthority2").val(null).trigger("change");
     }
 
-    if (officerUserId) {
+    if (officerUserId && !isAdminUser()) {
         suggestAuthorityChain(officerUserId);
     }
 });
@@ -1547,28 +1837,45 @@ function getStatusBadge(status) {
 
 function loadAcrList() {
     $.ajax({
-        url: BASE_URL + "api/cca/acr",
+        url: getAcrListApiUrl(),
         method: "GET",
         headers: { "Authorization": "Bearer " + getToken() },
         success: function (res) {
             if (!res.Success) {
+                acrListData = [];
+                filteredAcrListData = [];
+                totalCount = 0;
+                totalPages = 0;
                 $("#ccaTableBody").html('<tr><td colspan="7" class="text-center text-danger">' + (res.Message || 'Failed to load records') + '</td></tr>');
                 $("#paginationContainer").empty();
                 $("#paginationInfo").text("");
                 return;
             }
 
-            acrListData = (res.Data && res.Data.AcrCycles) ? res.Data.AcrCycles : [];
-            filteredAcrListData = acrListData.slice();
+            acrListData = (res.Data && res.Data.Items) ? res.Data.Items : [];
+            totalCount = (res.Data && typeof res.Data.TotalCount === "number") ? res.Data.TotalCount : acrListData.length;
+            totalPages = (res.Data && typeof res.Data.TotalPages === "number") ? res.Data.TotalPages : (totalCount ? Math.ceil(totalCount / pageSize) : 0);
+            currentPage = (res.Data && typeof res.Data.PageNumber === "number") ? res.Data.PageNumber : currentPage;
+            pageSize = (res.Data && typeof res.Data.PageSize === "number") ? res.Data.PageSize : pageSize;
+            $("#pageSize").val(pageSize.toString());
 
-            currentPage = 1;
+            filteredAcrListData = acrListData.slice();
+            if (currentSearchTerm) {
+                searchTable(currentSearchTerm);
+                return;
+            }
+
             applySorting();
             renderAcrTable();
         },
         error: function () {
+            acrListData = [];
+            filteredAcrListData = [];
             $("#ccaTableBody").html('<tr><td colspan="7" class="text-center text-danger">Failed to load records</td></tr>');
             $("#paginationContainer").empty();
             $("#paginationInfo").text("");
+            totalCount = 0;
+            totalPages = 0;
         }
     });
 }
@@ -1636,11 +1943,11 @@ function viewAcr(acrId) {
             bindAcrDetail(data);
 
             var statusUpper = (data.Status || "").toUpperCase();
-            var canEditForm = statusUpper === "DRAFT";
-            var canSubmitDraft = statusUpper === "DRAFT";
+            var canEditForm = statusUpper === "DRAFT" && !isAdminUser();
+            var canSubmitDraft = statusUpper === "DRAFT" && !isAdminUser();
 
-            $("#btnSubmit").toggle(canSubmitDraft);
-            $("#btnSaveDraft").toggle(canEditForm);
+            $("#btnSubmit").show().prop("disabled", !canSubmitDraft);
+            $("#btnSaveDraft").show().prop("disabled", !canEditForm);
             setFormReadonly(!canEditForm);
         },
         error: function (xhr) {
@@ -1650,7 +1957,10 @@ function viewAcr(acrId) {
 }
 
 function suggestAuthorityChain(officerUserId) {
-    if (!officerUserId) return;
+    if (!officerUserId || isAdminUser()) {
+        $("#authoritySuggestionStatus").html("");
+        return;
+    }
 
     $("#authoritySuggestionStatus").html('<span class="text-muted">Fetching authority suggestions...</span>');
 

@@ -350,6 +350,16 @@
         color: #1d4ed8;
     }
 
+    #pagination .page-item.disabled .page-link {
+        cursor: not-allowed;
+        pointer-events: none;
+        color: #94a3b8;
+        background: #f8fafc;
+        border-color: rgba(148, 163, 184, 0.25);
+        box-shadow: none;
+        opacity: 1;
+    }
+
     #pagination .page-item.active .page-link {
         background: linear-gradient(135deg, #2563eb, #0ea5e9);
         border-color: transparent;
@@ -398,14 +408,14 @@
                     <i class="bi bi-check2-square"></i>
                     Accepting Authority
                 </span>
-                <h2 class="authority-title">A sharper final-approval workspace for closing the ACR cycle.</h2>
-                <p class="authority-subtitle">Scan the accepting queue more comfortably, compare reporting and reviewing inputs, and take the final decision from the same upgraded UI pattern.</p>
+                <h2 class="authority-title">Review final-stage ACR cases and record the accepting decision.</h2>
+                <p class="authority-subtitle">Open pending cases, verify the full assessment trail, review remarks from earlier stages, and complete the final accepting action for each record.</p>
             </div>
             <div class="col-lg-4">
                 <div class="hero-panel">
                     <div class="hero-panel-label">Final Decision</div>
                     <div class="hero-panel-value">Accept</div>
-                    <p class="hero-panel-copy">The visual layer is refreshed here too, while the accepting API flow and validation stay exactly as they are.</p>
+                    <p class="hero-panel-copy">This screen shows the accepting queue, full appraisal details, and the final decision form required to close the ACR cycle.</p>
                 </div>
             </div>
         </div>
@@ -428,6 +438,7 @@
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
                         <option value="50">50</option>
+                        <option value="100">100</option>
                     </select>
                 </div>
             </div>
@@ -831,7 +842,7 @@
 
     <script>
 
-        let dataList = [], filtered = [], pageSize = 10, currentPage = 1;
+        let dataList = [], filtered = [], pageSize = 10, currentPage = 1, totalCount = 0, totalPages = 0, currentSearchTerm = "";
         let currentAcrId = null;
         let modal = new bootstrap.Modal(document.getElementById('acrModal'));
         let sortColumn = "";
@@ -855,15 +866,23 @@
 
         function loadTable() {
             $.ajax({
-                url: BASE_URL + "api/acr/accepting/my",
+                url: BASE_URL + "api/acr/accepting/my?pageNumber=" + currentPage + "&pageSize=" + pageSize,
                 headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }, // ✅ cookie auth fix
                 success: function (res) {
                     console.log(res);
-                    dataList = (res.Data && res.Data.AcrCycles) ? res.Data.AcrCycles : [];
+                    dataList = (res.Data && res.Data.Items) ? res.Data.Items : [];
+                    totalCount = (res.Data && typeof res.Data.TotalCount === "number") ? res.Data.TotalCount : dataList.length;
+                    totalPages = (res.Data && typeof res.Data.TotalPages === "number") ? res.Data.TotalPages : (totalCount ? Math.ceil(totalCount / pageSize) : 0);
+                    currentPage = (res.Data && typeof res.Data.PageNumber === "number") ? res.Data.PageNumber : currentPage;
+                    pageSize = (res.Data && typeof res.Data.PageSize === "number") ? res.Data.PageSize : pageSize;
+                    $("#pageSize").val(pageSize.toString());
                     filtered = [...dataList];
-                    currentPage = 1;
                     sortColumn = "OfficerName";
                     sortAsc = true;
+                    if (currentSearchTerm) {
+                        searchTable(currentSearchTerm);
+                        return;
+                    }
                     sortTable("OfficerName");
                 },
                 error: function (err) {
@@ -946,14 +965,12 @@
         }
 
         function renderTable() {
-            let start = (currentPage - 1) * pageSize;
-            let pageData = filtered.slice(start, start + pageSize);
             let html = "";
 
-            if (pageData.length === 0) {
+            if (filtered.length === 0) {
                 html = `<tr><td colspan="7" class="text-center text-muted">No entries found</td></tr>`;
             } else {
-                pageData.forEach(x => {
+                filtered.forEach(x => {
                     html += `<tr>
                         <td>${x.OfficerName || ''}</td>
                         <td>${x.Location || '-'}</td>
@@ -973,18 +990,21 @@
             $("#acrTableBody").html(html);
 
             if (filtered.length === 0) {
-                $("#tableInfo").text("Showing 0 to 0 of 0 entries");
+                $("#tableInfo").text(totalCount ? `Showing 0 records on page ${currentPage} of ${totalPages} (${totalCount} total entries)` : "Showing 0 to 0 of 0 entries");
             } else {
-                $("#tableInfo").text(
-                    `Showing ${start + 1} to ${Math.min(start + pageSize, filtered.length)} of ${filtered.length} entries`
-                );
+                let start = ((currentPage - 1) * pageSize) + 1;
+                let end = Math.min(((currentPage - 1) * pageSize) + dataList.length, totalCount);
+                let info = `Showing ${start} to ${end} of ${totalCount} entries`;
+                if (currentSearchTerm) {
+                    info += ` | Filtered on current page: ${filtered.length}`;
+                }
+                $("#tableInfo").text(info);
             }
 
             renderPagination();
         }
 
         function renderPagination() {
-            const totalPages = Math.ceil(filtered.length / pageSize);
             let html = '';
 
             if (totalPages <= 1) {
@@ -992,35 +1012,15 @@
                 return;
             }
 
-            html += `<li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="gotoPage(${currentPage - 1})">Previous</a>
+            const isPrevDisabled = currentPage === 1;
+            const isNextDisabled = currentPage === totalPages || dataList.length < pageSize;
+
+            html += `<li class="page-item ${isPrevDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" ${isPrevDisabled ? 'aria-disabled="true"' : `onclick="gotoPage(${currentPage - 1})"`}>Previous</a>
             </li>`;
 
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
-
-            if (startPage > 1) {
-                html += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="gotoPage(1)">1</a></li>`;
-                if (startPage > 2) {
-                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                }
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                html += `<li class="page-item ${i == currentPage ? 'active' : ''}">
-                    <a class="page-link" href="javascript:void(0)" onclick="gotoPage(${i})">${i}</a>
-                </li>`;
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                }
-                html += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="gotoPage(${totalPages})">${totalPages}</a></li>`;
-            }
-
-            html += `<li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="gotoPage(${currentPage + 1})">Next</a>
+            html += `<li class="page-item ${isNextDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" ${isNextDisabled ? 'aria-disabled="true"' : `onclick="gotoPage(${currentPage + 1})"`}>Next</a>
             </li>`;
 
             $("#pagination").html(html);
@@ -1028,37 +1028,33 @@
 
         // function gotoPage(p){currentPage=p;renderTable();}
         function gotoPage(p) {
-
-            const totalPages = Math.ceil(filtered.length / pageSize);
-
             if (p < 1 || p > totalPages) return;
 
             currentPage = p;
-            renderTable();
+            loadTable();
         }
 
         function changePageSize() {
             pageSize = parseInt($("#pageSize").val(), 10) || 10;
             currentPage = 1;
-            renderTable();
+            loadTable();
         }
 
         function searchTable(val) {
-            val = (val || "").toLowerCase().trim();
-            if (!val) {
+            currentSearchTerm = (val || "").toLowerCase().trim();
+            if (!currentSearchTerm) {
                 filtered = [...dataList];
             } else {
                 filtered = dataList.filter(x =>
-                    (x.OfficerName || "").toLowerCase().includes(val) ||
-                    (x.Location || "").toLowerCase().includes(val) ||
-                    (x.PostingFrom || "").toLowerCase().includes(val) ||
-                    (x.PostingTo || "").toLowerCase().includes(val) ||
-                    (x.AcrYear || "").toString().toLowerCase().includes(val) ||
-                    (x.Status || "").toLowerCase().includes(val)
+                    (x.OfficerName || "").toLowerCase().includes(currentSearchTerm) ||
+                    (x.Location || "").toLowerCase().includes(currentSearchTerm) ||
+                    (x.PostingFrom || "").toLowerCase().includes(currentSearchTerm) ||
+                    (x.PostingTo || "").toLowerCase().includes(currentSearchTerm) ||
+                    (x.AcrYear || "").toString().toLowerCase().includes(currentSearchTerm) ||
+                    (x.Status || "").toLowerCase().includes(currentSearchTerm)
                 );
             }
-            currentPage = 1;
-            renderTable();
+            sortTable(sortColumn || "OfficerName");
         }
 
         function openAcr(id) {

@@ -317,6 +317,16 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         color: #1d4ed8;
     }
 
+    #paginationContainer .page-item.disabled .page-link {
+        cursor: not-allowed;
+        pointer-events: none;
+        color: #94a3b8;
+        background: #f8fafc;
+        border-color: rgba(148, 163, 184, 0.25);
+        box-shadow: none;
+        opacity: 1;
+    }
+
     #paginationContainer .page-item.active .page-link {
         background: linear-gradient(135deg, #2563eb, #0ea5e9);
         border-color: transparent;
@@ -524,14 +534,14 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     <i class="bi bi-person-badge"></i>
                     Officer Self Appraisal
                 </span>
-                <h2 class="officer-title">A cleaner workspace for tracking and submitting your ACR cycle.</h2>
-                <p class="officer-subtitle">Review current postings, open appraisal details quickly, and complete self-appraisal steps in the same polished flow used across the refreshed CCA and dashboard screens.</p>
+                <h2 class="officer-title">Track your ACR records and complete pending self-appraisals from one place.</h2>
+                <p class="officer-subtitle">View your appraisal periods, check current status, open record details, and submit self-appraisal information for pending cycles.</p>
             </div>
             <div class="col-lg-4">
                 <div class="hero-panel">
                     <div class="hero-panel-label">My Workspace</div>
                     <div class="hero-panel-value">ACR</div>
-                    <p class="hero-panel-copy">Search your records, inspect ACR information, and finish pending self-appraisals without changing the underlying workflow.</p>
+                    <p class="hero-panel-copy">Use this screen to review your ACR list, inspect each record, and complete draft or pending self-appraisal steps.</p>
                 </div>
             </div>
         </div>
@@ -554,6 +564,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
                         <option value="50">50</option>
+                        <option value="100">100</option>
                     </select>
                 </div>
             </div>
@@ -819,8 +830,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     let filteredAcrListData = [];
     let currentPage = 1;
     let pageSize = 10;
+    let totalCount = 0;
+    let totalPages = 0;
     let currentSortColumn = -1;
     let currentSortDirection = 'asc';
+    let currentSearchTerm = '';
 
     // Check Role from localStorage
     $(document).ready(function () {
@@ -840,7 +854,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         $("#pageSize").on("change", function () {
             pageSize = parseInt($(this).val(), 10) || 10;
             currentPage = 1;
-            renderAcrTable();
+            loadAcrList();
         });
         loadAcrList();
     });
@@ -888,13 +902,23 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     function loadAcrList() {
         $.ajax({
-            url: BASE_URL + 'api/acr/my',
+            url: BASE_URL + 'api/acr/my?pageNumber=' + currentPage + '&pageSize=' + pageSize,
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             success: function (res) {
                 if (res.Success) {
-                    acrListData = (res.Data && res.Data.AcrCycles) ? res.Data.AcrCycles : [];
+                    acrListData = (res.Data && res.Data.Items) ? res.Data.Items : [];
+                    totalCount = (res.Data && typeof res.Data.TotalCount === 'number') ? res.Data.TotalCount : acrListData.length;
+                    totalPages = (res.Data && typeof res.Data.TotalPages === 'number') ? res.Data.TotalPages : (totalCount ? Math.ceil(totalCount / pageSize) : 0);
+                    currentPage = (res.Data && typeof res.Data.PageNumber === 'number') ? res.Data.PageNumber : currentPage;
+                    pageSize = (res.Data && typeof res.Data.PageSize === 'number') ? res.Data.PageSize : pageSize;
+                    $('#pageSize').val(pageSize.toString());
                     filteredAcrListData = acrListData.slice();
-                    currentPage = 1;
+
+                    if (currentSearchTerm) {
+                        searchTable(currentSearchTerm);
+                        return;
+                    }
+
                     applySorting();
                     renderAcrTable();
                 } else {
@@ -902,6 +926,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 }
             },
             error: function () {
+                totalCount = 0;
+                totalPages = 0;
                 $('#acrListBody').html('<tr><td colspan="7" class="text-center text-danger">Failed to load ACR list</td></tr>');
             }
         });
@@ -1411,24 +1437,23 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
 
 function searchTable(value) {
-    value = (value || '').toLowerCase().trim();
+    currentSearchTerm = (value || '').toLowerCase().trim();
 
-    if (!value) {
+    if (!currentSearchTerm) {
         filteredAcrListData = acrListData.slice();
     } else {
         filteredAcrListData = acrListData.filter(function (a) {
             return (
-                (a.FormType || '').toLowerCase().includes(value) ||
-                (a.Location || '').toLowerCase().includes(value) ||
-                (a.Dsg || '').toLowerCase().includes(value) ||
-                (a.PostingFrom || '').toLowerCase().includes(value) ||
-                (a.PostingTo || '').toLowerCase().includes(value) ||
-                (a.Status || '').toLowerCase().includes(value)
+                (a.FormType || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.Location || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.Dsg || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.PostingFrom || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.PostingTo || '').toLowerCase().includes(currentSearchTerm) ||
+                (a.Status || '').toLowerCase().includes(currentSearchTerm)
             );
         });
     }
 
-    currentPage = 1;
     applySorting();
     renderAcrTable();
 }
@@ -1482,24 +1507,13 @@ function renderAcrTable() {
 
     if (!filteredAcrListData.length) {
         tbody.html('<tr><td colspan="7" class="text-center text-muted">No records found</td></tr>');
-        $('#paginationContainer').empty();
-        $('#paginationInfo').text('Showing 0 to 0 of 0 entries');
+        renderPagination();
+        $('#paginationInfo').text(totalCount ? ('Showing 0 records on page ' + currentPage + ' of ' + totalPages + ' (' + totalCount + ' total entries)') : 'Showing 0 to 0 of 0 entries');
         return;
     }
 
-    let totalRecords = filteredAcrListData.length;
-    let totalPages = Math.ceil(totalRecords / pageSize);
-
-    if (currentPage > totalPages) {
-        currentPage = totalPages;
-    }
-
-    let startIndex = (currentPage - 1) * pageSize;
-    let endIndex = Math.min(startIndex + pageSize, totalRecords);
-    let pageData = filteredAcrListData.slice(startIndex, endIndex);
-
     let rows = '';
-    pageData.forEach(a => {
+    filteredAcrListData.forEach(a => {
         rows += `<tr>
             <td>${a.FormType || ''}</td>
             <td>${a.Location || ''}</td>
@@ -1517,69 +1531,46 @@ function renderAcrTable() {
 
     tbody.html(rows);
 
-    $('#paginationInfo').text(
-        'Showing ' + (startIndex + 1) + ' to ' + endIndex + ' of ' + totalRecords + ' entries'
-    );
+    let startIndex = totalCount ? (((currentPage - 1) * pageSize) + 1) : 0;
+    let endIndex = totalCount ? Math.min(((currentPage - 1) * pageSize) + acrListData.length, totalCount) : filteredAcrListData.length;
+    let infoText = 'Showing ' + startIndex + ' to ' + endIndex + ' of ' + totalCount + ' entries';
 
-    renderPagination(totalPages);
+    if (currentSearchTerm) {
+        infoText += ' | Filtered on current page: ' + filteredAcrListData.length;
+    }
+
+    $('#paginationInfo').text(infoText);
+
+    renderPagination();
 }
 
-function renderPagination(totalPages) {
+function renderPagination() {
     let container = $('#paginationContainer');
     container.empty();
 
     if (totalPages <= 1) return;
 
-    let prevDisabled = currentPage === 1 ? 'disabled' : '';
+    let isPrevDisabled = currentPage === 1;
+    let isNextDisabled = currentPage === totalPages || acrListData.length < pageSize;
+    let prevDisabled = isPrevDisabled ? 'disabled' : '';
     container.append(
         `<li class="page-item ${prevDisabled}">
-            <a class="page-link" href="javascript:void(0)" onclick="goToPage(${currentPage - 1})">Previous</a>
+            <a class="page-link" href="javascript:void(0)" ${isPrevDisabled ? 'aria-disabled="true"' : `onclick="goToPage(${currentPage - 1})"`}>Previous</a>
         </li>`
     );
 
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, currentPage + 2);
-
-    if (startPage > 1) {
-        container.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="goToPage(1)">1</a></li>`);
-        if (startPage > 2) {
-            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
-        }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        let active = currentPage === i ? 'active' : '';
-        container.append(
-            `<li class="page-item ${active}">
-                <a class="page-link" href="javascript:void(0)" onclick="goToPage(${i})">${i}</a>
-            </li>`
-        );
-    }
-
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
-        }
-        container.append(
-            `<li class="page-item">
-                <a class="page-link" href="javascript:void(0)" onclick="goToPage(${totalPages})">${totalPages}</a>
-            </li>`
-        );
-    }
-
-    let nextDisabled = currentPage === totalPages ? 'disabled' : '';
+    let nextDisabled = isNextDisabled ? 'disabled' : '';
     container.append(
         `<li class="page-item ${nextDisabled}">
-            <a class="page-link" href="javascript:void(0)" onclick="goToPage(${currentPage + 1})">Next</a>
+            <a class="page-link" href="javascript:void(0)" ${isNextDisabled ? 'aria-disabled="true"' : `onclick="goToPage(${currentPage + 1})"`}>Next</a>
         </li>`
     );
 }
 
 function goToPage(page) {
-    let totalPages = Math.ceil(filteredAcrListData.length / pageSize);
     if (page < 1 || page > totalPages) return;
     currentPage = page;
-    renderAcrTable();
+    loadAcrList();
 }
 </script>
 </asp:Content>

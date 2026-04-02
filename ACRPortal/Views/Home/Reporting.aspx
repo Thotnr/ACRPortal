@@ -362,6 +362,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         color: #1d4ed8;
     }
 
+    #reportingPagination .page-item.disabled .page-link,
+    #paginationContainer .page-item.disabled .page-link {
+        cursor: not-allowed;
+        pointer-events: none;
+        color: #94a3b8;
+        background: #f8fafc;
+        border-color: rgba(148, 163, 184, 0.25);
+        box-shadow: none;
+        opacity: 1;
+    }
+
     #reportingPagination .page-item.active .page-link {
         background: linear-gradient(135deg, #2563eb, #0ea5e9);
         border-color: transparent;
@@ -426,14 +437,14 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     <i class="bi bi-clipboard2-check"></i>
                     Reporting Authority
                 </span>
-                <h2 class="authority-title">A cleaner queue for reporting assessments and draft reviews.</h2>
-                <p class="authority-subtitle">Review officer ACR records faster, open an assessment with less friction, and complete reporting remarks in the same refreshed pattern as the rest of the portal.</p>
+                <h2 class="authority-title">Review assigned ACR cases and complete reporting assessments.</h2>
+                <p class="authority-subtitle">Open pending officer records, verify posting details, assess performance inputs, and submit your reporting remarks from a single queue.</p>
             </div>
             <div class="col-lg-4">
                 <div class="hero-panel">
                     <div class="hero-panel-label">Reporting Workspace</div>
                     <div class="hero-panel-value">Queue</div>
-                    <p class="hero-panel-copy">Everything below keeps the existing reporting workflow intact while making the screen easier to scan and act on.</p>
+                    <p class="hero-panel-copy">This screen shows your reporting queue, record details, and the assessment form needed to complete the reporting stage.</p>
                 </div>
             </div>
         </div>
@@ -456,6 +467,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
                         <option value="50">50</option>
+                        <option value="100">100</option>
                     </select>
                 </div>
             </div>
@@ -779,8 +791,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     let filteredReporting = [];
     let reportPageSize = 10;
     let reportCurrentPage = 1;
+    let reportTotalCount = 0;
+    let reportTotalPages = 0;
     let reportSortColumn = "";
     let reportSortAsc = true;
+    let reportSearchTerm = "";
 
 $(document).ready(function(){
     const role = localStorage.getItem('role');
@@ -808,15 +823,25 @@ let draftSaved = false;
 
 function loadReportingQueue(){
     $.ajax({
-        url: BASE_URL + "api/acr/reporting/my",
+        url: BASE_URL + "api/acr/reporting/my?pageNumber=" + reportCurrentPage + "&pageSize=" + reportPageSize,
         headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
         success: function(res){
             if(res.Success){
-                reportingData = res.Data.AcrCycles;
+                reportingData = (res.Data && res.Data.Items) ? res.Data.Items : [];
+                reportTotalCount = (res.Data && typeof res.Data.TotalCount === "number") ? res.Data.TotalCount : reportingData.length;
+                reportTotalPages = (res.Data && typeof res.Data.TotalPages === "number") ? res.Data.TotalPages : (reportTotalCount ? Math.ceil(reportTotalCount / reportPageSize) : 0);
+                reportCurrentPage = (res.Data && typeof res.Data.PageNumber === "number") ? res.Data.PageNumber : reportCurrentPage;
+                reportPageSize = (res.Data && typeof res.Data.PageSize === "number") ? res.Data.PageSize : reportPageSize;
+                $("#reportPageSizeSelect").val(reportPageSize.toString());
                 filteredReporting = [...reportingData];
-                reportCurrentPage = 1;
                 reportSortColumn = "OfficerName";
                 reportSortAsc = true;
+
+                if(reportSearchTerm){
+                    searchReportingQueue(reportSearchTerm);
+                    return;
+                }
+
                 filteredReporting.sort((a, b) => ((a.OfficerName || "").localeCompare(b.OfficerName || "")));
                 renderReportingTable();
             } else alert(res.Message);
@@ -886,15 +911,10 @@ function renderReportingTable(){
     const tbody = $("#reportingQueueBody");
     tbody.empty();
 
-    const start = (reportCurrentPage-1) * reportPageSize;
-    const end = start + reportPageSize;
-    const pageData = filteredReporting.slice(start, end);
-
-    if(pageData.length === 0){
-        // Show "No entries found" inside table body
+    if(filteredReporting.length === 0){
         tbody.append(`<tr><td colspan="8" class="text-center text-muted">No entries found</td></tr>`);
     } else {
-        pageData.forEach(a => {
+        filteredReporting.forEach(a => {
             tbody.append(`<tr>
                 <td>${a.FormType || ''}</td>
                 <td>${a.OfficerName || ''}</td>
@@ -908,104 +928,82 @@ function renderReportingTable(){
         });
     }
 
+    const start = reportTotalCount ? (((reportCurrentPage - 1) * reportPageSize) + 1) : 0;
+    const end = reportTotalCount ? Math.min(((reportCurrentPage - 1) * reportPageSize) + reportingData.length, reportTotalCount) : filteredReporting.length;
     updateReportingInfo(start, end);
     renderReportingPagination();
 }
 
 function updateReportingInfo(start, end){
-    const total = filteredReporting.length;
-    if(total==0){
-        $("#reportTableInfo").text(""); // clear info when no data
+    if(filteredReporting.length===0){
+        $("#reportTableInfo").text(reportTotalCount ? `Showing 0 records on page ${reportCurrentPage} of ${reportTotalPages} (${reportTotalCount} total entries)` : "");
         return;
     }
-    $("#reportTableInfo").text(`Showing ${start+1} to ${Math.min(end,total)} of ${total} entries`);
+    let info = `Showing ${start} to ${end} of ${reportTotalCount} entries`;
+    if (reportSearchTerm) {
+        info += ` | Filtered on current page: ${filteredReporting.length}`;
+    }
+    $("#reportTableInfo").text(info);
 }
 
 function renderReportingPagination(){
-    const totalPages = Math.ceil(filteredReporting.length / reportPageSize);
     const container = $("#reportingPagination");
     container.empty();
 
-    if (totalPages <= 1) return;
+    if (reportTotalPages <= 1) return;
 
-    const prevDisabled = reportCurrentPage === 1 ? "disabled" : "";
+    const isPrevDisabled = reportCurrentPage === 1;
+    const isNextDisabled = reportCurrentPage === reportTotalPages || reportingData.length < reportPageSize;
+    const prevDisabled = isPrevDisabled ? "disabled" : "";
     container.append(`
         <li class="page-item ${prevDisabled}">
-            <a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(${reportCurrentPage - 1})">Previous</a>
+            <a class="page-link" href="javascript:void(0)" ${isPrevDisabled ? 'aria-disabled="true"' : `onclick="gotoReportingPage(${reportCurrentPage - 1})"`}>Previous</a>
         </li>
     `);
 
-    const startPage = Math.max(1, reportCurrentPage - 2);
-    const endPage = Math.min(totalPages, reportCurrentPage + 2);
-
-    if (startPage > 1) {
-        container.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(1)">1</a></li>`);
-        if (startPage > 2) {
-            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
-        }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        const active = i === reportCurrentPage ? "active" : "";
-        container.append(`
-            <li class="page-item ${active}">
-                <a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(${i})">${i}</a>
-            </li>
-        `);
-    }
-
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            container.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
-        }
-        container.append(`
-            <li class="page-item">
-                <a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(${totalPages})">${totalPages}</a>
-            </li>
-        `);
-    }
-
-    const nextDisabled = reportCurrentPage === totalPages ? "disabled" : "";
+    const nextDisabled = isNextDisabled ? "disabled" : "";
     container.append(`
         <li class="page-item ${nextDisabled}">
-            <a class="page-link" href="javascript:void(0)" onclick="gotoReportingPage(${reportCurrentPage + 1})">Next</a>
+            <a class="page-link" href="javascript:void(0)" ${isNextDisabled ? 'aria-disabled="true"' : `onclick="gotoReportingPage(${reportCurrentPage + 1})"`}>Next</a>
         </li>
     `);
 }
 
 function gotoReportingPage(p){
-    const totalPages = Math.ceil(filteredReporting.length / reportPageSize);
-    if(p<1 || p>totalPages) return;
+    if(p<1 || p>reportTotalPages) return;
     reportCurrentPage = p;
-    renderReportingTable();
+    loadReportingQueue();
 }
 
 function changeReportingPageSize(){
-    reportPageSize = parseInt($("#reportPageSizeSelect").val());
+    reportPageSize = parseInt($("#reportPageSizeSelect").val(), 10) || 10;
     reportCurrentPage = 1;
-    renderReportingTable();
+    loadReportingQueue();
 }
 
 function searchReportingQueue(value) {
-    value = (value || "").toLowerCase().trim();
+    reportSearchTerm = (value || "").toLowerCase().trim();
 
-    if (!value) {
+    if (!reportSearchTerm) {
         filteredReporting = [...reportingData];
     } else {
         filteredReporting = reportingData.filter(a => {
             return (
-                (a.FormType || "").toLowerCase().includes(value) ||
-                (a.OfficerName || "").toLowerCase().includes(value) ||
-                (a.Location || "").toLowerCase().includes(value) ||
-                (a.Dsg || "").toLowerCase().includes(value) ||
-                (a.PostingFrom || "").toLowerCase().includes(value) ||
-                (a.PostingTo || "").toLowerCase().includes(value) ||
-                (a.Status || "").toLowerCase().includes(value)
+                (a.FormType || "").toLowerCase().includes(reportSearchTerm) ||
+                (a.OfficerName || "").toLowerCase().includes(reportSearchTerm) ||
+                (a.Location || "").toLowerCase().includes(reportSearchTerm) ||
+                (a.Dsg || "").toLowerCase().includes(reportSearchTerm) ||
+                (a.PostingFrom || "").toLowerCase().includes(reportSearchTerm) ||
+                (a.PostingTo || "").toLowerCase().includes(reportSearchTerm) ||
+                (a.Status || "").toLowerCase().includes(reportSearchTerm)
             );
         });
     }
 
-    reportCurrentPage = 1;
+    if (reportSortColumn) {
+        sortReportingTable(reportSortColumn);
+        return;
+    }
     renderReportingTable();
 }
 
