@@ -4,7 +4,7 @@ namespace ACRPortal.Application.usecase
 {
     public interface IAcceptingUseCase
     {
-        ApiResponse<PagedResult<MyAcceptingQueueItem>> GetMyAcceptingQueue(string userId, int pageNumber, int pageSize);
+        ApiResponse<PagedResult<MyAcceptingQueueItem>> GetMyAcceptingQueue(string userId, int pageNumber, int pageSize, string Status, string Officer_name);
         ApiResponse<AcceptingAcrDetailResponse> GetAcceptingDetail(string acrId, string userId);
         ApiResponse<EmptyResponse> SubmitDecision(string acrId, string userId, AcceptingDecisionRequest request);
     }

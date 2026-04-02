@@ -16,7 +16,7 @@ namespace ACRPortal.Application.service
             _docs = docs;
         }
 
-        public ApiResponse<PagedResult<MyAcceptingQueueItem>> GetMyAcceptingQueue(string userId, int pageNumber, int pageSize)
+        public ApiResponse<PagedResult<MyAcceptingQueueItem>> GetMyAcceptingQueue(string userId, int pageNumber, int pageSize, string Status, string Officer_name)
         {
             try
             {
@@ -26,7 +26,7 @@ namespace ACRPortal.Application.service
                 if (pageNumber <= 0) pageNumber = 1;
                 if (pageSize <= 0 || pageSize > 100) pageSize = 10;
 
-                var result = _repo.GetMyAcceptingQueue(guid, pageNumber, pageSize);
+                var result = _repo.GetMyAcceptingQueue(guid, pageNumber, pageSize, Status, Officer_name);
 
                 return ApiResponse<PagedResult<MyAcceptingQueueItem>>.Ok(result);
             }
