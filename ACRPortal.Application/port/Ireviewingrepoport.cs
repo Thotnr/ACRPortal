@@ -5,7 +5,7 @@ namespace ACRPortal.Application.port
 {
     public interface IReviewingRepoPort
     {
-        PagedResult<MyReviewingQueueItem> GetMyReviewingQueue(Guid userId, int pageNumber, int pageSize);
+        PagedResult<MyReviewingQueueItem> GetMyReviewingQueue(Guid userId, int pageNumber, int pageSize, string Status, string Officer_name);
 
         ReviewingAcrDetailResponse GetReviewingDetail(Guid acrId, Guid userId, out string errorCode);
        
