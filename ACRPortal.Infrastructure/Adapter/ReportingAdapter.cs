@@ -16,14 +16,23 @@ namespace ACRPortal.Infrastructure.Adapter
         // ================================================================== //
         //  GetMyReportingQueue  (unchanged)                                   //
         // ================================================================== //
-        public PagedResult<MyReportingQueueItem> GetMyReportingQueue(Guid userId, int pageNumber, int pageSize)
+        public PagedResult<MyReportingQueueItem> GetMyReportingQueue(
+            Guid userId, 
+            int pageNumber, 
+            int pageSize,
+            string Status,
+            string Officer_name)
         {
+            Status = string.IsNullOrWhiteSpace(Status) ? null : Status.Trim().ToUpper();
+
             string sql = @"
         SELECT COUNT(1)
         FROM dbo.acr_cycles ac
         WHERE (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
-          AND ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED');
+          AND ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED') " + 
+            (Status != null ? " AND ac.status = @status " : "") +
 
+                @";
         SELECT  ac.acr_id,
                 u.display_name,
                 u.login_id,
@@ -45,7 +54,10 @@ namespace ACRPortal.Infrastructure.Adapter
         LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
         LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
         WHERE  (ac.reporting_user_id = @uid OR ac.ra2_user_id = @uid)
-          AND   ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')
+          AND   ac.status IN ('PENDING_REPORTING','PENDING_REVIEWING','PENDING_ACCEPTING','APPROVED','REJECTED')" +
+                (Status != null ? " AND ac.status = @status " : "") +
+
+                @"
         ORDER BY ac.created_at DESC
         OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
     ";
@@ -62,6 +74,8 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@uid", SqlDbType.UniqueIdentifier).Value = userId;
                 cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
                 cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
+                if (Status != null)
+                    cmd.Parameters.Add("@status", SqlDbType.VarChar).Value = Status;
 
                 con.Open();
 

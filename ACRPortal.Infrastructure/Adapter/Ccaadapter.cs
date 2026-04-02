@@ -551,6 +551,7 @@ namespace ACRPortal.Infrastructure.Adapter
             string Status, 
             string Officer_name)
         {
+            Status = string.IsNullOrWhiteSpace(Status) ? null : Status.Trim().ToUpper();
             var where = new List<string>();
             var parms = new List<SqlParameter>();
 
