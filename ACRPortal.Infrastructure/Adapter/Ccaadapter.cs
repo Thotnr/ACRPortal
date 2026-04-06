@@ -563,12 +563,18 @@ namespace ACRPortal.Infrastructure.Adapter
                 where.Add("ac.status = @status");
                 parms.Add(new SqlParameter("@status", Status.ToUpper()));
             }
+            if (!string.IsNullOrWhiteSpace(Officer_name))
+            {
+                where.Add("LOWER(u.display_name) LIKE LOWER(@officerName)");
+                parms.Add(new SqlParameter("@officerName", "%" + Officer_name.Trim() + "%"));
+            }
 
             string whereClause = where.Count > 0 ? "WHERE " + string.Join(" AND ", where) : "";
 
             string sql = $@"
                 SELECT COUNT(1)
                 FROM dbo.acr_cycles ac
+                JOIN dbo.users u ON u.user_id = ac.officer_user_id
                 {whereClause};
 
                 SELECT ac.acr_id,

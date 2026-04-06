@@ -27,9 +27,11 @@ namespace ACRPortal.Infrastructure.Adapter
             string sql = @"
         SELECT COUNT(1)
         FROM dbo.acr_cycles ac
+        JOIN dbo.users u ON u.user_id = ac.officer_user_id
         WHERE ac.accepting_user_id = @uid
           AND ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED') " +
             (Status != null ? " AND ac.status = @status " : "") +
+            (Officer_name != null ? " AND LOWER(u.display_name) LIKE LOWER(@officerName) " : "") +
 
                 @";
 
@@ -53,6 +55,7 @@ namespace ACRPortal.Infrastructure.Adapter
         WHERE   ac.accepting_user_id = @uid
           AND   ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED')" +
                 (Status != null ? " AND ac.status = @status " : "") +
+                (Officer_name != null ? " AND LOWER(u.display_name) LIKE LOWER(@officerName) " : "") +
 
                 @"
         ORDER BY ac.created_at DESC
@@ -73,6 +76,8 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
                 if (Status != null)
                     cmd.Parameters.Add("@status", SqlDbType.VarChar).Value = Status;
+                if (Officer_name != null)
+                    cmd.Parameters.Add("@officerName", SqlDbType.VarChar).Value = "%" + Officer_name.Trim() + "%";
 
                 con.Open();
 
