@@ -670,6 +670,38 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                                         <div class="readonly-check-value" id="selfMedicalComplianceDate">-</div>
                                     </div>
                                 </div>
+
+                                <div class="form-section mt-3">
+                                    <div class="section-heading">
+                                        <i class="bi bi-paperclip"></i>
+                                        <div>
+                                            <h6>Uploaded documents</h6>
+                                            <p>Review officer uploaded documents for this ACR cycle.</p>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="readonly-check-card">
+                                                <span class="readonly-check-label">Medical Report</span>
+                                                <div class="readonly-check-value" id="reportingMedicalDocStatus">Not uploaded</div>
+                                                <div class="small text-muted mt-1" id="reportingMedicalDocName">-</div>
+                                                <a id="reportingMedicalDocLink" href="javascript:void(0)" target="_blank" class="btn btn-sm btn-outline-primary d-none mt-2">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="readonly-check-card">
+                                                <span class="readonly-check-label">Self ACR Report</span>
+                                                <div class="readonly-check-value" id="reportingSelfAcrDocStatus">Not uploaded</div>
+                                                <div class="small text-muted mt-1" id="reportingSelfAcrDocName">-</div>
+                                                <a id="reportingSelfAcrDocLink" href="javascript:void(0)" target="_blank" class="btn btn-sm btn-outline-primary d-none mt-2">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -820,6 +852,8 @@ $(document).ready(function(){
 
 let selectedAcrId = null;
 let draftSaved = false;
+const REPORTING_MEDICAL_DOCUMENT_TYPE = "MEDICAL_REPORT";
+const REPORTING_SELF_ACR_REPORT_DOCUMENT_TYPE = "SELF_ACR_REPORT";
 
 function loadReportingQueue(){
     $.ajax({
@@ -1103,11 +1137,75 @@ function bindOfficerInfo(selfAppraisal) {
     });
 }
 
+function getReadonlyDocuments(res) {
+    const data = res && res.Data ? res.Data : {};
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.Documents)) return data.Documents;
+    if (Array.isArray(data.RoleDocuments)) return data.RoleDocuments;
+    if (Array.isArray(data.Items)) return data.Items;
+    return [];
+}
+
+function getReadonlyDocumentByType(res, documentType) {
+    const docs = getReadonlyDocuments(res);
+    return docs.find(d => d && d.DocumentType === documentType && (!d.Section || d.Section === "OFFICER")) || null;
+}
+
+function resetReadonlyDocumentCard(statusSelector, nameSelector, linkSelector) {
+    $(statusSelector).text("Not uploaded");
+    $(nameSelector).text("-");
+    $(linkSelector).attr("href", "javascript:void(0)").addClass("d-none");
+}
+
+function bindReadonlyDocumentCard(statusSelector, nameSelector, linkSelector, doc) {
+    if (!doc) {
+        resetReadonlyDocumentCard(statusSelector, nameSelector, linkSelector);
+        return;
+    }
+
+    $(statusSelector).text("Uploaded");
+    $(nameSelector).text(doc.FileName || "-");
+
+    if (doc.FileUrl) {
+        $(linkSelector).attr("href", doc.FileUrl).removeClass("d-none");
+    } else {
+        $(linkSelector).attr("href", "javascript:void(0)").addClass("d-none");
+    }
+}
+
+function loadReadonlyDocuments(acrId) {
+    resetReadonlyDocumentCard("#reportingMedicalDocStatus", "#reportingMedicalDocName", "#reportingMedicalDocLink");
+    resetReadonlyDocumentCard("#reportingSelfAcrDocStatus", "#reportingSelfAcrDocName", "#reportingSelfAcrDocLink");
+
+    $.ajax({
+        url: BASE_URL + "api/acr/" + acrId + "/docs",
+        headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
+        success: function(res){
+            if (!res.Success) return;
+
+            bindReadonlyDocumentCard(
+                "#reportingMedicalDocStatus",
+                "#reportingMedicalDocName",
+                "#reportingMedicalDocLink",
+                getReadonlyDocumentByType(res, REPORTING_MEDICAL_DOCUMENT_TYPE)
+            );
+
+            bindReadonlyDocumentCard(
+                "#reportingSelfAcrDocStatus",
+                "#reportingSelfAcrDocName",
+                "#reportingSelfAcrDocLink",
+                getReadonlyDocumentByType(res, REPORTING_SELF_ACR_REPORT_DOCUMENT_TYPE)
+            );
+        }
+    });
+}
+
 let reportingModal = new bootstrap.Modal(document.getElementById('reportingModal'));
 
 function viewReportingAcr(acrId){
     selectedAcrId = acrId;
     draftSaved = false;
+    loadReadonlyDocuments(acrId);
     $.ajax({
         url: BASE_URL + "api/acr/"+acrId+"/reporting",
         headers:{'Authorization':'Bearer '+localStorage.getItem('token')},

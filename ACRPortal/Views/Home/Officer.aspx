@@ -613,7 +613,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             <div class="modal-body">
                 <div class="officer-modal-intro">
                     <h4 class="officer-modal-title">Officer ACR details</h4>
-                    <p class="officer-modal-copy">Review the cycle summary in one tab and complete the self-appraisal section in the other. Existing validation and workflow behavior remain unchanged.</p>
+                    <p class="officer-modal-copy">Start with the ACR Info tab to review the selected cycle, then switch to Self-Appraisal to fill, save draft, and submit when the record is pending at officer level. Existing validation and workflow behavior remain unchanged.</p>
                 </div>
 
                 <ul class="nav nav-tabs" id="acrTab" role="tablist">
@@ -770,6 +770,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                             <!-- Upload state -->
                             <div id="docUploadBox">
                                 <input type="file" id="fuAutoUpload" class="form-control"
+                                    data-document-type="MEDICAL_REPORT"
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     onchange="uploadFile(this)" />
                                 <div class="form-text">Upload starts automatically after you choose a file.</div>
@@ -789,7 +790,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                                         <a id="uploadedFileLink" href="javascript:void(0)" target="_blank" class="btn btn-sm btn-outline-primary d-none">
                                             <i class="bi bi-eye"></i> View
                                         </a>
-                                        <button type="button" id="deleteDocumentBtn" class="btn btn-sm btn-outline-danger" onclick="deleteCurrentDocument()">
+                                        <button type="button" id="deleteDocumentBtn" class="btn btn-sm btn-outline-danger" onclick="deleteCurrentDocument('MEDICAL_REPORT')">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
@@ -800,6 +801,59 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                             <input type="hidden" id="hdnUploadedFileName" />
                             <input type="hidden" id="hdnUploadedDocumentId" />
                             <div id="uploadStatus" class="mt-2 small"></div>
+                        </div>
+                    </div>
+
+                    <div class="officer-form-section">
+                        <div class="section-heading">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <div>
+                                <h6>Upload Self ACR report</h6>
+                                <p>Attach the self ACR report using the same upload flow for this record.</p>
+                            </div>
+                        </div>
+                        <label class="form-label fw-bold">Self ACR Report</label>
+
+                        <div id="selfAcrUploadSection" class="border rounded p-3 bg-light">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                <div>
+                                    <div class="fw-semibold">Supporting document</div>
+                                    <div class="small text-muted">Accepted formats: PDF, JPG, JPEG, PNG. Maximum size: 5 MB.</div>
+                                </div>
+                                <span class="upload-badge"><i class="bi bi-file-earmark-medical"></i> Verification file</span>
+                            </div>
+                            <div id="selfAcrUploadBox">
+                                <input type="file" id="fuSelfAcrUpload" class="form-control"
+                                    data-document-type="SELF_ACR_REPORT"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onchange="uploadFile(this)" />
+                                <div class="form-text">Upload starts automatically after you choose a file.</div>
+                            </div>
+
+                            <div id="selfAcrUploadedBox" class="d-none">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <div class="fw-semibold text-success">
+                                            <i class="bi bi-file-earmark-check"></i>
+                                            Uploaded File
+                                        </div>
+                                        <div id="selfAcrUploadedFileName" class="small"></div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <a id="selfAcrUploadedFileLink" href="javascript:void(0)" target="_blank" class="btn btn-sm btn-outline-primary d-none">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                        <button type="button" id="deleteSelfAcrDocumentBtn" class="btn btn-sm btn-outline-danger" onclick="deleteCurrentDocument('SELF_ACR_REPORT')">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="hdnSelfAcrUploadedFilePath" />
+                            <input type="hidden" id="hdnSelfAcrUploadedFileName" />
+                            <input type="hidden" id="hdnSelfAcrUploadedDocumentId" />
+                            <div id="selfAcrUploadStatus" class="mt-2 small"></div>
                         </div>
                     </div>
                     <!-- Document upload -->
@@ -823,8 +877,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     let draftSaved = false;
     let isFormChanged = false;
-    let currentUploadedDocument = null;
-    const DOCUMENT_TYPE = "MEDICAL_REPORT";
+    let currentUploadedDocuments = {
+        MEDICAL_REPORT: null,
+        SELF_ACR_REPORT: null
+    };
+    const MEDICAL_DOCUMENT_TYPE = "MEDICAL_REPORT";
+    const SELF_ACR_REPORT_DOCUMENT_TYPE = "SELF_ACR_REPORT";
 
     let acrListData = [];
     let filteredAcrListData = [];
@@ -948,6 +1006,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             success: function(res){
                 if(res.Success){
                     const data = res.Data;
+                    const isPendingOfficer = data.Status && data.Status.toUpperCase() === 'PENDING_OFFICER';
                     let age = calculateAge(data.DateOfBirth);
                     // Global flag
                     window.isDocMandatory = age >= 40;
@@ -956,22 +1015,24 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     } else {
                         $('#docMandatoryMsg').hide();
                     }
-                    if (data.Status && data.Status.toUpperCase() === 'PENDING_OFFICER') {
+                    if (isPendingOfficer) {
                         $('#saveDraftBtn').show();
                         $('#addTrainingRow').show();
                         $(".removeTrainingRow").show();
                         $('#submitBtn').removeClass('d-none');
-                        $('#documentUploadSection').show();
                         $('#fuAutoUpload').prop('disabled', false);
                         $('#deleteDocumentBtn').prop('disabled', false);
+                        $('#fuSelfAcrUpload').prop('disabled', false);
+                        $('#deleteSelfAcrDocumentBtn').prop('disabled', false);
                     } else {
                         $('#saveDraftBtn').hide();
                         $('#addTrainingRow').hide();
                         $(".removeTrainingRow").hide();
                         $('#submitBtn').addClass('d-none');
-                        $('#documentUploadSection').hide();
                         $('#fuAutoUpload').prop('disabled', true);
                         $('#deleteDocumentBtn').prop('disabled', true);
+                        $('#fuSelfAcrUpload').prop('disabled', true);
+                        $('#deleteSelfAcrDocumentBtn').prop('disabled', true);
                     }
                     // --- Populate ACR Info tab ---
                     $('#viewFormType').val(data.FormType || '');
@@ -1028,7 +1089,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     toggleMedicalComplianceDate(s);
 
                     resetDocumentSection();
-                    loadDocuments();
+                    loadDocuments(isPendingOfficer);
                     // --- Always activate the first tab (ACR Info) ---
                     const firstTab = new bootstrap.Tab(document.querySelector('#view-tab'));
                     firstTab.show();
@@ -1100,7 +1161,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         if (!validateForm()) return;
 
         if (window.isDocMandatory) {
-            let hasDoc = !!currentUploadedDocument;
+            let hasDoc = !!currentUploadedDocuments[MEDICAL_DOCUMENT_TYPE];
             if (!hasDoc) {
                 alert("Medical document is mandatory for age 40+");
                 return;
@@ -1128,11 +1189,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         });
     });
 
-    function callDocsApi(fileData) {
+    function callDocsApi(fileData, documentType) {
         var payload = {
                 FileUrl: fileData.FileUrl,
                 FileName: fileData.FileName,
-                DocumentType: DOCUMENT_TYPE
+                DocumentType: documentType
             };
 
             $.ajax({
@@ -1143,11 +1204,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 data: JSON.stringify(payload),
                 success: function (res) {
                     if (res.Success) {
-                        $('#uploadStatus').html('<span class="text-success">Document uploaded successfully</span>');
+                        setUploadStatus(documentType, '<span class="text-success">Document uploaded successfully</span>');
                         loadDocuments();
-                        $('#fuAutoUpload').val('');
+                        $(getDocumentElements(documentType).fileInput).val('');
                     } else {
-                        $('#uploadStatus').html('<span class="text-danger">' + (res.Message || 'Document API failed') + '</span>');
+                        setUploadStatus(documentType, '<span class="text-danger">' + (res.Message || 'Document API failed') + '</span>');
                     }
                 },
                 error: function (xhr) {
@@ -1155,12 +1216,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     if (xhr.responseJSON && xhr.responseJSON.Message) {
                         msg = xhr.responseJSON.Message;
                     }
-                    $('#uploadStatus').html('<span class="text-danger">' + msg + '</span>');
+                    setUploadStatus(documentType, '<span class="text-danger">' + msg + '</span>');
                 }
             });
     }
     // ---------------- Document ----------------
-    function loadDocuments() {
+    function loadDocuments(keepVisibleWithoutDoc) {
         if (!selectedAcrId) return;
         $.ajax({
             url: BASE_URL + `api/acr/${selectedAcrId}/docs`,
@@ -1168,25 +1229,47 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             success: function (res) {
                 if (!res.Success) {
-                    showUploadState();
+                    resetDocumentSection();
+                    toggleDocumentSections(keepVisibleWithoutDoc);
                     return;
                 }
 
-                const documents = (res.Data && res.Data.Documents) ? res.Data.Documents : [];
-                const medicalDoc = documents.find(d => d.DocumentType === DOCUMENT_TYPE) || null;
-
-                currentUploadedDocument = medicalDoc;
-
-                if (medicalDoc) {
-                    showUploadedState(medicalDoc);
-                } else {
-                    showUploadState();
-                }
+                bindDocumentFromResponse(res, MEDICAL_DOCUMENT_TYPE);
+                bindDocumentFromResponse(res, SELF_ACR_REPORT_DOCUMENT_TYPE);
+                toggleDocumentSections(keepVisibleWithoutDoc);
             },
             error: function () {
-                showUploadState();
+                resetDocumentSection();
+                toggleDocumentSections(keepVisibleWithoutDoc);
             }
         });
+    }
+
+    function getDocumentsFromDocsResponse(res) {
+        const data = res && res.Data ? res.Data : {};
+        let docs = [];
+
+        if (Array.isArray(data)) {
+            docs = data;
+        } else if (Array.isArray(data.Documents)) {
+            docs = data.Documents;
+        } else if (Array.isArray(data.RoleDocuments)) {
+            docs = data.RoleDocuments;
+        } else if (Array.isArray(data.Items)) {
+            docs = data.Items;
+        }
+
+        return docs;
+    }
+
+    function getDocumentFromDocsResponse(res, documentType) {
+        const docs = getDocumentsFromDocsResponse(res);
+
+        return docs.find(d =>
+            d &&
+            d.DocumentType === documentType &&
+            (!d.Section || d.Section === 'OFFICER')
+        ) || null;
     }
 
     // Show/Hide Property Declared date
@@ -1299,6 +1382,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     function uploadFile(input) {
         if (!input.files || input.files.length === 0) return;
 
+        const documentType = input.getAttribute('data-document-type') || MEDICAL_DOCUMENT_TYPE;
         const file = input.files[0];
         const maxSize = 5 * 1024 * 1024;
 
@@ -1315,7 +1399,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             return;
         }
 
-        $('#uploadStatus').html('<span class="text-muted">Uploading file...</span>');
+        setUploadStatus(documentType, '<span class="text-muted">Uploading file...</span>');
 
         var formData = new FormData();
         formData.append("file", file);
@@ -1326,7 +1410,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         xhr.upload.onprogress = function (e) {
             if (e.lengthComputable) {
                 var percent = (e.loaded / e.total) * 100;
-                $('#uploadStatus').html('<span class="text-muted">Uploading... ' + percent.toFixed(0) + '%</span>');
+                setUploadStatus(documentType, '<span class="text-muted">Uploading... ' + percent.toFixed(0) + '%</span>');
             }
         };
 
@@ -1335,25 +1419,26 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 var res = JSON.parse(xhr.responseText);
 
                 if (res.success) {
-                    $('#hdnUploadedFilePath').val(res.filePath || '');
-                    $('#hdnUploadedFileName').val(res.fileName || '');
+                    const elements = getDocumentElements(documentType);
+                    $(elements.filePath).val(res.filePath || '');
+                    $(elements.fileName).val(res.fileName || '');
 
                     callDocsApi({
                         FileUrl: res.filePath,
                         FileName: res.fileName
-                    });
+                    }, documentType);
                 } else {
-                    $('#uploadStatus').html('<span class="text-danger">Upload failed: ' + (res.message || 'Unknown error') + '</span>');
+                    setUploadStatus(documentType, '<span class="text-danger">Upload failed: ' + (res.message || 'Unknown error') + '</span>');
                     input.value = "";
                 }
             } else {
-                $('#uploadStatus').html('<span class="text-danger">Upload error!</span>');
+                setUploadStatus(documentType, '<span class="text-danger">Upload error!</span>');
                 input.value = "";
             }
         };
 
         xhr.onerror = function () {
-            $('#uploadStatus').html('<span class="text-danger">Upload error!</span>');
+            setUploadStatus(documentType, '<span class="text-danger">Upload error!</span>');
             input.value = "";
         };
 
@@ -1361,41 +1446,41 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
 
     function resetDocumentSection() {
-        currentUploadedDocument = null;
-        $('#hdnUploadedDocumentId').val('');
-        $('#hdnUploadedFilePath').val('');
-        $('#hdnUploadedFileName').val('');
-        $('#uploadStatus').html('');
-        $('#fuAutoUpload').val('');
-        showUploadState();
+        resetDocumentState(MEDICAL_DOCUMENT_TYPE);
+        resetDocumentState(SELF_ACR_REPORT_DOCUMENT_TYPE);
     }
 
-    function showUploadState() {
-        $('#docUploadBox').removeClass('d-none');
-        $('#docUploadedBox').addClass('d-none');
-        $('#uploadedFileName').text('');
-        $('#uploadedFileLink').attr('href', 'javascript:void(0)').addClass('d-none');
-        $('#hdnUploadedDocumentId').val('');
+    function showUploadState(documentType) {
+        const elements = getDocumentElements(documentType);
+        $(elements.uploadBox).removeClass('d-none');
+        $(elements.uploadedBox).addClass('d-none');
+        $(elements.uploadedFileName).text('');
+        $(elements.uploadedFileLink).attr('href', 'javascript:void(0)').addClass('d-none');
+        $(elements.documentId).val('');
     }
 
-    function showUploadedState(doc) {
-        $('#docUploadBox').addClass('d-none');
-        $('#docUploadedBox').removeClass('d-none');
+    function showUploadedState(doc, documentType) {
+        const elements = getDocumentElements(documentType);
+        $(elements.uploadBox).addClass('d-none');
+        $(elements.uploadedBox).removeClass('d-none');
 
-        $('#uploadedFileName').text(doc.FileName || '');
-        $('#hdnUploadedDocumentId').val(doc.DocumentId || '');
-        $('#hdnUploadedFilePath').val(doc.FileUrl || '');
-        $('#hdnUploadedFileName').val(doc.FileName || '');
+        $(elements.uploadedFileName).text(doc.FileName || '');
+        $(elements.documentId).val(doc.DocumentId || '');
+        $(elements.filePath).val(doc.FileUrl || '');
+        $(elements.fileName).val(doc.FileName || '');
 
         if (doc.FileUrl) {
-            $('#uploadedFileLink').attr('href', doc.FileUrl).removeClass('d-none');
+            $(elements.uploadedFileLink).attr('href', doc.FileUrl).removeClass('d-none');
         } else {
-            $('#uploadedFileLink').attr('href', 'javascript:void(0)').addClass('d-none');
+            $(elements.uploadedFileLink).attr('href', 'javascript:void(0)').addClass('d-none');
         }
     }
 
-    function deleteCurrentDocument() {
-        if (!selectedAcrId || !currentUploadedDocument || !currentUploadedDocument.DocumentId) {
+    function deleteCurrentDocument(documentType) {
+        const doc = currentUploadedDocuments[documentType];
+        const elements = getDocumentElements(documentType);
+
+        if (!selectedAcrId || !doc || !doc.DocumentId) {
             alert('No document found to delete.');
             return;
         }
@@ -1404,23 +1489,18 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             return;
         }
 
-        $('#deleteDocumentBtn').prop('disabled', true);
+        $(elements.deleteButton).prop('disabled', true);
 
         $.ajax({
-            url: BASE_URL + `api/acr/${selectedAcrId}/docs/${currentUploadedDocument.DocumentId}`,
+            url: BASE_URL + `api/acr/${selectedAcrId}/docs/${doc.DocumentId}`,
             type: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             success: function (res) {
                 if (res.Success) {
-                    $('#uploadStatus').html('<span class="text-success">Document deleted successfully</span>');
-                    currentUploadedDocument = null;
-                    showUploadState();
-                    $('#hdnUploadedDocumentId').val('');
-                    $('#hdnUploadedFilePath').val('');
-                    $('#hdnUploadedFileName').val('');
-                    $('#fuAutoUpload').val('');
+                    setUploadStatus(documentType, '<span class="text-success">Document deleted successfully</span>');
+                    resetDocumentState(documentType, true);
                 } else {
-                    $('#uploadStatus').html('<span class="text-danger">' + (res.Message || 'Delete failed') + '</span>');
+                    setUploadStatus(documentType, '<span class="text-danger">' + (res.Message || 'Delete failed') + '</span>');
                 }
             },
             error: function (xhr) {
@@ -1428,12 +1508,79 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 if (xhr.responseJSON && xhr.responseJSON.Message) {
                     msg = xhr.responseJSON.Message;
                 }
-                $('#uploadStatus').html('<span class="text-danger">' + msg + '</span>');
+                setUploadStatus(documentType, '<span class="text-danger">' + msg + '</span>');
             },
             complete: function () {
-                $('#deleteDocumentBtn').prop('disabled', false);
+                $(elements.deleteButton).prop('disabled', false);
             }
         });
+    }
+
+    function getDocumentElements(documentType) {
+        if (documentType === SELF_ACR_REPORT_DOCUMENT_TYPE) {
+            return {
+                section: '#selfAcrUploadSection',
+                uploadBox: '#selfAcrUploadBox',
+                uploadedBox: '#selfAcrUploadedBox',
+                uploadedFileName: '#selfAcrUploadedFileName',
+                uploadedFileLink: '#selfAcrUploadedFileLink',
+                deleteButton: '#deleteSelfAcrDocumentBtn',
+                fileInput: '#fuSelfAcrUpload',
+                filePath: '#hdnSelfAcrUploadedFilePath',
+                fileName: '#hdnSelfAcrUploadedFileName',
+                documentId: '#hdnSelfAcrUploadedDocumentId',
+                status: '#selfAcrUploadStatus'
+            };
+        }
+
+        return {
+            section: '#documentUploadSection',
+            uploadBox: '#docUploadBox',
+            uploadedBox: '#docUploadedBox',
+            uploadedFileName: '#uploadedFileName',
+            uploadedFileLink: '#uploadedFileLink',
+            deleteButton: '#deleteDocumentBtn',
+            fileInput: '#fuAutoUpload',
+            filePath: '#hdnUploadedFilePath',
+            fileName: '#hdnUploadedFileName',
+            documentId: '#hdnUploadedDocumentId',
+            status: '#uploadStatus'
+        };
+    }
+
+    function setUploadStatus(documentType, html) {
+        $(getDocumentElements(documentType).status).html(html || '');
+    }
+
+    function resetDocumentState(documentType, keepStatus) {
+        const elements = getDocumentElements(documentType);
+        currentUploadedDocuments[documentType] = null;
+        $(elements.documentId).val('');
+        $(elements.filePath).val('');
+        $(elements.fileName).val('');
+        $(elements.fileInput).val('');
+        if (!keepStatus) {
+            $(elements.status).html('');
+        }
+        showUploadState(documentType);
+    }
+
+    function bindDocumentFromResponse(res, documentType) {
+        const doc = getDocumentFromDocsResponse(res, documentType);
+        currentUploadedDocuments[documentType] = doc;
+
+        if (doc) {
+            showUploadedState(doc, documentType);
+        } else {
+            showUploadState(documentType);
+        }
+    }
+
+    function toggleDocumentSections(keepVisibleWithoutDoc) {
+        const hasMedicalDoc = !!currentUploadedDocuments[MEDICAL_DOCUMENT_TYPE];
+        const medicalSectionVisible = !!keepVisibleWithoutDoc || hasMedicalDoc;
+        $(getDocumentElements(MEDICAL_DOCUMENT_TYPE).section)[medicalSectionVisible ? 'show' : 'hide']();
+        $(getDocumentElements(SELF_ACR_REPORT_DOCUMENT_TYPE).section).show();
     }
 
 function searchTable(value) {

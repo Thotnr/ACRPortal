@@ -111,6 +111,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
 
     .btn-raise-appraisal {
+        position: relative;
+        z-index: 1;
         border: 0;
         border-radius: 16px;
         padding: 12px 18px;
@@ -669,6 +671,10 @@ var isDraft = false;
 var currentAcrId = null;
 var isEditMode = false;
 var isSubmitting = false;
+var hasSavedDraft = false;
+var isFormDirty = false;
+var isBindingForm = false;
+var isFormReadonly = false;
 var currentUserRole = (localStorage.getItem("role") || "").toUpperCase();
 
 var acrListData = [];
@@ -898,6 +904,9 @@ function openAppraisalModal() {
     currentAcrId = null;
     isEditMode = false;
     isSubmitting = false;
+    hasSavedDraft = false;
+    isFormDirty = false;
+    isBindingForm = false;
 
     $("#formTitle").text("CCA Officer Appraisal");
     $("#btnSubmit").show();
@@ -907,6 +916,7 @@ function openAppraisalModal() {
     bindAuthorityDropdowns();
     $("#authoritySuggestionStatus").html("");
     setFormReadonly(false);
+    updateActionButtonsState();
 
     $('#appraisalModal').modal('show');
 }
@@ -1595,6 +1605,18 @@ $("#ccaForm").off("submit").on("submit", function (e) {
 
     if (isSubmitting) return;
 
+    if (!currentAcrId || !hasSavedDraft) {
+        alert("Please save draft first.");
+        updateActionButtonsState();
+        return;
+    }
+
+    if (isFormDirty) {
+        alert("Please save draft again before submitting the updated form.");
+        updateActionButtonsState();
+        return;
+    }
+
     var payload = buildPayload(false);
     var validationMessage = validatePayload(payload, false);
 
@@ -1607,7 +1629,7 @@ $("#ccaForm").off("submit").on("submit", function (e) {
     isSubmitting = true;
     toggleActionButtons(true);
 
-    submitAppraisal(payload);
+    submitDraftAcr(currentAcrId);
 });
 
 $("#btnSaveDraft").off("click").on("click", function () {
@@ -1628,12 +1650,45 @@ $("#btnSaveDraft").off("click").on("click", function () {
 });
 
 function toggleActionButtons(disabled) {
-    $("#btnSaveDraft, #btnSubmit").prop("disabled", disabled || isAdminUser());
+    if (disabled) {
+        $("#btnSaveDraft, #btnSubmit").prop("disabled", true);
+        return;
+    }
+
+    updateActionButtonsState();
 }
 
 function unlockSubmission() {
     isSubmitting = false;
     toggleActionButtons(false);
+}
+
+function beginFormBinding() {
+    isBindingForm = true;
+}
+
+function endFormBinding() {
+    isBindingForm = false;
+    updateActionButtonsState();
+}
+
+function hasValidSubmitPayload() {
+    return !validatePayload(buildPayload(false), false);
+}
+
+function markFormDirty() {
+    if (isBindingForm || isFormReadonly) return;
+
+    isFormDirty = true;
+    updateActionButtonsState();
+}
+
+function updateActionButtonsState() {
+    var canSaveDraft = !isFormReadonly && !isSubmitting && !isAdminUser();
+    var canSubmit = canSaveDraft && hasSavedDraft && !isFormDirty && !!currentAcrId && hasValidSubmitPayload();
+
+    $("#btnSaveDraft").prop("disabled", !canSaveDraft);
+    $("#btnSubmit").prop("disabled", !canSubmit);
 }
 
 function submitDraftAcr(acrId) {
@@ -1657,8 +1712,9 @@ function submitDraftAcr(acrId) {
 }
 
 function setFormReadonly(flag) {
+    isFormReadonly = !!flag;
     $("#ccaForm :input").prop("disabled", flag);
-    $("#btnSaveDraft, #btnSubmit").prop("disabled", flag || isAdminUser());
+    updateActionButtonsState();
 }
 
 function submitAppraisal(payload) {
@@ -1691,8 +1747,10 @@ function submitAppraisal(payload) {
                 }
 
                 if (isDraft) {
+                    hasSavedDraft = true;
+                    isFormDirty = false;
+                    isEditMode = true;
                     alert("Draft saved successfully");
-                    closeModal();
                     loadAcrList();
                     unlockSubmission();
                     return;
@@ -1734,8 +1792,10 @@ function submitAppraisal(payload) {
             currentAcrId = acrId;
 
             if (isDraft) {
+                hasSavedDraft = true;
+                isFormDirty = false;
+                isEditMode = true;
                 alert("Draft saved successfully");
-                closeModal();
                 loadAcrList();
                 unlockSubmission();
                 return;
@@ -1821,6 +1881,11 @@ $("#officerName").off("change").on("change", function () {
     if (officerUserId && !isAdminUser()) {
         suggestAuthorityChain(officerUserId);
     }
+});
+
+$("#ccaForm").off("input.draftState change.draftState").on("input.draftState change.draftState", "input, select, textarea", function () {
+    if ($(this).is(":button, [type='submit'], [type='button'], [type='reset']")) return;
+    markFormDirty();
 });
 
 // Using getCommonStatusBadge from constant.js with CCA specific styling
@@ -1917,6 +1982,7 @@ function bindAcrDetail(data) {
 
         $("#reviewAuthority").val(data.ReviewingAuthorityUserId || "").trigger("change");
         $("#acceptingAuthority").val(data.AcceptingAuthorityUserId || "").trigger("change");
+        endFormBinding();
     }, 300);
 }
 
@@ -1940,15 +2006,19 @@ function viewAcr(acrId) {
 
             $("#formTitle").text(getFormTitle(formType));
             applyFormRules();
+            beginFormBinding();
             bindAcrDetail(data);
 
             var statusUpper = (data.Status || "").toUpperCase();
             var canEditForm = statusUpper === "DRAFT" && !isAdminUser();
             var canSubmitDraft = statusUpper === "DRAFT" && !isAdminUser();
+            hasSavedDraft = canSubmitDraft;
+            isFormDirty = false;
 
-            $("#btnSubmit").show().prop("disabled", !canSubmitDraft);
-            $("#btnSaveDraft").show().prop("disabled", !canEditForm);
+            $("#btnSubmit").show();
+            $("#btnSaveDraft").show();
             setFormReadonly(!canEditForm);
+            updateActionButtonsState();
         },
         error: function (xhr) {
             alert(apiErrorMessage(xhr, "Failed to load ACR detail"));
