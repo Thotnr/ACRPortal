@@ -471,9 +471,21 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <p class="cca-toolbar-copy">Search, sort, and open CCA records from a more readable table layout.</p>
             </div>
             <div class="col-lg-5">
-                <div class="search-wrap">
-                    <i class="fas fa-search"></i>
-                    <input type="text" class="form-control search-input" placeholder="Search officer, designation, posting..." onkeyup="searchTable(this.value)">
+                <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
+                    <div class="search-wrap flex-grow-1" style="min-width:240px;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="ccaSearchBox" class="form-control search-input" placeholder="Search officer name...">
+                    </div>
+                    <select id="statusFilter" class="form-control" style="width:210px;">
+                        <option value="">All Status</option>
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="PENDING_OFFICER">PENDING_OFFICER</option>
+                        <option value="PENDING_REPORTING">PENDING_REPORTING</option>
+                        <option value="PENDING_REVIEWING">PENDING_REVIEWING</option>
+                        <option value="PENDING_ACCEPTING">PENDING_ACCEPTING</option>
+                        <option value="APPROVED">APPROVED</option>
+                        <option value="REJECTED">REJECTED</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -686,6 +698,8 @@ var totalPages = 0;
 var currentSortColumn = -1;
 var currentSortDirection = "desc";
 var currentSearchTerm = "";
+var currentStatusFilter = "";
+var ccaSearchDebounceTimer = null;
 
 $(document).ready(function () {
     var token = localStorage.getItem("token");
@@ -704,6 +718,18 @@ $(document).ready(function () {
         .then(function () { return loadEmployees(); })
         .then(function () { return loadOfficers(); })
         .then(function () { return loadAcrList(); });
+
+    $("#ccaSearchBox").on("input", function () {
+        currentSearchTerm = ($(this).val() || "").trim();
+        currentPage = 1;
+        scheduleCcaListReload();
+    });
+
+    $("#statusFilter").on("change", function () {
+        currentStatusFilter = ($(this).val() || "").trim();
+        currentPage = 1;
+        loadAcrList();
+    });
 
     $("#pageSize").on("change", function () {
         pageSize = parseInt($(this).val(), 10) || 10;
@@ -776,7 +802,17 @@ function loadCurrentUser(token) {
 
 function getAcrListApiUrl() {
     var endpoint = currentUserRole === "ADMIN" ? "api/admin/acr" : "api/cca/acr";
-    return BASE_URL + endpoint + "?pageNumber=" + currentPage + "&pageSize=" + pageSize;
+    var url = BASE_URL + endpoint + "?pageNumber=" + currentPage + "&pageSize=" + pageSize;
+
+    if (currentStatusFilter) {
+        url += "&Status=" + encodeURIComponent(currentStatusFilter);
+    }
+
+    if (currentSearchTerm) {
+        url += "&Officer_name=" + encodeURIComponent(currentSearchTerm);
+    }
+
+    return url;
 }
 
 function isAdminUser() {
@@ -925,24 +961,15 @@ function closeModal() {
     $('#appraisalModal').modal('hide');
 }
 
+function scheduleCcaListReload() {
+    clearTimeout(ccaSearchDebounceTimer);
+    ccaSearchDebounceTimer = setTimeout(function () {
+        loadAcrList();
+    }, 1500);
+}
+
 function searchTable(value) {
-    currentSearchTerm = (value || "").toLowerCase().trim();
-
-    if (!currentSearchTerm) {
-        filteredAcrListData = acrListData.slice();
-    } else {
-        filteredAcrListData = acrListData.filter(function (a) {
-            return (
-                (a.OfficerName || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.Dsg || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.Location || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.PostingFrom || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.PostingTo || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.Status || '').toLowerCase().includes(currentSearchTerm)
-            );
-        });
-    }
-
+    currentSearchTerm = (value || "").trim();
     applySorting();
     renderAcrTable();
 }
@@ -1034,7 +1061,7 @@ function renderAcrTable() {
     var endIndex = totalCount ? Math.min(((currentPage - 1) * pageSize) + acrListData.length, totalCount) : filteredAcrListData.length;
     var infoText = "Showing " + startIndex + " to " + endIndex + " of " + totalCount + " entries";
 
-    if (currentSearchTerm) {
+    if (currentSearchTerm || currentStatusFilter) {
         infoText += " | Filtered on current page: " + filteredAcrListData.length;
     }
 
@@ -1923,12 +1950,9 @@ function loadAcrList() {
             currentPage = (res.Data && typeof res.Data.PageNumber === "number") ? res.Data.PageNumber : currentPage;
             pageSize = (res.Data && typeof res.Data.PageSize === "number") ? res.Data.PageSize : pageSize;
             $("#pageSize").val(pageSize.toString());
+            $("#statusFilter").val(currentStatusFilter);
 
             filteredAcrListData = acrListData.slice();
-            if (currentSearchTerm) {
-                searchTable(currentSearchTerm);
-                return;
-            }
 
             applySorting();
             renderAcrTable();

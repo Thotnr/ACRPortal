@@ -438,7 +438,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
                     <div class="search-wrap flex-grow-1" style="min-width:240px;">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="reviewSearch" class="form-control search-input" placeholder="Search form type, officer, location...">
+                        <input type="text" id="reviewSearch" class="form-control search-input" placeholder="Search officer name...">
+                    </div>
+                    <select id="reviewStatusFilter" class="form-select table-select" style="width:210px;">
+                        <option value="">All Status</option>
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="PENDING_OFFICER">PENDING_OFFICER</option>
+                        <option value="PENDING_REPORTING">PENDING_REPORTING</option>
+                        <option value="PENDING_REVIEWING">PENDING_REVIEWING</option>
+                        <option value="PENDING_ACCEPTING">PENDING_ACCEPTING</option>
+                        <option value="APPROVED">APPROVED</option>
+                        <option value="REJECTED">REJECTED</option>
                     </div>
                     <select id="reviewPageSizeSelect" class="form-select table-select" style="width:110px;">
                         <option value="5">5</option>
@@ -825,11 +835,20 @@ let isDirty = false;
 let reviewSortColumn = "";
 let reviewSortAsc = true;
 let reviewSearchTerm = "";
+let reviewStatusFilter = "";
+let reviewSearchDebounceTimer = null;
 
 $(document).ready(function(){
     $("#reviewingDiv").show();
     $("#reviewSearch").on("input", function () {
-        searchReviewingQueue($(this).val());
+        reviewSearchTerm = ($(this).val() || "").trim();
+        reviewCurrentPage = 1;
+        scheduleReviewingReload();
+    });
+    $("#reviewStatusFilter").on("change", function () {
+        reviewStatusFilter = ($(this).val() || "").trim();
+        reviewCurrentPage = 1;
+        loadReviewingQueue();
     });
     $("#reviewPageSizeSelect").on("change", function () {
         changeReviewPageSize();
@@ -844,6 +863,27 @@ function changeReviewPageSize(){
     loadReviewingQueue();
 }
 
+function scheduleReviewingReload() {
+    clearTimeout(reviewSearchDebounceTimer);
+    reviewSearchDebounceTimer = setTimeout(function () {
+        loadReviewingQueue();
+    }, 1500);
+}
+
+function getReviewingQueueUrl() {
+    let url = BASE_URL + "api/acr/reviewing/my?pageNumber=" + reviewCurrentPage + "&pageSize=" + reviewPageSize;
+
+    if (reviewStatusFilter) {
+        url += "&Status=" + encodeURIComponent(reviewStatusFilter);
+    }
+
+    if (reviewSearchTerm) {
+        url += "&Officer_name=" + encodeURIComponent(reviewSearchTerm);
+    }
+
+    return url;
+}
+
 function updateReviewInfo(start, end){
     if(filteredReviewing.length === 0){
         $("#reviewTableInfo").text(reviewTotalCount ? `Showing 0 records on page ${reviewCurrentPage} of ${reviewTotalPages} (${reviewTotalCount} total entries)` : "");
@@ -851,30 +891,14 @@ function updateReviewInfo(start, end){
     }
 
     let info = `Showing ${start} to ${end} of ${reviewTotalCount} entries`;
-    if (reviewSearchTerm) {
+    if (reviewSearchTerm || reviewStatusFilter) {
         info += ` | Filtered on current page: ${filteredReviewing.length}`;
     }
     $("#reviewTableInfo").text(info);
 }
 
 function searchReviewingQueue(value){
-    reviewSearchTerm = (value || "").toLowerCase().trim();
-    if (!reviewSearchTerm) {
-        filteredReviewing = [...reviewingData];
-    } else {
-        filteredReviewing = reviewingData.filter(a => {
-            return (
-                (a.FormType || "").toLowerCase().includes(reviewSearchTerm) ||
-                (a.OfficerName || "").toLowerCase().includes(reviewSearchTerm) ||
-                (a.Location || "").toLowerCase().includes(reviewSearchTerm) ||
-                (a.Status || "").toLowerCase().includes(reviewSearchTerm)
-            );
-        });
-    }
-    if (reviewSortColumn) {
-        sortReviewingTable(reviewSortColumn);
-        return;
-    }
+    reviewSearchTerm = (value || "").trim();
     renderReviewingTable();
 }
 
@@ -936,7 +960,7 @@ function renderReviewingTable() {
 
 function loadReviewingQueue() {
     $.ajax({
-        url: BASE_URL + "api/acr/reviewing/my?pageNumber=" + reviewCurrentPage + "&pageSize=" + reviewPageSize,
+        url: getReviewingQueueUrl(),
         headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
         success: function (res) {
             if (res.Success) {
@@ -946,13 +970,10 @@ function loadReviewingQueue() {
                 reviewCurrentPage = (res.Data && typeof res.Data.PageNumber === "number") ? res.Data.PageNumber : reviewCurrentPage;
                 reviewPageSize = (res.Data && typeof res.Data.PageSize === "number") ? res.Data.PageSize : reviewPageSize;
                 $("#reviewPageSizeSelect").val(reviewPageSize.toString());
+                $("#reviewStatusFilter").val(reviewStatusFilter);
                 filteredReviewing = [...reviewingData];
                 reviewSortColumn = "OfficerName";
                 reviewSortAsc = true;
-                if (reviewSearchTerm) {
-                    searchReviewingQueue(reviewSearchTerm);
-                    return;
-                }
                 sortReviewingTable("OfficerName");
             }
         }

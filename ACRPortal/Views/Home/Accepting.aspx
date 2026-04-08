@@ -431,7 +431,17 @@
                 <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
                     <div class="search-wrap flex-grow-1" style="min-width:240px;">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="searchBox" class="form-control search-input" placeholder="Search officer, location, year...">
+                        <input type="text" id="searchBox" class="form-control search-input" placeholder="Search officer name...">
+                    </div>
+                    <select id="statusFilter" class="form-select table-select" style="width:210px;">
+                        <option value="">All Status</option>
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="PENDING_OFFICER">PENDING_OFFICER</option>
+                        <option value="PENDING_REPORTING">PENDING_REPORTING</option>
+                        <option value="PENDING_REVIEWING">PENDING_REVIEWING</option>
+                        <option value="PENDING_ACCEPTING">PENDING_ACCEPTING</option>
+                        <option value="APPROVED">APPROVED</option>
+                        <option value="REJECTED">REJECTED</option>
                     </div>
                     <select id="pageSize" class="form-select table-select" style="width:110px;">
                         <option value="5">5</option>
@@ -875,10 +885,12 @@
     <script>
 
         let dataList = [], filtered = [], pageSize = 10, currentPage = 1, totalCount = 0, totalPages = 0, currentSearchTerm = "";
+        let currentStatusFilter = "";
         let currentAcrId = null;
         let modal = new bootstrap.Modal(document.getElementById('acrModal'));
         let sortColumn = "";
         let sortAsc = true;
+        let searchDebounceTimer = null;
 
         $(document).ready(function () {
             const role = localStorage.getItem("role");
@@ -888,7 +900,14 @@
             }
             $("#acceptingDiv").show();
             $("#searchBox").on("input", function () {
-                searchTable($(this).val());
+                currentSearchTerm = ($(this).val() || "").trim();
+                currentPage = 1;
+                scheduleTableReload();
+            });
+            $("#statusFilter").on("change", function () {
+                currentStatusFilter = ($(this).val() || "").trim();
+                currentPage = 1;
+                loadTable();
             });
             $("#pageSize").on("change", function () {
                 changePageSize();
@@ -896,9 +915,30 @@
             loadTable();
         });
 
+        function scheduleTableReload() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(function () {
+                loadTable();
+            }, 1500);
+        }
+
+        function getTableApiUrl() {
+            let url = BASE_URL + "api/acr/accepting/my?pageNumber=" + currentPage + "&pageSize=" + pageSize;
+
+            if (currentStatusFilter) {
+                url += "&Status=" + encodeURIComponent(currentStatusFilter);
+            }
+
+            if (currentSearchTerm) {
+                url += "&Officer_name=" + encodeURIComponent(currentSearchTerm);
+            }
+
+            return url;
+        }
+
         function loadTable() {
             $.ajax({
-                url: BASE_URL + "api/acr/accepting/my?pageNumber=" + currentPage + "&pageSize=" + pageSize,
+                url: getTableApiUrl(),
                 headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }, // ✅ cookie auth fix
                 success: function (res) {
                     console.log(res);
@@ -908,13 +948,10 @@
                     currentPage = (res.Data && typeof res.Data.PageNumber === "number") ? res.Data.PageNumber : currentPage;
                     pageSize = (res.Data && typeof res.Data.PageSize === "number") ? res.Data.PageSize : pageSize;
                     $("#pageSize").val(pageSize.toString());
+                    $("#statusFilter").val(currentStatusFilter);
                     filtered = [...dataList];
                     sortColumn = "OfficerName";
                     sortAsc = true;
-                    if (currentSearchTerm) {
-                        searchTable(currentSearchTerm);
-                        return;
-                    }
                     sortTable("OfficerName");
                 },
                 error: function (err) {
@@ -1093,7 +1130,7 @@
                 let start = ((currentPage - 1) * pageSize) + 1;
                 let end = Math.min(((currentPage - 1) * pageSize) + dataList.length, totalCount);
                 let info = `Showing ${start} to ${end} of ${totalCount} entries`;
-                if (currentSearchTerm) {
+                if (currentSearchTerm || currentStatusFilter) {
                     info += ` | Filtered on current page: ${filtered.length}`;
                 }
                 $("#tableInfo").text(info);
@@ -1139,19 +1176,7 @@
         }
 
         function searchTable(val) {
-            currentSearchTerm = (val || "").toLowerCase().trim();
-            if (!currentSearchTerm) {
-                filtered = [...dataList];
-            } else {
-                filtered = dataList.filter(x =>
-                    (x.OfficerName || "").toLowerCase().includes(currentSearchTerm) ||
-                    (x.Location || "").toLowerCase().includes(currentSearchTerm) ||
-                    (x.PostingFrom || "").toLowerCase().includes(currentSearchTerm) ||
-                    (x.PostingTo || "").toLowerCase().includes(currentSearchTerm) ||
-                    (x.AcrYear || "").toString().toLowerCase().includes(currentSearchTerm) ||
-                    (x.Status || "").toLowerCase().includes(currentSearchTerm)
-                );
-            }
+            currentSearchTerm = (val || "").trim();
             sortTable(sortColumn || "OfficerName");
         }
 

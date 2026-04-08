@@ -460,7 +460,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
                     <div class="search-wrap flex-grow-1" style="min-width:240px;">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="acrSearchBox" class="form-control search-input" placeholder="Search form type, officer, location...">
+                        <input type="text" id="acrSearchBox" class="form-control search-input" placeholder="Search officer name...">
+                    </div>
+                    <select id="reportStatusFilter" class="form-select table-select" style="width:210px;">
+                        <option value="">All Status</option>
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="PENDING_OFFICER">PENDING_OFFICER</option>
+                        <option value="PENDING_REPORTING">PENDING_REPORTING</option>
+                        <option value="PENDING_REVIEWING">PENDING_REVIEWING</option>
+                        <option value="PENDING_ACCEPTING">PENDING_ACCEPTING</option>
+                        <option value="APPROVED">APPROVED</option>
+                        <option value="REJECTED">REJECTED</option>
                     </div>
                     <select id="reportPageSizeSelect" class="form-select table-select" style="width:110px;">
                         <option value="5">5</option>
@@ -828,6 +838,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     let reportSortColumn = "";
     let reportSortAsc = true;
     let reportSearchTerm = "";
+    let reportStatusFilter = "";
+    let reportSearchDebounceTimer = null;
 
 $(document).ready(function(){
     const role = localStorage.getItem('role');
@@ -840,7 +852,15 @@ $(document).ready(function(){
     $("#employeeReportingDiv").show();
 
     $("#acrSearchBox").on("input", function () {
-        searchReportingQueue($(this).val());
+        reportSearchTerm = ($(this).val() || "").trim();
+        reportCurrentPage = 1;
+        scheduleReportingReload();
+    });
+
+    $("#reportStatusFilter").on("change", function () {
+        reportStatusFilter = ($(this).val() || "").trim();
+        reportCurrentPage = 1;
+        loadReportingQueue();
     });
 
     $("#reportPageSizeSelect").on("change", function () {
@@ -855,9 +875,30 @@ let draftSaved = false;
 const REPORTING_MEDICAL_DOCUMENT_TYPE = "MEDICAL_REPORT";
 const REPORTING_SELF_ACR_REPORT_DOCUMENT_TYPE = "SELF_ACR_REPORT";
 
+function scheduleReportingReload() {
+    clearTimeout(reportSearchDebounceTimer);
+    reportSearchDebounceTimer = setTimeout(function () {
+        loadReportingQueue();
+    }, 1500);
+}
+
+function getReportingQueueUrl() {
+    let url = BASE_URL + "api/acr/reporting/my?pageNumber=" + reportCurrentPage + "&pageSize=" + reportPageSize;
+
+    if (reportStatusFilter) {
+        url += "&Status=" + encodeURIComponent(reportStatusFilter);
+    }
+
+    if (reportSearchTerm) {
+        url += "&Officer_name=" + encodeURIComponent(reportSearchTerm);
+    }
+
+    return url;
+}
+
 function loadReportingQueue(){
     $.ajax({
-        url: BASE_URL + "api/acr/reporting/my?pageNumber=" + reportCurrentPage + "&pageSize=" + reportPageSize,
+        url: getReportingQueueUrl(),
         headers:{'Authorization':'Bearer '+localStorage.getItem('token')},
         success: function(res){
             if(res.Success){
@@ -867,14 +908,10 @@ function loadReportingQueue(){
                 reportCurrentPage = (res.Data && typeof res.Data.PageNumber === "number") ? res.Data.PageNumber : reportCurrentPage;
                 reportPageSize = (res.Data && typeof res.Data.PageSize === "number") ? res.Data.PageSize : reportPageSize;
                 $("#reportPageSizeSelect").val(reportPageSize.toString());
+                $("#reportStatusFilter").val(reportStatusFilter);
                 filteredReporting = [...reportingData];
                 reportSortColumn = "OfficerName";
                 reportSortAsc = true;
-
-                if(reportSearchTerm){
-                    searchReportingQueue(reportSearchTerm);
-                    return;
-                }
 
                 filteredReporting.sort((a, b) => ((a.OfficerName || "").localeCompare(b.OfficerName || "")));
                 renderReportingTable();
@@ -974,7 +1011,7 @@ function updateReportingInfo(start, end){
         return;
     }
     let info = `Showing ${start} to ${end} of ${reportTotalCount} entries`;
-    if (reportSearchTerm) {
+    if (reportSearchTerm || reportStatusFilter) {
         info += ` | Filtered on current page: ${filteredReporting.length}`;
     }
     $("#reportTableInfo").text(info);
@@ -1016,28 +1053,7 @@ function changeReportingPageSize(){
 }
 
 function searchReportingQueue(value) {
-    reportSearchTerm = (value || "").toLowerCase().trim();
-
-    if (!reportSearchTerm) {
-        filteredReporting = [...reportingData];
-    } else {
-        filteredReporting = reportingData.filter(a => {
-            return (
-                (a.FormType || "").toLowerCase().includes(reportSearchTerm) ||
-                (a.OfficerName || "").toLowerCase().includes(reportSearchTerm) ||
-                (a.Location || "").toLowerCase().includes(reportSearchTerm) ||
-                (a.Dsg || "").toLowerCase().includes(reportSearchTerm) ||
-                (a.PostingFrom || "").toLowerCase().includes(reportSearchTerm) ||
-                (a.PostingTo || "").toLowerCase().includes(reportSearchTerm) ||
-                (a.Status || "").toLowerCase().includes(reportSearchTerm)
-            );
-        });
-    }
-
-    if (reportSortColumn) {
-        sortReportingTable(reportSortColumn);
-        return;
-    }
+    reportSearchTerm = (value || "").trim();
     renderReportingTable();
 }
 

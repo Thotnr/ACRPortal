@@ -557,7 +557,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
                     <div class="search-wrap flex-grow-1" style="min-width:240px;">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="acrSearchBox" class="form-control search-input" placeholder="Search form type, location, designation...">
+                        <input type="text" id="acrSearchBox" class="form-control search-input" placeholder="Search officer name...">
+                    </div>
+                    <select id="statusFilter" class="form-select officer-select" style="width:210px;">
+                        <option value="">All Status</option>
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="PENDING_OFFICER">PENDING_OFFICER</option>
+                        <option value="PENDING_REPORTING">PENDING_REPORTING</option>
+                        <option value="PENDING_REVIEWING">PENDING_REVIEWING</option>
+                        <option value="PENDING_ACCEPTING">PENDING_ACCEPTING</option>
+                        <option value="APPROVED">APPROVED</option>
+                        <option value="REJECTED">REJECTED</option>
                     </div>
                     <select id="pageSize" class="form-select officer-select" style="width:110px;">
                         <option value="5">5</option>
@@ -893,6 +903,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     let currentSortColumn = -1;
     let currentSortDirection = 'asc';
     let currentSearchTerm = '';
+    let currentStatusFilter = '';
+    let acrSearchDebounceTimer = null;
 
     // Check Role from localStorage
     $(document).ready(function () {
@@ -906,7 +918,15 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         $("#employeeACRDiv").show();
 
         $("#acrSearchBox").on("input", function () {
-            searchTable($(this).val());
+            currentSearchTerm = ($(this).val() || '').trim();
+            currentPage = 1;
+            scheduleAcrListReload();
+        });
+
+        $("#statusFilter").on("change", function () {
+            currentStatusFilter = ($(this).val() || '').trim();
+            currentPage = 1;
+            loadAcrList();
         });
 
         $("#pageSize").on("change", function () {
@@ -958,9 +978,30 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
     let selectedAcrId = null;
 
+    function scheduleAcrListReload() {
+        clearTimeout(acrSearchDebounceTimer);
+        acrSearchDebounceTimer = setTimeout(function () {
+            loadAcrList();
+        }, 1500);
+    }
+
+    function getAcrListUrl() {
+        let url = BASE_URL + 'api/acr/my?pageNumber=' + currentPage + '&pageSize=' + pageSize;
+
+        if (currentStatusFilter) {
+            url += '&Status=' + encodeURIComponent(currentStatusFilter);
+        }
+
+        if (currentSearchTerm) {
+            url += '&Officer_name=' + encodeURIComponent(currentSearchTerm);
+        }
+
+        return url;
+    }
+
     function loadAcrList() {
         $.ajax({
-            url: BASE_URL + 'api/acr/my?pageNumber=' + currentPage + '&pageSize=' + pageSize,
+            url: getAcrListUrl(),
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             success: function (res) {
                 if (res.Success) {
@@ -970,12 +1011,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     currentPage = (res.Data && typeof res.Data.PageNumber === 'number') ? res.Data.PageNumber : currentPage;
                     pageSize = (res.Data && typeof res.Data.PageSize === 'number') ? res.Data.PageSize : pageSize;
                     $('#pageSize').val(pageSize.toString());
+                    $('#statusFilter').val(currentStatusFilter);
                     filteredAcrListData = acrListData.slice();
-
-                    if (currentSearchTerm) {
-                        searchTable(currentSearchTerm);
-                        return;
-                    }
 
                     applySorting();
                     renderAcrTable();
@@ -1584,23 +1621,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
 
 function searchTable(value) {
-    currentSearchTerm = (value || '').toLowerCase().trim();
-
-    if (!currentSearchTerm) {
-        filteredAcrListData = acrListData.slice();
-    } else {
-        filteredAcrListData = acrListData.filter(function (a) {
-            return (
-                (a.FormType || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.Location || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.Dsg || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.PostingFrom || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.PostingTo || '').toLowerCase().includes(currentSearchTerm) ||
-                (a.Status || '').toLowerCase().includes(currentSearchTerm)
-            );
-        });
-    }
-
+    currentSearchTerm = (value || '').trim();
     applySorting();
     renderAcrTable();
 }
@@ -1682,7 +1703,7 @@ function renderAcrTable() {
     let endIndex = totalCount ? Math.min(((currentPage - 1) * pageSize) + acrListData.length, totalCount) : filteredAcrListData.length;
     let infoText = 'Showing ' + startIndex + ' to ' + endIndex + ' of ' + totalCount + ' entries';
 
-    if (currentSearchTerm) {
+    if (currentSearchTerm || currentStatusFilter) {
         infoText += ' | Filtered on current page: ' + filteredAcrListData.length;
     }
 
