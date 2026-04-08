@@ -166,12 +166,49 @@
     }
 
     .search-input {
-        padding-left: 42px;
+        padding-left: 15px;
         background: #f8fbff;
     }
 
     .table-select {
         background: #f8fbff;
+    }
+
+    #pageSize {
+        appearance: auto;
+        -webkit-appearance: menulist;
+        -moz-appearance: menulist;
+        padding-right: 28px;
+        cursor: pointer;
+    }
+
+    .authority-toolbar-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .authority-toolbar-controls > * {
+        margin: 0 !important;
+    }
+
+    .authority-toolbar-controls .search-wrap {
+        flex: 1 1 280px;
+        min-width: 280px !important;
+    }
+
+    .authority-toolbar-controls .status-filter {
+        flex: 0 0 210px;
+    }
+
+    .authority-toolbar-controls .reset-filter {
+        flex: 0 0 auto;
+    }
+
+    .authority-toolbar-controls .page-size-filter {
+        flex: 0 0 110px;
     }
 
     .section-card,
@@ -423,17 +460,17 @@
 
     <div class="authority-shell-card authority-toolbar">
         <div class="row align-items-center">
-            <div class="col-lg-7 mb-3 mb-lg-0">
+            <div class="col-xl-6 col-lg-12 mb-3 mb-xl-0">
                 <h4 class="authority-toolbar-title">Accepting queue</h4>
                 <p class="authority-toolbar-copy">Search, sort, and open final-approval cases from a lighter and more readable queue layout.</p>
             </div>
-            <div class="col-lg-5">
-                <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
-                    <div class="search-wrap flex-grow-1" style="min-width:240px;">
+            <div class="col-xl-6 col-lg-12">
+                <div class="authority-toolbar-controls">
+                    <div class="search-wrap">
                         <i class="bi bi-search"></i>
                         <input type="text" id="searchBox" class="form-control search-input" placeholder="Search officer name...">
                     </div>
-                    <select id="statusFilter" class="form-select table-select" style="width:210px;">
+                    <select id="statusFilter" class="form-select table-select status-filter">
                         <option value="">All Status</option>
                         <option value="DRAFT">DRAFT</option>
                         <option value="PENDING_OFFICER">PENDING_OFFICER</option>
@@ -442,8 +479,9 @@
                         <option value="PENDING_ACCEPTING">PENDING_ACCEPTING</option>
                         <option value="APPROVED">APPROVED</option>
                         <option value="REJECTED">REJECTED</option>
-                    </div>
-                    <select id="pageSize" class="form-select table-select" style="width:110px;">
+                    </select>
+                    <button type="button" id="resetFiltersBtn" class="btn btn-outline-secondary table-select reset-filter" title="Reset filters" style="min-width:72px; padding:0 12px;">Reset</button>
+                    <select id="pageSize" class="form-select table-select page-size-filter">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
@@ -909,6 +947,9 @@
                 currentPage = 1;
                 loadTable();
             });
+            $("#resetFiltersBtn").on("click", function () {
+                resetAcceptingFilters();
+            });
             $("#pageSize").on("change", function () {
                 changePageSize();
             });
@@ -934,6 +975,16 @@
             }
 
             return url;
+        }
+
+        function resetAcceptingFilters() {
+            clearTimeout(searchDebounceTimer);
+            currentSearchTerm = "";
+            currentStatusFilter = "";
+            currentPage = 1;
+            $("#searchBox").val("");
+            $("#statusFilter").val("");
+            loadTable();
         }
 
         function loadTable() {

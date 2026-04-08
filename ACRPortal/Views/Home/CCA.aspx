@@ -192,10 +192,18 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     .search-input {
         height: 48px;
-        padding-left: 42px;
+        padding-left: 15px;
         border-radius: 14px;
         border: 1px solid var(--cca-line);
         background: #f8fbff;
+    }
+
+    #pageSize {
+        appearance: auto;
+        -webkit-appearance: menulist;
+        -moz-appearance: menulist;
+        padding-right: 28px;
+        cursor: pointer;
     }
 
     .cca-table-card {
@@ -471,12 +479,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 <p class="cca-toolbar-copy">Search, sort, and open CCA records from a more readable table layout.</p>
             </div>
             <div class="col-lg-5">
-                <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
-                    <div class="search-wrap flex-grow-1" style="min-width:240px;">
+                <div class="d-flex flex-wrap justify-content-lg-end align-items-center">
+                    <div class="search-wrap flex-grow-1 mr-3 mb-2 mb-lg-0" style="min-width:240px;">
                         <i class="fas fa-search"></i>
                         <input type="text" id="ccaSearchBox" class="form-control search-input" placeholder="Search officer name...">
                     </div>
-                    <select id="statusFilter" class="form-control" style="width:210px;">
+                    <select id="statusFilter" class="form-control mr-3 mb-2 mb-lg-0" style="width:210px;">
                         <option value="">All Status</option>
                         <option value="DRAFT">DRAFT</option>
                         <option value="PENDING_OFFICER">PENDING_OFFICER</option>
@@ -486,6 +494,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <option value="APPROVED">APPROVED</option>
                         <option value="REJECTED">REJECTED</option>
                     </select>
+                    <button type="button" id="resetFiltersBtn" class="btn btn-outline-secondary mb-2 mb-lg-0" title="Reset filters" style="min-width:72px; min-height:46px; padding:0 12px; border-radius:14px;">Reset</button>
                 </div>
             </div>
         </div>
@@ -731,6 +740,10 @@ $(document).ready(function () {
         loadAcrList();
     });
 
+    $("#resetFiltersBtn").on("click", function () {
+        resetCcaFilters();
+    });
+
     $("#pageSize").on("change", function () {
         pageSize = parseInt($(this).val(), 10) || 10;
         currentPage = 1;
@@ -966,6 +979,16 @@ function scheduleCcaListReload() {
     ccaSearchDebounceTimer = setTimeout(function () {
         loadAcrList();
     }, 1500);
+}
+
+function resetCcaFilters() {
+    clearTimeout(ccaSearchDebounceTimer);
+    currentSearchTerm = "";
+    currentStatusFilter = "";
+    currentPage = 1;
+    $("#ccaSearchBox").val("");
+    $("#statusFilter").val("");
+    loadAcrList();
 }
 
 function searchTable(value) {

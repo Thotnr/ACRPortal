@@ -198,6 +198,14 @@ border-color:#93c5fd;
 box-shadow:0 0 0 .2rem rgba(37,99,235,.12);
 }
 
+#pageSizeSelect{
+appearance:auto;
+-webkit-appearance:menulist;
+-moz-appearance:menulist;
+padding-right:28px;
+cursor:pointer;
+}
+
 .pagination .page-link{
 border-radius:10px;
 margin:0 2px;
@@ -333,7 +341,12 @@ color:#1d4ed8;
 </div>
 
 <div class="col-md-2">
-<input type="text" class="form-control" placeholder="Search Employee" onkeyup="searchTable(this.value)">
+<div class="input-group">
+<input type="text" id="employeeSearchBox" class="form-control" placeholder="Search office name">
+<div class="input-group-append">
+<button type="button" id="resetEmployeeSearchBtn" class="btn btn-outline-secondary" title="Reset search">Reset</button>
+</div>
+</div>
 </div>
 
 </div>
@@ -538,6 +551,7 @@ var currentPage=1;
 var totalCount=0;
 var totalPages=0;
 var currentSearchTerm="";
+var employeeSearchDebounceTimer=null;
 
 var sortAsc=true;
 var currentSortColumn="";
@@ -565,7 +579,32 @@ loadFilterDesignations();
 
 initDropdowns();
 
+$("#employeeSearchBox").on("input", function(){
+currentSearchTerm=($(this).val() || "").trim();
+currentPage=1;
+scheduleEmployeeReload();
 });
+
+$("#resetEmployeeSearchBtn").on("click", function(){
+resetEmployeeSearch();
+});
+
+});
+
+function scheduleEmployeeReload(){
+clearTimeout(employeeSearchDebounceTimer);
+employeeSearchDebounceTimer=setTimeout(function(){
+loadEmployees();
+},1500);
+}
+
+function resetEmployeeSearch(){
+clearTimeout(employeeSearchDebounceTimer);
+currentSearchTerm="";
+currentPage=1;
+$("#employeeSearchBox").val("");
+loadEmployees();
+}
 
 function initDropdowns(){
 
@@ -703,6 +742,7 @@ var url= BASE_URL + "api/admin/users?pageNumber=" + currentPage + "&pageSize=" +
 if(zoneId) url+="&zoneId="+zoneId;
 if(dsgId) url+="&dsgId="+dsgId;
 if(divisionId) url+="&divisionId="+divisionId;
+if(currentSearchTerm) url+="&Office_name="+encodeURIComponent(currentSearchTerm);
 
 $.ajax({
 
@@ -721,11 +761,7 @@ totalPages=(res.Data && typeof res.Data.TotalPages==="number") ? res.Data.TotalP
 currentPage=(res.Data && typeof res.Data.PageNumber==="number") ? res.Data.PageNumber : currentPage;
 pageSize=(res.Data && typeof res.Data.PageSize==="number") ? res.Data.PageSize : pageSize;
 $("#pageSizeSelect").val(pageSize.toString());
-
-if(currentSearchTerm){
-searchTable(currentSearchTerm);
-return;
-}
+$("#employeeSearchBox").val(currentSearchTerm);
 
 applyFilters(false);
 
@@ -824,9 +860,9 @@ $("#tableInfo").text(text);
 
 function searchTable(val){
 
-currentSearchTerm=(val || "").toLowerCase();
-
-applyFilters(false);
+currentSearchTerm=(val || "").trim();
+currentPage=1;
+loadEmployees();
 
 }
 
@@ -1283,15 +1319,6 @@ var divisionId=$("#filterDivision").val();
 var subDivisionId=$("#filterSubDivision").val();
 
 var baseEmployees=employees.filter(function(e){
-
-if(currentSearchTerm){
-var matchesSearch=
-(e.DisplayName||"").toLowerCase().includes(currentSearchTerm) ||
-(e.LoginId||"").toLowerCase().includes(currentSearchTerm);
-
-if(!matchesSearch) return false;
-}
-
 return true;
 
 });

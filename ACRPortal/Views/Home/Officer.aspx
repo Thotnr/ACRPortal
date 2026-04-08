@@ -245,7 +245,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
 
     .search-input {
-        padding-left: 42px;
+        padding-left: 15px;
         background: #f8fbff;
     }
 
@@ -258,6 +258,43 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     .officer-select {
         background-color: #f8fbff;
+    }
+
+    #pageSize {
+        appearance: auto;
+        -webkit-appearance: menulist;
+        -moz-appearance: menulist;
+        padding-right: 28px;
+        cursor: pointer;
+    }
+
+    .officer-toolbar-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .officer-toolbar-controls > * {
+        margin: 0 !important;
+    }
+
+    .officer-toolbar-controls .search-wrap {
+        flex: 1 1 280px;
+        min-width: 280px !important;
+    }
+
+    .officer-toolbar-controls .status-filter {
+        flex: 0 0 210px;
+    }
+
+    .officer-toolbar-controls .reset-filter {
+        flex: 0 0 auto;
+    }
+
+    .officer-toolbar-controls .page-size-filter {
+        flex: 0 0 110px;
     }
 
     .officer-table-card {
@@ -549,17 +586,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     <div class="officer-shell-card officer-toolbar">
         <div class="row align-items-center">
-            <div class="col-lg-7 mb-3 mb-lg-0">
+            <div class="col-xl-6 col-lg-12 mb-3 mb-xl-0">
                 <h4 class="officer-toolbar-title">My ACR records</h4>
                 <p class="officer-toolbar-copy">Browse, search, and open your appraisal records from a more readable table layout.</p>
             </div>
-            <div class="col-lg-5">
-                <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
-                    <div class="search-wrap flex-grow-1" style="min-width:240px;">
+            <div class="col-xl-6 col-lg-12">
+                <div class="officer-toolbar-controls">
+                    <div class="search-wrap">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="acrSearchBox" class="form-control search-input" placeholder="Search officer name...">
+                        <input type="text" id="acrSearchBox" class="form-control search-input" placeholder="Search form type, location, designation, posting, status...">
                     </div>
-                    <select id="statusFilter" class="form-select officer-select" style="width:210px;">
+                    <select id="statusFilter" class="form-select officer-select status-filter">
                         <option value="">All Status</option>
                         <option value="DRAFT">DRAFT</option>
                         <option value="PENDING_OFFICER">PENDING_OFFICER</option>
@@ -568,8 +605,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         <option value="PENDING_ACCEPTING">PENDING_ACCEPTING</option>
                         <option value="APPROVED">APPROVED</option>
                         <option value="REJECTED">REJECTED</option>
-                    </div>
-                    <select id="pageSize" class="form-select officer-select" style="width:110px;">
+                    </select>
+                    <button type="button" id="resetFiltersBtn" class="btn btn-outline-secondary officer-select reset-filter" title="Reset filters" style="min-width:72px; padding:0 12px;">Reset</button>
+                    <select id="pageSize" class="form-select officer-select page-size-filter">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
@@ -904,7 +942,6 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     let currentSortDirection = 'asc';
     let currentSearchTerm = '';
     let currentStatusFilter = '';
-    let acrSearchDebounceTimer = null;
 
     // Check Role from localStorage
     $(document).ready(function () {
@@ -918,15 +955,17 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         $("#employeeACRDiv").show();
 
         $("#acrSearchBox").on("input", function () {
-            currentSearchTerm = ($(this).val() || '').trim();
-            currentPage = 1;
-            scheduleAcrListReload();
+            searchTable($(this).val());
         });
 
         $("#statusFilter").on("change", function () {
             currentStatusFilter = ($(this).val() || '').trim();
             currentPage = 1;
             loadAcrList();
+        });
+
+        $("#resetFiltersBtn").on("click", function () {
+            resetAcrFilters();
         });
 
         $("#pageSize").on("change", function () {
@@ -978,13 +1017,6 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
     let selectedAcrId = null;
 
-    function scheduleAcrListReload() {
-        clearTimeout(acrSearchDebounceTimer);
-        acrSearchDebounceTimer = setTimeout(function () {
-            loadAcrList();
-        }, 1500);
-    }
-
     function getAcrListUrl() {
         let url = BASE_URL + 'api/acr/my?pageNumber=' + currentPage + '&pageSize=' + pageSize;
 
@@ -992,11 +1024,16 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             url += '&Status=' + encodeURIComponent(currentStatusFilter);
         }
 
-        if (currentSearchTerm) {
-            url += '&Officer_name=' + encodeURIComponent(currentSearchTerm);
-        }
-
         return url;
+    }
+
+    function resetAcrFilters() {
+        currentSearchTerm = '';
+        currentStatusFilter = '';
+        currentPage = 1;
+        $('#acrSearchBox').val('');
+        $('#statusFilter').val('');
+        loadAcrList();
     }
 
     function loadAcrList() {
@@ -1013,6 +1050,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     $('#pageSize').val(pageSize.toString());
                     $('#statusFilter').val(currentStatusFilter);
                     filteredAcrListData = acrListData.slice();
+
+                    if (currentSearchTerm) {
+                        searchTable(currentSearchTerm);
+                        return;
+                    }
 
                     applySorting();
                     renderAcrTable();
@@ -1622,6 +1664,23 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
 function searchTable(value) {
     currentSearchTerm = (value || '').trim();
+
+    if (!currentSearchTerm) {
+        filteredAcrListData = acrListData.slice();
+    } else {
+        const searchTerm = currentSearchTerm.toLowerCase();
+        filteredAcrListData = acrListData.filter(function (a) {
+            return (
+                (a.FormType || '').toLowerCase().includes(searchTerm) ||
+                (a.Location || '').toLowerCase().includes(searchTerm) ||
+                (a.Dsg || '').toLowerCase().includes(searchTerm) ||
+                (a.PostingFrom || '').toLowerCase().includes(searchTerm) ||
+                (a.PostingTo || '').toLowerCase().includes(searchTerm) ||
+                (a.Status || '').toLowerCase().includes(searchTerm)
+            );
+        });
+    }
+
     applySorting();
     renderAcrTable();
 }
