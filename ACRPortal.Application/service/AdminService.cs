@@ -393,14 +393,14 @@ namespace ACRPortal.Application.service
             return null;  // no error
         }
 
-        public ApiResponse<PagedResult<AcrListItem>> GetAcrList(int pageNumber, int pageSize)
+        public ApiResponse<PagedResult<AcrListItem>> GetAcrList(int pageNumber, int pageSize, string Status, string Officer_name)
         {
             try
             {
                 if (pageNumber <= 0) pageNumber = 1;
                 if (pageSize <= 0 || pageSize > 100) pageSize = 10;
 
-                var result = _repo.GetAllAcrs(pageNumber, pageSize);
+                var result = _repo.GetAllAcrs(pageNumber, pageSize, Status, Officer_name);
                 return ApiResponse<PagedResult<AcrListItem>>.Ok(result);
             }
             catch (Exception ex)

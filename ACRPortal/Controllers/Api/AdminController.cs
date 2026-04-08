@@ -111,11 +111,15 @@ namespace ACRPortal.Controllers.Api
 
         [HttpGet]
         [Route("acr")]
-        public HttpResponseMessage GetAcrList(int pageNumber = 1, int pageSize = 10)
+        public HttpResponseMessage GetAcrList(
+            int pageNumber = 1, 
+            int pageSize = 10, 
+            [FromUri] string Status = null,
+            [FromUri] string Officer_name = null)
         {
             try
             {
-                var result = _admin.GetAcrList(pageNumber, pageSize);
+                var result = _admin.GetAcrList(pageNumber, pageSize, Status, Officer_name);
                 return Request.CreateResponse(result.Success ? HttpStatusCode.OK : HttpStatusCode.InternalServerError, result);
             }
             catch (Exception ex) { return Fail(ex.Message); }

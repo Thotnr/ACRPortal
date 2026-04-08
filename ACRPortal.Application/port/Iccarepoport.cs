@@ -80,6 +80,6 @@ namespace ACRPortal.Application.port
         /// </summary>
         CcaAcrDetailResponse GetAcrDetail(Guid acrId);
 
-        PagedResult<AcrListItem> GetCcaAcrs(Guid userId, int pageNumber, int pageSize);
+        PagedResult<AcrListItem> GetCcaAcrs(Guid userId, int pageNumber, int pageSize, string Status, string Officer_name);
     }
 }

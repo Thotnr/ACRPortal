@@ -21,7 +21,11 @@ namespace ACRPortal.Controllers.Api
         // GET /api/acr/reviewing/my
         [HttpGet]
         [Route("reviewing/my")]
-        public HttpResponseMessage MyQueue(int pageNumber = 1, int pageSize = 10)
+        public HttpResponseMessage MyQueue(
+            int pageNumber = 1, 
+            int pageSize = 10, 
+            [FromUri] string Status = null,
+            [FromUri] string Officer_name = null)
         {
             try
             {
@@ -29,7 +33,7 @@ namespace ACRPortal.Controllers.Api
                 if (string.IsNullOrWhiteSpace(userId))
                     return Fail("Token missing or invalid", "TOKEN_INVALID", HttpStatusCode.Unauthorized);
 
-                var result = _reviewing.GetMyReviewingQueue(userId, pageNumber, pageSize);
+                var result = _reviewing.GetMyReviewingQueue(userId, pageNumber, pageSize, Status, Officer_name);
 
                 return Respond(result.Success ? HttpStatusCode.OK : HttpStatusCode.InternalServerError, result);
             }

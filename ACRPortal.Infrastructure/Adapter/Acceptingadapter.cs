@@ -16,13 +16,24 @@ namespace ACRPortal.Infrastructure.Adapter
         // ================================================================== //
         //  GetMyAcceptingQueue — unchanged from original                      //
         // ================================================================== //
-        public PagedResult<MyAcceptingQueueItem> GetMyAcceptingQueue(Guid userId, int pageNumber, int pageSize)
+        public PagedResult<MyAcceptingQueueItem> GetMyAcceptingQueue(
+            Guid userId, 
+            int pageNumber, 
+            int pageSize,
+            string Status,
+            string Officer_name)
         {
-            const string sql = @"
+            Status = string.IsNullOrWhiteSpace(Status) ? null : Status.Trim().ToUpper();
+            string sql = @"
         SELECT COUNT(1)
         FROM dbo.acr_cycles ac
+        JOIN dbo.users u ON u.user_id = ac.officer_user_id
         WHERE ac.accepting_user_id = @uid
-          AND ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED');
+          AND ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED') " +
+            (Status != null ? " AND ac.status = @status " : "") +
+            (Officer_name != null ? " AND LOWER(u.display_name) LIKE LOWER(@officerName) " : "") +
+
+                @";
 
         SELECT  ac.acr_id,
                 u.display_name,
@@ -42,7 +53,11 @@ namespace ACRPortal.Infrastructure.Adapter
         LEFT JOIN dbo.accepting_decisions ad ON ad.acr_id = ac.acr_id
         LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
         WHERE   ac.accepting_user_id = @uid
-          AND   ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED')
+          AND   ac.status IN ('PENDING_ACCEPTING','APPROVED','REJECTED')" +
+                (Status != null ? " AND ac.status = @status " : "") +
+                (Officer_name != null ? " AND LOWER(u.display_name) LIKE LOWER(@officerName) " : "") +
+
+                @"
         ORDER BY ac.created_at DESC
         OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
     ";
@@ -59,6 +74,10 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@uid", SqlDbType.UniqueIdentifier).Value = userId;
                 cmd.Parameters.Add("@offset", SqlDbType.Int).Value = (pageNumber - 1) * pageSize;
                 cmd.Parameters.Add("@pageSize", SqlDbType.Int).Value = pageSize;
+                if (Status != null)
+                    cmd.Parameters.Add("@status", SqlDbType.VarChar).Value = Status;
+                if (Officer_name != null)
+                    cmd.Parameters.Add("@officerName", SqlDbType.VarChar).Value = "%" + Officer_name.Trim() + "%";
 
                 con.Open();
 
