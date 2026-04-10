@@ -50,12 +50,12 @@ namespace ACRPortal.Application.service
                 if (detail == null)
                     return ApiResponse<AcrDetailResponse>.Fail("ACR not found", "NOT_FOUND");
 
-                // Attach CCA documents + photo (section = 'CCA')
+                // CCA section documents + photo (shared modal)
                 var allCcaDocs = _docs.GetDocuments(acrGuid, "CCA");
                 detail.Documents = allCcaDocs.FindAll(d => d.DocumentType != "OFFICER_PHOTO");
                 detail.OfficerPhoto = allCcaDocs.Find(d => d.DocumentType == "OFFICER_PHOTO");
 
-                // Preserve caller-step documents separately (section = 'OFFICER')
+                // Officer's own step documents
                 detail.RoleDocuments = _docs.GetDocuments(acrGuid, "OFFICER");
 
                 return ApiResponse<AcrDetailResponse>.Ok(detail, "Success");

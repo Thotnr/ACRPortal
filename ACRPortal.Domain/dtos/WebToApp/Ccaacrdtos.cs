@@ -40,12 +40,6 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string ReviewingUserId { get; set; }
     }
 
-    // ------------------------------------------------------------------ //
-    //  Create / Update request DTOs                                       //
-    //  No document URL fields — CCA uploads medical report via            //
-    //  POST /api/cca/acr/{acrId}/docs after the ACR is created.          //
-    // ------------------------------------------------------------------ //
-
     public class CreateAcrRequest
     {
         public string OfficerUserId { get; set; }
@@ -110,7 +104,8 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     }
 
     // ------------------------------------------------------------------ //
-    //  GET /api/cca/acr/{acrId} — single ACR detail                      //
+    //  GET /api/cca/acr/{acrId} — full ACR detail (all sections)         //
+    //  CCA can see everything that has been filled so far.                //
     // ------------------------------------------------------------------ //
 
     public class CcaAcrDetailResponse
@@ -155,7 +150,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
 
         // Authorities — UserId only
         public string ReportingAuthorityUserId { get; set; }   // RA1
-        public string ReportingAuthority2UserId { get; set; }   // RA2 — null for A1a/A2
+        public string ReportingAuthority2UserId { get; set; }  // RA2 — null for A1a/A2
         public string ReviewingAuthorityUserId { get; set; }
         public string AcceptingAuthorityUserId { get; set; }
 
@@ -163,27 +158,30 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string CreatedAt { get; set; }
         public string UpdatedAt { get; set; }
 
-        /// <summary>
-        /// Documents uploaded by the CCA for this ACR (section = 'CCA').
-        /// Typically the medical report (Annexure A).
-        /// </summary>
-        public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
+        // ------------------------------------------------------------------ //
+        //  All downstream sections — populated as the ACR progresses         //
+        // ------------------------------------------------------------------ //
 
-        /// <summary>
-        /// Officer photograph uploaded by CCA. Null if not yet uploaded.
-        /// document_type = 'OFFICER_PHOTO'
-        /// </summary>
+        public SelfAppraisalView SelfAppraisal { get; set; } = new SelfAppraisalView();
+        public ReportingAssessmentView Ra1Assessment { get; set; } = new ReportingAssessmentView();
+        public ReportingAssessmentView Ra2Assessment { get; set; } = new ReportingAssessmentView();
+        public RvaOverrideGradesView RvaOverrideGrades { get; set; } = new RvaOverrideGradesView();
+        public ReviewingAssessmentView ReviewingAssessment { get; set; } = new ReviewingAssessmentView();
+        public AcceptingDecisionView Decision { get; set; } = new AcceptingDecisionView();
+
+        // Documents
+        public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
         public AcrDocumentItem OfficerPhoto { get; set; }
 
         /// <summary>
-        /// CCA does not have role-specific documents in this flow.
+        /// For CCA, RoleDocuments is always empty — CCA's own docs are in Documents.
         /// Kept for response shape consistency with other authority detail APIs.
         /// </summary>
         public List<AcrDocumentItem> RoleDocuments { get; set; } = new List<AcrDocumentItem>();
     }
 
     // ------------------------------------------------------------------ //
-    //  Shared response DTOs                                              //
+    //  Shared response DTOs                                               //
     // ------------------------------------------------------------------ //
 
     public class CreateAcrResponse

@@ -62,12 +62,12 @@ namespace ACRPortal.Application.service
                         errorCode ?? "INTERNAL_ERROR");
                 }
 
-                // Attach CCA documents + photo (section = 'CCA') for shared modal
+                // CCA documents + photo (shared modal)
                 var allCcaDocs = _docs.GetDocuments(acrGuid, "CCA");
                 detail.Documents = allCcaDocs.FindAll(d => d.DocumentType != "OFFICER_PHOTO");
                 detail.OfficerPhoto = allCcaDocs.Find(d => d.DocumentType == "OFFICER_PHOTO");
 
-                // Preserve caller-step documents separately (section = 'RVA')
+                // Caller's own step documents (RVA)
                 detail.RoleDocuments = _docs.GetDocuments(acrGuid, "RVA");
 
                 return ApiResponse<ReviewingAcrDetailResponse>.Ok(detail, "Success");
