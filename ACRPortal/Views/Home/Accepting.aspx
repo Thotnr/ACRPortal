@@ -755,6 +755,16 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="readonly-check-card">
+                                                <span class="readonly-check-label">Passport Size Photo</span>
+                                                <div class="readonly-check-value" id="acceptingPassportPhotoStatus">Not uploaded</div>
+                                                <div class="small text-muted mt-1" id="acceptingPassportPhotoName">-</div>
+                                                <a id="acceptingPassportPhotoLink" href="javascript:void(0)" target="_blank" class="btn btn-sm btn-outline-primary d-none mt-2">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="readonly-check-card">
                                                 <span class="readonly-check-label">Self ACR Report</span>
                                                 <div class="readonly-check-value" id="acceptingSelfAcrDocStatus">Not uploaded</div>
                                                 <div class="small text-muted mt-1" id="acceptingSelfAcrDocName">-</div>
@@ -1085,6 +1095,7 @@
         }
 
         const ACCEPTING_MEDICAL_DOCUMENT_TYPE = "MEDICAL_REPORT";
+        const ACCEPTING_PASSPORT_PHOTO_DOCUMENT_TYPE = "PASSPORT_PHOTO";
         const ACCEPTING_SELF_ACR_REPORT_DOCUMENT_TYPE = "SELF_ACR_REPORT";
 
         function getReadonlyDocuments(res) {
@@ -1125,6 +1136,7 @@
 
         function loadReadonlyDocuments(acrId) {
             resetReadonlyDocumentCard("#acceptingMedicalDocStatus", "#acceptingMedicalDocName", "#acceptingMedicalDocLink");
+            resetReadonlyDocumentCard("#acceptingPassportPhotoStatus", "#acceptingPassportPhotoName", "#acceptingPassportPhotoLink");
             resetReadonlyDocumentCard("#acceptingSelfAcrDocStatus", "#acceptingSelfAcrDocName", "#acceptingSelfAcrDocLink");
 
             $.ajax({
@@ -1138,6 +1150,13 @@
                         "#acceptingMedicalDocName",
                         "#acceptingMedicalDocLink",
                         getReadonlyDocumentByType(res, ACCEPTING_MEDICAL_DOCUMENT_TYPE)
+                    );
+
+                    bindReadonlyDocumentCard(
+                        "#acceptingPassportPhotoStatus",
+                        "#acceptingPassportPhotoName",
+                        "#acceptingPassportPhotoLink",
+                        getReadonlyDocumentByType(res, ACCEPTING_PASSPORT_PHOTO_DOCUMENT_TYPE)
                     );
 
                     bindReadonlyDocumentCard(

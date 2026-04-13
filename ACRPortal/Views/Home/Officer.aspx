@@ -720,6 +720,50 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     <div class="col-md-6"><label for="leaveDetails" class="form-label">Leave Details</label><textarea id="leaveDetails" class="form-control" rows="2"></textarea></div>
                     <div class="col-md-6"><label for="membershipBodies" class="form-label">Membership Bodies</label><textarea id="membershipBodies" class="form-control" rows="2"></textarea></div>
                     <div class="col-12">
+                        <div id="passportPhotoUploadSection" class="border rounded p-3 bg-light h-100">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                <div>
+                                    <label class="form-label fw-bold mb-1">Passport Size Photo <span class="text-danger">*</span></label>
+                                    <div class="small text-muted">Passport Size Photo is required. Accepted formats: JPG, JPEG, PNG. Maximum size: 5 MB.</div>
+                                </div>
+                                <span class="upload-badge"><i class="bi bi-person-bounding-box"></i> Officer photo</span>
+                            </div>
+
+                            <div id="passportPhotoUploadBox">
+                                <input type="file" id="fuPassportPhotoUpload" class="form-control"
+                                    data-document-type="PASSPORT_PHOTO"
+                                    accept=".jpg,.jpeg,.png"
+                                    onchange="uploadFile(this)" />
+                                <div class="form-text">Upload starts automatically after you choose a file.</div>
+                            </div>
+
+                            <div id="passportPhotoUploadedBox" class="d-none">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <div class="fw-semibold text-success">
+                                            <i class="bi bi-file-earmark-check"></i>
+                                            Uploaded File
+                                        </div>
+                                        <div id="passportPhotoUploadedFileName" class="small"></div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <a id="passportPhotoUploadedFileLink" href="javascript:void(0)" target="_blank" class="btn btn-sm btn-outline-primary d-none">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                        <button type="button" id="deletePassportPhotoBtn" class="btn btn-sm btn-outline-danger" onclick="deleteCurrentDocument('PASSPORT_PHOTO')">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="hdnPassportPhotoUploadedFilePath" />
+                            <input type="hidden" id="hdnPassportPhotoUploadedFileName" />
+                            <input type="hidden" id="hdnPassportPhotoUploadedDocumentId" />
+                            <div id="passportPhotoUploadStatus" class="mt-2 small"></div>
+                        </div>
+                    </div>
+                    <div class="col-12">
                         <label class="form-label fw-bold">Training Details</label>
                         <table class="table table-bordered" id="trainingTable" style="width:100%;">
                             <thead class="table-light">
@@ -927,10 +971,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     let isFormChanged = false;
     let currentUploadedDocuments = {
         MEDICAL_REPORT: null,
-        SELF_ACR_REPORT: null
+        SELF_ACR_REPORT: null,
+        PASSPORT_PHOTO: null
     };
     const MEDICAL_DOCUMENT_TYPE = "MEDICAL_REPORT";
     const SELF_ACR_REPORT_DOCUMENT_TYPE = "SELF_ACR_REPORT";
+    const PASSPORT_PHOTO_DOCUMENT_TYPE = "PASSPORT_PHOTO";
 
     let acrListData = [];
     let filteredAcrListData = [];
@@ -1010,6 +1056,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         if ($('#medicalCompliance').is(':checked') && !$('#medicalComplianceDate').val()) {
             alert('Medical Compliance Date is required');
             $('#medicalComplianceDate').focus();
+            return false;
+        }
+
+        if (!currentUploadedDocuments[PASSPORT_PHOTO_DOCUMENT_TYPE]) {
+            alert('Passport Size Photo is required');
+            $('#fuPassportPhotoUpload').focus();
             return false;
         }
 
@@ -1103,6 +1155,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         $('#deleteDocumentBtn').prop('disabled', false);
                         $('#fuSelfAcrUpload').prop('disabled', false);
                         $('#deleteSelfAcrDocumentBtn').prop('disabled', false);
+                        $('#fuPassportPhotoUpload').prop('disabled', false);
+                        $('#deletePassportPhotoBtn').prop('disabled', false);
                     } else {
                         $('#saveDraftBtn').hide();
                         $('#addTrainingRow').hide();
@@ -1112,6 +1166,8 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         $('#deleteDocumentBtn').prop('disabled', true);
                         $('#fuSelfAcrUpload').prop('disabled', true);
                         $('#deleteSelfAcrDocumentBtn').prop('disabled', true);
+                        $('#fuPassportPhotoUpload').prop('disabled', true);
+                        $('#deletePassportPhotoBtn').prop('disabled', true);
                     }
                     // --- Populate ACR Info tab ---
                     $('#viewFormType').val(data.FormType || '');
@@ -1315,6 +1371,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
                 bindDocumentFromResponse(res, MEDICAL_DOCUMENT_TYPE);
                 bindDocumentFromResponse(res, SELF_ACR_REPORT_DOCUMENT_TYPE);
+                bindDocumentFromResponse(res, PASSPORT_PHOTO_DOCUMENT_TYPE);
                 toggleDocumentSections(keepVisibleWithoutDoc);
             },
             error: function () {
@@ -1471,9 +1528,13 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             return;
         }
 
-        var allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
+        var allowedTypes = documentType === PASSPORT_PHOTO_DOCUMENT_TYPE
+            ? ["image/png", "image/jpeg"]
+            : ["application/pdf", "image/png", "image/jpeg"];
         if (!allowedTypes.includes(file.type)) {
-            alert("Invalid file type! Only PDF, JPG, JPEG, PNG allowed.");
+            alert(documentType === PASSPORT_PHOTO_DOCUMENT_TYPE
+                ? "Invalid file type! Only JPG, JPEG, PNG allowed."
+                : "Invalid file type! Only PDF, JPG, JPEG, PNG allowed.");
             input.value = "";
             return;
         }
@@ -1527,6 +1588,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     function resetDocumentSection() {
         resetDocumentState(MEDICAL_DOCUMENT_TYPE);
         resetDocumentState(SELF_ACR_REPORT_DOCUMENT_TYPE);
+        resetDocumentState(PASSPORT_PHOTO_DOCUMENT_TYPE);
     }
 
     function showUploadState(documentType) {
@@ -1596,6 +1658,22 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     }
 
     function getDocumentElements(documentType) {
+        if (documentType === PASSPORT_PHOTO_DOCUMENT_TYPE) {
+            return {
+                section: '#passportPhotoUploadSection',
+                uploadBox: '#passportPhotoUploadBox',
+                uploadedBox: '#passportPhotoUploadedBox',
+                uploadedFileName: '#passportPhotoUploadedFileName',
+                uploadedFileLink: '#passportPhotoUploadedFileLink',
+                deleteButton: '#deletePassportPhotoBtn',
+                fileInput: '#fuPassportPhotoUpload',
+                filePath: '#hdnPassportPhotoUploadedFilePath',
+                fileName: '#hdnPassportPhotoUploadedFileName',
+                documentId: '#hdnPassportPhotoUploadedDocumentId',
+                status: '#passportPhotoUploadStatus'
+            };
+        }
+
         if (documentType === SELF_ACR_REPORT_DOCUMENT_TYPE) {
             return {
                 section: '#selfAcrUploadSection',
@@ -1660,6 +1738,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         const medicalSectionVisible = !!keepVisibleWithoutDoc || hasMedicalDoc;
         $(getDocumentElements(MEDICAL_DOCUMENT_TYPE).section)[medicalSectionVisible ? 'show' : 'hide']();
         $(getDocumentElements(SELF_ACR_REPORT_DOCUMENT_TYPE).section).show();
+        $(getDocumentElements(PASSPORT_PHOTO_DOCUMENT_TYPE).section).show();
     }
 
 function searchTable(value) {

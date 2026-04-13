@@ -725,6 +725,16 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="readonly-check-card">
+                                            <span class="readonly-check-label">Passport Size Photo</span>
+                                            <div class="readonly-check-value" id="reviewingPassportPhotoStatus">Not uploaded</div>
+                                            <div class="small text-muted mt-1" id="reviewingPassportPhotoName">-</div>
+                                            <a id="reviewingPassportPhotoLink" href="javascript:void(0)" target="_blank" class="btn btn-sm btn-outline-primary d-none mt-2">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="readonly-check-card">
                                             <span class="readonly-check-label">Self ACR Report</span>
                                             <div class="readonly-check-value" id="reviewingSelfAcrDocStatus">Not uploaded</div>
                                             <div class="small text-muted mt-1" id="reviewingSelfAcrDocName">-</div>
@@ -861,6 +871,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 let selectedAcrId = null;
 let draftSaved = false;
 const REVIEWING_MEDICAL_DOCUMENT_TYPE = "MEDICAL_REPORT";
+const REVIEWING_PASSPORT_PHOTO_DOCUMENT_TYPE = "PASSPORT_PHOTO";
 const REVIEWING_SELF_ACR_REPORT_DOCUMENT_TYPE = "SELF_ACR_REPORT";
 let reviewingData = [];
 let filteredReviewing = [];
@@ -1140,6 +1151,7 @@ function bindReadonlyDocumentCard(statusSelector, nameSelector, linkSelector, do
 
 function loadReadonlyDocuments(acrId) {
     resetReadonlyDocumentCard("#reviewingMedicalDocStatus", "#reviewingMedicalDocName", "#reviewingMedicalDocLink");
+    resetReadonlyDocumentCard("#reviewingPassportPhotoStatus", "#reviewingPassportPhotoName", "#reviewingPassportPhotoLink");
     resetReadonlyDocumentCard("#reviewingSelfAcrDocStatus", "#reviewingSelfAcrDocName", "#reviewingSelfAcrDocLink");
 
     $.ajax({
@@ -1153,6 +1165,13 @@ function loadReadonlyDocuments(acrId) {
                 "#reviewingMedicalDocName",
                 "#reviewingMedicalDocLink",
                 getReadonlyDocumentByType(res, REVIEWING_MEDICAL_DOCUMENT_TYPE)
+            );
+
+            bindReadonlyDocumentCard(
+                "#reviewingPassportPhotoStatus",
+                "#reviewingPassportPhotoName",
+                "#reviewingPassportPhotoLink",
+                getReadonlyDocumentByType(res, REVIEWING_PASSPORT_PHOTO_DOCUMENT_TYPE)
             );
 
             bindReadonlyDocumentCard(
