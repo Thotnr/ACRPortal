@@ -976,6 +976,17 @@ function closeModal(){
 $("#employeeModal").modal("hide");
 }
 
+function getApiErrorMessage(xhr, fallback){
+
+fallback = fallback || "Error";
+
+if(xhr && xhr.responseJSON){
+return xhr.responseJSON.Message || xhr.responseJSON.message || fallback;
+}
+
+return fallback;
+}
+
 
 /* DESIGNATION DROPDOWN */
 function loadDesignations(){
@@ -1076,7 +1087,7 @@ alert(res.Message);
 
 error:function(xhr){
 
-alert(xhr.responseJSON?.Message || "Error");
+alert(getApiErrorMessage(xhr, "Error"));
 
 }
 
@@ -1114,6 +1125,12 @@ loadEmployees();
 alert(res.Message);
 
 }
+
+},
+
+error:function(xhr){
+
+alert(getApiErrorMessage(xhr, "Error updating employee"));
 
 }
 

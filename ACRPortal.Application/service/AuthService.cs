@@ -42,7 +42,7 @@ namespace ACRPortal.Application.service
                     return ApiResponse<EmptyResponse>.Fail("Too many OTP requests. Please wait 60 seconds", "RATE_LIMIT");
 
                 // TODO: replace hardcoded OTP with: new Random().Next(100000, 999999).ToString()
-                string otp = "12345";
+                string otp = "211916";
                 _repo.SaveOtpChallenge(identityHash, _security.HashWithSha256(otp), ip, userAgent);
 
                 // TODO: send otp via SMS/email
