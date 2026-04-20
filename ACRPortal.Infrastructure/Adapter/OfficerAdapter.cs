@@ -9,8 +9,47 @@ namespace ACRPortal.Infrastructure.Adapter
 {
     public class OfficerAdapter : IOfficerRepoPort
     {
+        private const string YesValue = "Yes";
+        private const string NoValue = "No";
+        private const string NaValue = "NA";
+
         private readonly string _conn = ConfigurationManager
             .ConnectionStrings["ACRPortalContext"].ConnectionString;
+
+        private static string ReadTriState(SqlDataReader reader, int ordinal)
+        {
+            return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
+        }
+
+        private static string NormalizeTriState(string value, string fieldName)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException(fieldName + " is required.", fieldName);
+
+            switch (value.Trim().ToUpperInvariant())
+            {
+                case "YES":
+                case "Y":
+                case "TRUE":
+                case "1":
+                    return YesValue;
+
+                case "NO":
+                case "N":
+                case "FALSE":
+                case "0":
+                    return NoValue;
+
+                case "NA":
+                case "N/A":
+                    return NaValue;
+
+                default:
+                    throw new ArgumentException(
+                        fieldName + " must be one of Yes, No, or NA.",
+                        fieldName);
+            }
+        }
 
         // ================================================================== //
         //  GetMyAcrs                                                          //
@@ -352,9 +391,9 @@ namespace ACRPortal.Infrastructure.Adapter
                         resp.SelfAppraisal.TrainingDetails = r.IsDBNull(31) ? null : r.GetString(31);
                         resp.SelfAppraisal.AwardsHonours = r.IsDBNull(32) ? null : r.GetString(32);
                         resp.SelfAppraisal.AuditorCompliance = r.IsDBNull(33) ? (bool?)null : r.GetBoolean(33);
-                        resp.SelfAppraisal.PropertyDeclared = !r.IsDBNull(34) && r.GetBoolean(34);
+                        resp.SelfAppraisal.PropertyDeclared = ReadTriState(r, 34);
                         resp.SelfAppraisal.PropertyDeclaredDate = r.IsDBNull(35) ? null : r.GetDateTime(35).ToString("yyyy-MM-dd");
-                        resp.SelfAppraisal.MedicalCompliance = !r.IsDBNull(36) && r.GetBoolean(36);
+                        resp.SelfAppraisal.MedicalCompliance = ReadTriState(r, 36);
                         resp.SelfAppraisal.MedicalComplianceDate = r.IsDBNull(37) ? null : r.GetDateTime(37).ToString("yyyy-MM-dd");
                     }
 
@@ -527,6 +566,9 @@ namespace ACRPortal.Infrastructure.Adapter
                 if (val != null && val != DBNull.Value) { errorCode = "ALREADY_SUBMITTED"; return false; }
             }
 
+            string propertyDeclared = NormalizeTriState(request.PropertyDeclared, nameof(request.PropertyDeclared));
+            string medicalCompliance = NormalizeTriState(request.MedicalCompliance, nameof(request.MedicalCompliance));
+
             // 3) Parse optional date fields
             DateTime? propDeclaredDate = null;
             if (!string.IsNullOrWhiteSpace(request.PropertyDeclaredDate) &&
@@ -601,9 +643,9 @@ namespace ACRPortal.Infrastructure.Adapter
                         ? (object)(request.AuditorCompliance.Value ? 1 : 0)
                         : DBNull.Value;
 
-                cmd.Parameters.Add("@propDeclared", SqlDbType.Bit).Value = request.PropertyDeclared ? 1 : 0;
+                cmd.Parameters.Add("@propDeclared", SqlDbType.VarChar, 3).Value = propertyDeclared;
                 cmd.Parameters.Add("@propDeclaredDate", SqlDbType.Date).Value = (object)propDeclaredDate ?? DBNull.Value;
-                cmd.Parameters.Add("@medical", SqlDbType.Bit).Value = request.MedicalCompliance ? 1 : 0;
+                cmd.Parameters.Add("@medical", SqlDbType.VarChar, 3).Value = medicalCompliance;
                 cmd.Parameters.Add("@medComplianceDate", SqlDbType.Date).Value = (object)medComplianceDate ?? DBNull.Value;
 
                 con.Open();

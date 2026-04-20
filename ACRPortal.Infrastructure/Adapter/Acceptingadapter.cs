@@ -362,9 +362,9 @@ namespace ACRPortal.Infrastructure.Adapter
                         resp.SelfAppraisal.TrainingDetails = r.IsDBNull(23) ? null : r.GetString(23);
                         resp.SelfAppraisal.AwardsHonours = r.IsDBNull(24) ? null : r.GetString(24);
                         resp.SelfAppraisal.AuditorCompliance = r.IsDBNull(25) ? (bool?)null : r.GetBoolean(25);
-                        resp.SelfAppraisal.PropertyDeclared = !r.IsDBNull(26) && r.GetBoolean(26);
+                        resp.SelfAppraisal.PropertyDeclared = r.IsDBNull(26) ? null : r.GetString(26);
                         resp.SelfAppraisal.PropertyDeclaredDate = r.IsDBNull(27) ? null : r.GetDateTime(27).ToString("yyyy-MM-dd");
-                        resp.SelfAppraisal.MedicalCompliance = !r.IsDBNull(28) && r.GetBoolean(28);
+                        resp.SelfAppraisal.MedicalCompliance = r.IsDBNull(28) ? null : r.GetString(28);
                         resp.SelfAppraisal.MedicalComplianceDate = r.IsDBNull(29) ? null : r.GetDateTime(29).ToString("yyyy-MM-dd");
                         // document_path removed — documents fetched separately via DocumentAdapter
                     }

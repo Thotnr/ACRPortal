@@ -38,9 +38,9 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string TrainingDetails { get; set; }
         public string AwardsHonours { get; set; }
         public bool? AuditorCompliance { get; set; }   // null for A1a/A2
-        public bool PropertyDeclared { get; set; }
+        public string PropertyDeclared { get; set; }
         public string PropertyDeclaredDate { get; set; }   // yyyy-MM-dd
-        public bool MedicalCompliance { get; set; }
+        public string MedicalCompliance { get; set; }
         public string MedicalComplianceDate { get; set; }  // yyyy-MM-dd
     }
 
@@ -64,9 +64,9 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string TrainingDetails { get; set; }
         public string AwardsHonours { get; set; }
         public bool? AuditorCompliance { get; set; }
-        public bool PropertyDeclared { get; set; }
+        public string PropertyDeclared { get; set; }
         public string PropertyDeclaredDate { get; set; }
-        public bool MedicalCompliance { get; set; }
+        public string MedicalCompliance { get; set; }
         public string MedicalComplianceDate { get; set; }
     }
 
