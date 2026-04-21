@@ -402,7 +402,7 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             const string sql = @"
                 UPDATE dbo.acr_cycles
-                SET    status = 'PENDING_OFFICER', updated_at = GETDATE()
+                SET    status = 'PENDING_OFFICER', updated_at = GETDATE(), submitted_at = GETDATE()
                 WHERE  acr_id = @acrId AND cca_user_id = @ccaUserId AND status = 'DRAFT';
                 SELECT @@ROWCOUNT;";
 
@@ -619,7 +619,11 @@ namespace ACRPortal.Infrastructure.Adapter
                     ad.final_grade,
                     ad.final_remarks,
                     ad.is_approved,
-                    ad.decided_at
+                    ad.decided_at,
+                    
+                    sa.is_skipped,
+                    ra.is_skipped,
+                    rv.is_skipped
 
                 FROM dbo.acr_cycles ac
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
@@ -682,6 +686,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (hasSelf)
                     {
                         DateTime? saSubmit = r.IsDBNull(30) ? (DateTime?)null : r.GetDateTime(30);
+                        resp.SelfAppraisal.IsSkipped = r.IsDBNull(123) ? (bool?)false : r.GetBoolean(123);
                         resp.SelfAppraisal.IsSubmitted = saSubmit.HasValue;
                         resp.SelfAppraisal.SubmittedAt = saSubmit?.ToString("o");
                         resp.SelfAppraisal.LeaveDetails = r.IsDBNull(31) ? null : r.GetString(31);
@@ -706,6 +711,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (hasRa)
                     {
                         DateTime? ra1Sub = r.IsDBNull(46) ? (DateTime?)null : r.GetDateTime(46);
+                        resp.Ra1Assessment.IsSkipped = r.IsDBNull(124) ? (bool?)false : r.GetBoolean(124);
                         resp.Ra1Assessment.IsSubmitted = ra1Sub.HasValue;
                         resp.Ra1Assessment.SubmittedAt = ra1Sub?.ToString("o");
                         resp.Ra1Assessment.AgreeWithSelf = r.IsDBNull(47) ? (bool?)null : r.GetBoolean(47);
@@ -739,6 +745,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (resp.Ra2Assessment.Exists)
                     {
                         DateTime? ra2Sub = r.IsDBNull(70) ? (DateTime?)null : r.GetDateTime(70);
+                        resp.Ra2Assessment.IsSkipped = r.IsDBNull(124) ? (bool?)false : r.GetBoolean(124);
                         resp.Ra2Assessment.IsSubmitted = ra2Sub.HasValue;
                         resp.Ra2Assessment.SubmittedAt = ra2Sub?.ToString("o");
                         resp.Ra2Assessment.AgreeWithSelf = r.IsDBNull(71) ? (bool?)null : r.GetBoolean(71);
@@ -789,6 +796,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (hasRv)
                     {
                         DateTime? rvSub = r.IsDBNull(114) ? (DateTime?)null : r.GetDateTime(114);
+                        resp.ReviewingAssessment.IsSkipped = r.IsDBNull(125) ? (bool?)false : r.GetBoolean(125);
                         resp.ReviewingAssessment.IsSubmitted = rvSub.HasValue;
                         resp.ReviewingAssessment.SubmittedAt = rvSub?.ToString("o");
                         resp.ReviewingAssessment.AgreeWithRa = r.IsDBNull(110) ? (bool?)null : r.GetBoolean(110);

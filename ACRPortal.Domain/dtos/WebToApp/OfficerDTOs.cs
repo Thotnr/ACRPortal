@@ -49,8 +49,9 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     // ------------------------------------------------------------------ //
 
     public class SelfAppraisalView
-    {
+    {   
         public bool Exists { get; set; }
+        public bool? IsSkipped { get; set; }
         public bool IsSubmitted { get; set; }
         public string SubmittedAt { get; set; }   // ISO 8601 | null
 

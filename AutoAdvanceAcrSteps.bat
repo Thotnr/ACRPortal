@@ -1,0 +1,1 @@
+sqlcmd -S localhost\SQLEXPRESS -d ACRPortal -E -Q "EXEC dbo.usp_AutoAdvanceAcrSteps"

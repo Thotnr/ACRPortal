@@ -314,7 +314,11 @@ namespace ACRPortal.Infrastructure.Adapter
                     ad.final_grade,
                     ad.final_remarks,
                     ad.is_approved,
-                    ad.decided_at
+                    ad.decided_at,
+                    
+                    sa.is_skipped,
+                    ra.is_skipped,
+                    rv.is_skipped
 
                 FROM dbo.acr_cycles ac
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
@@ -394,6 +398,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (hasSelf)
                     {
                         DateTime? saSubmitted = r.IsDBNull(25) ? (DateTime?)null : r.GetDateTime(25);
+                        resp.SelfAppraisal.IsSkipped = r.IsDBNull(118) ? (bool?)false : r.GetBoolean(118);
                         resp.SelfAppraisal.IsSubmitted = saSubmitted.HasValue;
                         resp.SelfAppraisal.SubmittedAt = saSubmitted?.ToString("o");
                         resp.SelfAppraisal.LeaveDetails = r.IsDBNull(26) ? null : r.GetString(26);
@@ -418,6 +423,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (hasRa)
                     {
                         DateTime? ra1Sub = r.IsDBNull(41) ? (DateTime?)null : r.GetDateTime(41);
+                        resp.Ra1Assessment.IsSkipped = r.IsDBNull(119) ? (bool?)false : r.GetBoolean(119);
                         resp.Ra1Assessment.IsSubmitted = ra1Sub.HasValue;
                         resp.Ra1Assessment.SubmittedAt = ra1Sub?.ToString("o");
                         resp.Ra1Assessment.AgreeWithSelf = r.IsDBNull(42) ? (bool?)null : r.GetBoolean(42);
@@ -451,6 +457,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (resp.Ra2Assessment.Exists)
                     {
                         DateTime? ra2Sub = r.IsDBNull(65) ? (DateTime?)null : r.GetDateTime(65);
+                        resp.Ra2Assessment.IsSkipped = r.IsDBNull(119) ? (bool?)false : r.GetBoolean(119);
                         resp.Ra2Assessment.IsSubmitted = ra2Sub.HasValue;
                         resp.Ra2Assessment.SubmittedAt = ra2Sub?.ToString("o");
                         resp.Ra2Assessment.AgreeWithSelf = r.IsDBNull(66) ? (bool?)null : r.GetBoolean(66);
@@ -501,6 +508,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     if (hasRv)
                     {
                         DateTime? rvSub = r.IsDBNull(109) ? (DateTime?)null : r.GetDateTime(109);
+                        resp.ReviewingAssessment.IsSkipped = r.IsDBNull(120) ? (bool?)false : r.GetBoolean(120);
                         resp.ReviewingAssessment.IsSubmitted = rvSub.HasValue;
                         resp.ReviewingAssessment.SubmittedAt = rvSub?.ToString("o");
                         resp.ReviewingAssessment.AgreeWithRa = r.IsDBNull(105) ? (bool?)null : r.GetBoolean(105);
