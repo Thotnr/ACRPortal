@@ -20,34 +20,30 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string Location { get; set; }
         public string Dsg { get; set; }
         public string PostingFrom { get; set; }   // yyyy-MM-dd
-        public string PostingTo { get; set; }   // yyyy-MM-dd
+        public string PostingTo { get; set; }     // yyyy-MM-dd
         public int AcrYear { get; set; }
-        public string Status { get; set; }   // always PENDING_REPORTING
-        public string ReportingRole { get; set; }   // RA1 | RA2
+        public string Status { get; set; }
+        public string ReportingRole { get; set; } // RA1 | RA2
         public bool IsSubmitted { get; set; }
-        public string CreatedAt { get; set; }   // ISO 8601
+        public string CreatedAt { get; set; }     // ISO 8601
     }
 
     // ------------------------------------------------------------------ //
     //  Draft request                                                       //
-    //  DocumentPath removed — documents go through /api/acr/{id}/docs     //
     // ------------------------------------------------------------------ //
 
     public class ReportingDraftRequest
     {
-        // Agreement
         public bool? AgreeWithSelf { get; set; }
         public string DisagreeDetails { get; set; }
         public string IntegrityComments { get; set; }
         public string Remarks { get; set; }
 
-        // Work output (scale 1-10)
         public byte? WorkTargets { get; set; }
         public byte? WorkQuality { get; set; }
         public byte? WorkExceptional { get; set; }
         public decimal? WorkOverall { get; set; }
 
-        // Personal attributes
         public byte? AttrAttitude { get; set; }
         public byte? AttrResponsibility { get; set; }
         public byte? AttrStability { get; set; }
@@ -57,7 +53,6 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public byte? AttrTimeliness { get; set; }
         public decimal? AttrOverall { get; set; }
 
-        // Functional competency
         public byte? CompKnowledge { get; set; }
         public byte? CompPlanning { get; set; }
         public byte? CompDecision { get; set; }
@@ -65,18 +60,17 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public byte? CompTeamwork { get; set; }
         public decimal? CompOverall { get; set; }
 
-        // Overall grade — average of all 15 items, 2 decimal places
         public decimal? OverallGrade { get; set; }
     }
 
     // ------------------------------------------------------------------ //
     //  Assessment read-back view                                          //
-    //  DocumentPath removed — documents returned via Documents list       //
     // ------------------------------------------------------------------ //
 
     public class ReportingAssessmentView
     {
         public bool Exists { get; set; }
+        public bool? IsSkipped { get; set; }
         public bool IsSubmitted { get; set; }
         public string SubmittedAt { get; set; }   // ISO 8601 | null
 
@@ -110,12 +104,12 @@ namespace ACRPortal.Domain.DTOs.WebToApp
     }
 
     // ------------------------------------------------------------------ //
-    //  Detail response                                                    //
-    //  Documents split by role: Ra1Documents / Ra2Documents              //
+    //  Detail response — full shape, all sections                         //
     // ------------------------------------------------------------------ //
 
     public class ReportingAcrDetailResponse
     {
+        // ACR header
         public string AcrId { get; set; }
         public string FormType { get; set; }
         public string Status { get; set; }
@@ -123,11 +117,14 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string Location { get; set; }
         public string Dsg { get; set; }
         public string PostingFrom { get; set; }   // yyyy-MM-dd
-        public string PostingTo { get; set; }   // yyyy-MM-dd
+        public string PostingTo { get; set; }     // yyyy-MM-dd
         public int AcrYear { get; set; }
 
+        // Identifies whether the caller is RA1 or RA2
+        public string ReportingRole { get; set; } // RA1 | RA2
+
         // ------------------------------------------------------------------ //
-        //  Section I (CCA) — shown to all authorities                         //
+        //  Section I (CCA) — always visible                                  //
         // ------------------------------------------------------------------ //
         public string DateOfBirth { get; set; }
         public string DateJoiningNigam { get; set; }
@@ -140,25 +137,28 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string LastMedicalExamDate { get; set; }
         public string CareerPostingSummary { get; set; }
 
+        // ------------------------------------------------------------------ //
+        //  All sections — populated as the ACR progresses                    //
+        // ------------------------------------------------------------------ //
         public OfficerLite Officer { get; set; } = new OfficerLite();
-        public string ReportingRole { get; set; }   // RA1 | RA2
         public SelfAppraisalView SelfAppraisal { get; set; } = new SelfAppraisalView();
-        public ReportingAssessmentView ReportingAssessment { get; set; } = new ReportingAssessmentView();
+        public ReportingAssessmentView Ra1Assessment { get; set; } = new ReportingAssessmentView();
+        public ReportingAssessmentView Ra2Assessment { get; set; } = new ReportingAssessmentView();
+        public RvaOverrideGradesView RvaOverrideGrades { get; set; } = new RvaOverrideGradesView();
+        public ReviewingAssessmentView ReviewingAssessment { get; set; } = new ReviewingAssessmentView();
+        public AcceptingDecisionView Decision { get; set; } = new AcceptingDecisionView();
 
-        /// <summary>
-        /// CCA documents for this ACR (section = 'CCA', excludes OFFICER_PHOTO).
-        /// Returned consistently across authority detail APIs.
-        /// </summary>
+        // ------------------------------------------------------------------ //
+        //  Documents                                                          //
+        // ------------------------------------------------------------------ //
+
+        /// <summary>CCA documents (section='CCA', excludes OFFICER_PHOTO).</summary>
         public List<AcrDocumentItem> Documents { get; set; } = new List<AcrDocumentItem>();
 
-        /// <summary>
-        /// Officer photograph uploaded by the CCA for this ACR.
-        /// </summary>
+        /// <summary>Officer photograph uploaded by CCA.</summary>
         public AcrDocumentItem OfficerPhoto { get; set; }
 
-        /// <summary>
-        /// Documents uploaded by the caller's current step (section = 'RA1'|'RA2').
-        /// </summary>
+        /// <summary>Documents uploaded by the caller's current step (section='RA1'|'RA2').</summary>
         public List<AcrDocumentItem> RoleDocuments { get; set; } = new List<AcrDocumentItem>();
     }
 }

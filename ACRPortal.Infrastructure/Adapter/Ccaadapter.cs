@@ -402,7 +402,7 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             const string sql = @"
                 UPDATE dbo.acr_cycles
-                SET    status = 'PENDING_OFFICER', updated_at = GETDATE()
+                SET    status = 'PENDING_OFFICER', updated_at = GETDATE(), submitted_at = GETDATE()
                 WHERE  acr_id = @acrId AND cca_user_id = @ccaUserId AND status = 'DRAFT';
                 SELECT @@ROWCOUNT;";
 
@@ -434,56 +434,204 @@ namespace ACRPortal.Infrastructure.Adapter
         }
 
         // ================================================================== //
-        //  GetAcrDetail                                                       //
+        //  GetAcrDetail — full shape, all sections                           //
+        //                                                                    //
+        //  Column index map:                                                 //
+        //                                                                    //
+        //  ACR header + officer (0-28)                                       //
+        //   0  acr_id              8  department        16 date_joining_nigam//
+        //   1  form_type           9  location          17 date_joining_rank //
+        //   2  status             10  posting_from      18 date_joining_stn  //
+        //   3  dsg (code)         11  posting_to        19 academic_qual     //
+        //   4  officer user_id    12  acr_year          20 technical_qual    //
+        //   5  officer login_id   13  date_of_birth     21 dept_exam         //
+        //   6  officer name       14  property_rtn_dt   22 last_med_exam_dt  //
+        //   7  designation snap   15  career_summary    23 reporting_uid     //
+        //                                               24 ra2_uid           //
+        //                                               25 reviewing_uid     //
+        //                                               26 accepting_uid     //
+        //                                               27 created_at        //
+        //                                               28 updated_at        //
+        //                                                                    //
+        //  Self-appraisal (29-44)                                            //
+        //  29 appraisal_id  36 major_achievements  43 medical_compliance     //
+        //  30 submitted_at  37 membership_bodies   44 medical_comp_date      //
+        //  31 leave_details 38 training_details                              //
+        //  32 duties_desc   39 awards_honours                                //
+        //  33 targets_set   40 auditor_compliance                            //
+        //  34 targets_ach   41 property_declared                             //
+        //  35 shortfall     42 property_decl_date                            //
+        //                                                                    //
+        //  RA assessment: id + RA1 (45-69)                                   //
+        //  45 assessment_id  46 ra1_submitted  47-69 RA1 23 fields           //
+        //                                                                    //
+        //  RA2 block (70-93)                                                 //
+        //  70 ra2_submitted  71-93 RA2 23 fields                             //
+        //                                                                    //
+        //  rva_* overrides (94-108)                                          //
+        //                                                                    //
+        //  reviewing_assessments (109-114)                                   //
+        //  109 review_id  110 agree_with_ra  111 disagree_details            //
+        //  112 remarks    113 final_grade    114 submitted_at                //
+        //                                                                    //
+        //  accepting_decisions (115-122)                                     //
+        //  115 decision_id        119 final_grade                            //
+        //  116 agree_with_prev    120 final_remarks                          //
+        //  117 disagree_details   121 is_approved                            //
+        //  118 conflict_resolved  122 decided_at                             //
         // ================================================================== //
         public CcaAcrDetailResponse GetAcrDetail(Guid acrId)
         {
-            // Single table read + one JOIN for the officer's display info.
-            // Authority fields are the raw UUID columns on acr_cycles � no user JOINs needed.
             const string sql = @"
                 SELECT
-                    ac.acr_id,                        -- 0
-                    ac.form_type,                     -- 1
-                    ac.status,                        -- 2
+                    -- ACR header (0-28)
+                    ac.acr_id,
+                    ac.form_type,
+                    ac.status,
+                    d.dsg,
+                    u.user_id,
+                    u.login_id,
+                    u.display_name,
+                    ac.designation,
+                    ac.department,
+                    ac.location,
+                    ac.posting_from,
+                    ac.posting_to,
+                    ac.acr_year,
+                    ac.date_of_birth,
+                    ac.property_return_date,
+                    ac.career_posting_summary,
+                    ac.date_joining_nigam,
+                    ac.date_joining_present_rank,
+                    ac.date_joining_present_station,
+                    ac.academic_qualification,
+                    ac.technical_qualification,
+                    ac.departmental_exam_passed,
+                    ac.last_medical_exam_date,
+                    ac.reporting_user_id,
+                    ac.ra2_user_id,
+                    ac.reviewing_user_id,
+                    ac.accepting_user_id,
+                    ac.created_at,
+                    ac.updated_at,
 
-                    u.user_id,                        -- 3   officer
-                    u.login_id,                       -- 4
-                    u.display_name,                   -- 5
-                    d.dsg,                            -- 6
-                    ac.designation,                   -- 7   snapshot
+                    -- Self-appraisal (29-44)
+                    sa.appraisal_id,
+                    sa.submitted_at,
+                    sa.leave_details,
+                    sa.duties_description,
+                    sa.targets_set,
+                    sa.targets_achieved,
+                    sa.shortfall_reasons,
+                    sa.major_achievements,
+                    sa.membership_bodies,
+                    sa.training_details,
+                    sa.awards_honours,
+                    sa.auditor_compliance,
+                    sa.property_declared,
+                    sa.property_declared_date,
+                    sa.medical_compliance,
+                    sa.medical_compliance_date,
 
-                    ac.department,                    -- 8
-                    ac.location,                      -- 9
-                    ac.posting_from,                  -- 10
-                    ac.posting_to,                    -- 11
-                    ac.acr_year,                      -- 12
+                    -- RA assessment: id + RA1 block (45-69)
+                    ra.assessment_id,
+                    ra.ra1_submitted_at,
+                    ra.ra1_agree_with_self,
+                    ra.ra1_disagree_details,
+                    ra.ra1_integrity_comments,
+                    ra.ra1_remarks,
+                    ra.ra1_work_targets,
+                    ra.ra1_work_quality,
+                    ra.ra1_work_exceptional,
+                    ra.ra1_work_overall,
+                    ra.ra1_attr_attitude,
+                    ra.ra1_attr_responsibility,
+                    ra.ra1_attr_stability,
+                    ra.ra1_attr_communication,
+                    ra.ra1_attr_moral_courage,
+                    ra.ra1_attr_leadership,
+                    ra.ra1_attr_timeliness,
+                    ra.ra1_attr_overall,
+                    ra.ra1_comp_knowledge,
+                    ra.ra1_comp_planning,
+                    ra.ra1_comp_decision,
+                    ra.ra1_comp_initiative,
+                    ra.ra1_comp_teamwork,
+                    ra.ra1_comp_overall,
+                    ra.ra1_overall_grade,
 
-                    ac.date_of_birth,                 -- 13
+                    -- RA2 block (70-93)
+                    ra.ra2_submitted_at,
+                    ra.ra2_agree_with_self,
+                    ra.ra2_disagree_details,
+                    ra.ra2_integrity_comments,
+                    ra.ra2_remarks,
+                    ra.ra2_work_targets,
+                    ra.ra2_work_quality,
+                    ra.ra2_work_exceptional,
+                    ra.ra2_work_overall,
+                    ra.ra2_attr_attitude,
+                    ra.ra2_attr_responsibility,
+                    ra.ra2_attr_stability,
+                    ra.ra2_attr_communication,
+                    ra.ra2_attr_moral_courage,
+                    ra.ra2_attr_leadership,
+                    ra.ra2_attr_timeliness,
+                    ra.ra2_attr_overall,
+                    ra.ra2_comp_knowledge,
+                    ra.ra2_comp_planning,
+                    ra.ra2_comp_decision,
+                    ra.ra2_comp_initiative,
+                    ra.ra2_comp_teamwork,
+                    ra.ra2_comp_overall,
+                    ra.ra2_overall_grade,
 
-                    ac.date_joining_nigam,            -- 14
-                    ac.date_joining_present_rank,     -- 15
-                    ac.date_joining_present_station,  -- 16
+                    -- rva_* overrides (94-108)
+                    ra.rva_work_targets,
+                    ra.rva_work_quality,
+                    ra.rva_work_exceptional,
+                    ra.rva_attr_attitude,
+                    ra.rva_attr_responsibility,
+                    ra.rva_attr_stability,
+                    ra.rva_attr_communication,
+                    ra.rva_attr_moral_courage,
+                    ra.rva_attr_leadership,
+                    ra.rva_attr_timeliness,
+                    ra.rva_comp_knowledge,
+                    ra.rva_comp_planning,
+                    ra.rva_comp_decision,
+                    ra.rva_comp_initiative,
+                    ra.rva_comp_teamwork,
 
-                    ac.academic_qualification,        -- 17
-                    ac.technical_qualification,       -- 18
-                    ac.departmental_exam_passed,      -- 19
+                    -- reviewing_assessments (109-114)
+                    rv.review_id,
+                    rv.agree_with_ra,
+                    rv.disagree_details,
+                    rv.remarks,
+                    rv.final_grade,
+                    rv.submitted_at,
 
-                    ac.property_return_date,          -- 20
-                    ac.last_medical_exam_date,        -- 21
-
-                    ac.career_posting_summary,        -- 22
-
-                    ac.reporting_user_id,             -- 23   RA1 UserId
-                    ac.ra2_user_id,                   -- 24   RA2 UserId (NULL for A1a/A2)
-                    ac.reviewing_user_id,             -- 25   RvA UserId
-                    ac.accepting_user_id,             -- 26   AA  UserId
-
-                    ac.created_at,                    -- 27
-                    ac.updated_at                     -- 28
+                    -- accepting_decisions (115-122)
+                    ad.decision_id,
+                    ad.agree_with_previous,
+                    ad.disagree_details,
+                    ad.conflict_resolved,
+                    ad.final_grade,
+                    ad.final_remarks,
+                    ad.is_approved,
+                    ad.decided_at,
+                    
+                    sa.is_skipped,
+                    ra.is_skipped,
+                    rv.is_skipped
 
                 FROM dbo.acr_cycles ac
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
                 LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
+                LEFT JOIN dbo.self_appraisals       sa ON sa.acr_id = ac.acr_id
+                LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
+                LEFT JOIN dbo.reviewing_assessments rv ON rv.acr_id = ac.acr_id
+                LEFT JOIN dbo.accepting_decisions   ad ON ad.acr_id = ac.acr_id
                 WHERE ac.acr_id = @acrId";
 
             using (var con = new SqlConnection(_conn))
@@ -495,47 +643,185 @@ namespace ACRPortal.Infrastructure.Adapter
                 {
                     if (!r.Read()) return null;
 
-                    return new CcaAcrDetailResponse
+                    bool isA1b = string.Equals(
+                        r.IsDBNull(1) ? null : r.GetString(1),
+                        "A1b", StringComparison.OrdinalIgnoreCase);
+
+                    var resp = new CcaAcrDetailResponse
                     {
                         AcrId = r.GetGuid(0).ToString(),
                         FormType = r.IsDBNull(1) ? null : r.GetString(1),
                         Status = r.IsDBNull(2) ? null : r.GetString(2),
-
-                        OfficerUserId = r.GetGuid(3).ToString(),
-                        OfficerLoginId = r.IsDBNull(4) ? null : r.GetString(4),
-                        OfficerName = r.IsDBNull(5) ? null : r.GetString(5),
-                        Dsg = r.IsDBNull(6) ? null : r.GetString(6),
-                        // DsgDesc = r.IsDBNull(7) ? null : r.GetString(7),
-
+                        Dsg = r.IsDBNull(3) ? null : r.GetString(3),
+                        OfficerUserId = r.GetGuid(4).ToString(),
+                        OfficerLoginId = r.IsDBNull(5) ? null : r.GetString(5),
+                        OfficerName = r.IsDBNull(6) ? null : r.GetString(6),
+                        // col 7 = designation snapshot (raw text) — Dsg (col 3) is the short code
                         Department = r.IsDBNull(8) ? null : r.GetString(8),
                         Location = r.IsDBNull(9) ? null : r.GetString(9),
                         PostingFrom = r.IsDBNull(10) ? null : r.GetDateTime(10).ToString("yyyy-MM-dd"),
                         PostingTo = r.IsDBNull(11) ? null : r.GetDateTime(11).ToString("yyyy-MM-dd"),
                         AcrYear = r.IsDBNull(12) ? 0 : r.GetInt32(12),
-
                         DateOfBirth = r.IsDBNull(13) ? null : r.GetDateTime(13).ToString("yyyy-MM-dd"),
-
-                        DateJoiningNigam = r.IsDBNull(14) ? null : r.GetDateTime(14).ToString("yyyy-MM-dd"),
-                        DateJoiningPresentRank = r.IsDBNull(15) ? null : r.GetDateTime(15).ToString("yyyy-MM-dd"),
-                        DateJoiningPresentStation = r.IsDBNull(16) ? null : r.GetDateTime(16).ToString("yyyy-MM-dd"),
-
-                        AcademicQualification = r.IsDBNull(17) ? null : r.GetString(17),
-                        TechnicalQualification = r.IsDBNull(18) ? null : r.GetString(18),
-                        DepartmentalExamPassed = r.IsDBNull(19) ? null : r.GetString(19),
-
-                        PropertyReturnDate = r.IsDBNull(20) ? null : r.GetDateTime(20).ToString("yyyy-MM-dd"),
-                        LastMedicalExamDate = r.IsDBNull(21) ? null : r.GetDateTime(21).ToString("yyyy-MM-dd"),
-
-                        CareerPostingSummary = r.IsDBNull(22) ? null : r.GetString(22),
-
+                        PropertyReturnDate = r.IsDBNull(14) ? null : r.GetDateTime(14).ToString("yyyy-MM-dd"),
+                        CareerPostingSummary = r.IsDBNull(15) ? null : r.GetString(15),
+                        DateJoiningNigam = r.IsDBNull(16) ? null : r.GetDateTime(16).ToString("yyyy-MM-dd"),
+                        DateJoiningPresentRank = r.IsDBNull(17) ? null : r.GetDateTime(17).ToString("yyyy-MM-dd"),
+                        DateJoiningPresentStation = r.IsDBNull(18) ? null : r.GetDateTime(18).ToString("yyyy-MM-dd"),
+                        AcademicQualification = r.IsDBNull(19) ? null : r.GetString(19),
+                        TechnicalQualification = r.IsDBNull(20) ? null : r.GetString(20),
+                        DepartmentalExamPassed = r.IsDBNull(21) ? null : r.GetString(21),
+                        LastMedicalExamDate = r.IsDBNull(22) ? null : r.GetDateTime(22).ToString("yyyy-MM-dd"),
                         ReportingAuthorityUserId = r.GetGuid(23).ToString(),
                         ReportingAuthority2UserId = r.IsDBNull(24) ? null : r.GetGuid(24).ToString(),
                         ReviewingAuthorityUserId = r.GetGuid(25).ToString(),
                         AcceptingAuthorityUserId = r.GetGuid(26).ToString(),
-
                         CreatedAt = r.IsDBNull(27) ? null : r.GetDateTime(27).ToString("o"),
-                        UpdatedAt = r.IsDBNull(28) ? null : r.GetDateTime(28).ToString("o")
+                        UpdatedAt = r.IsDBNull(28) ? null : r.GetDateTime(28).ToString("o"),
                     };
+
+                    // ── Self-appraisal (29-44) ──────────────────────────────
+                    bool hasSelf = !r.IsDBNull(29);
+                    resp.SelfAppraisal.Exists = hasSelf;
+                    if (hasSelf)
+                    {
+                        DateTime? saSubmit = r.IsDBNull(30) ? (DateTime?)null : r.GetDateTime(30);
+                        resp.SelfAppraisal.IsSkipped = r.IsDBNull(123) ? (bool?)false : r.GetBoolean(123);
+                        resp.SelfAppraisal.IsSubmitted = saSubmit.HasValue;
+                        resp.SelfAppraisal.SubmittedAt = saSubmit?.ToString("o");
+                        resp.SelfAppraisal.LeaveDetails = r.IsDBNull(31) ? null : r.GetString(31);
+                        resp.SelfAppraisal.DutiesDescription = r.IsDBNull(32) ? null : r.GetString(32);
+                        resp.SelfAppraisal.TargetsSet = r.IsDBNull(33) ? null : r.GetString(33);
+                        resp.SelfAppraisal.TargetsAchieved = r.IsDBNull(34) ? null : r.GetString(34);
+                        resp.SelfAppraisal.ShortfallReasons = r.IsDBNull(35) ? null : r.GetString(35);
+                        resp.SelfAppraisal.MajorAchievements = r.IsDBNull(36) ? null : r.GetString(36);
+                        resp.SelfAppraisal.MembershipBodies = r.IsDBNull(37) ? null : r.GetString(37);
+                        resp.SelfAppraisal.TrainingDetails = r.IsDBNull(38) ? null : r.GetString(38);
+                        resp.SelfAppraisal.AwardsHonours = r.IsDBNull(39) ? null : r.GetString(39);
+                        resp.SelfAppraisal.AuditorCompliance = r.IsDBNull(40) ? (bool?)null : r.GetBoolean(40);
+                        resp.SelfAppraisal.PropertyDeclared = r.IsDBNull(41) ? null : r.GetString(41);
+                        resp.SelfAppraisal.PropertyDeclaredDate = r.IsDBNull(42) ? null : r.GetDateTime(42).ToString("yyyy-MM-dd");
+                        resp.SelfAppraisal.MedicalCompliance = r.IsDBNull(43) ? null : r.GetString(43);
+                        resp.SelfAppraisal.MedicalComplianceDate = r.IsDBNull(44) ? null : r.GetDateTime(44).ToString("yyyy-MM-dd");
+                    }
+
+                    // ── RA1 assessment (45-69) ───────────────────────────────
+                    bool hasRa = !r.IsDBNull(45);
+                    resp.Ra1Assessment.Exists = hasRa;
+                    if (hasRa)
+                    {
+                        DateTime? ra1Sub = r.IsDBNull(46) ? (DateTime?)null : r.GetDateTime(46);
+                        resp.Ra1Assessment.IsSkipped = r.IsDBNull(124) ? (bool?)false : r.GetBoolean(124);
+                        resp.Ra1Assessment.IsSubmitted = ra1Sub.HasValue;
+                        resp.Ra1Assessment.SubmittedAt = ra1Sub?.ToString("o");
+                        resp.Ra1Assessment.AgreeWithSelf = r.IsDBNull(47) ? (bool?)null : r.GetBoolean(47);
+                        resp.Ra1Assessment.DisagreeDetails = r.IsDBNull(48) ? null : r.GetString(48);
+                        resp.Ra1Assessment.IntegrityComments = r.IsDBNull(49) ? null : r.GetString(49);
+                        resp.Ra1Assessment.Remarks = r.IsDBNull(50) ? null : r.GetString(50);
+                        resp.Ra1Assessment.WorkTargets = r.IsDBNull(51) ? (byte?)null : r.GetByte(51);
+                        resp.Ra1Assessment.WorkQuality = r.IsDBNull(52) ? (byte?)null : r.GetByte(52);
+                        resp.Ra1Assessment.WorkExceptional = r.IsDBNull(53) ? (byte?)null : r.GetByte(53);
+                        resp.Ra1Assessment.WorkOverall = r.IsDBNull(54) ? (decimal?)null : r.GetDecimal(54);
+                        resp.Ra1Assessment.AttrAttitude = r.IsDBNull(55) ? (byte?)null : r.GetByte(55);
+                        resp.Ra1Assessment.AttrResponsibility = r.IsDBNull(56) ? (byte?)null : r.GetByte(56);
+                        resp.Ra1Assessment.AttrStability = r.IsDBNull(57) ? (byte?)null : r.GetByte(57);
+                        resp.Ra1Assessment.AttrCommunication = r.IsDBNull(58) ? (byte?)null : r.GetByte(58);
+                        resp.Ra1Assessment.AttrMoralCourage = r.IsDBNull(59) ? (byte?)null : r.GetByte(59);
+                        resp.Ra1Assessment.AttrLeadership = r.IsDBNull(60) ? (byte?)null : r.GetByte(60);
+                        resp.Ra1Assessment.AttrTimeliness = r.IsDBNull(61) ? (byte?)null : r.GetByte(61);
+                        resp.Ra1Assessment.AttrOverall = r.IsDBNull(62) ? (decimal?)null : r.GetDecimal(62);
+                        resp.Ra1Assessment.CompKnowledge = r.IsDBNull(63) ? (byte?)null : r.GetByte(63);
+                        resp.Ra1Assessment.CompPlanning = r.IsDBNull(64) ? (byte?)null : r.GetByte(64);
+                        resp.Ra1Assessment.CompDecision = r.IsDBNull(65) ? (byte?)null : r.GetByte(65);
+                        resp.Ra1Assessment.CompInitiative = r.IsDBNull(66) ? (byte?)null : r.GetByte(66);
+                        resp.Ra1Assessment.CompTeamwork = r.IsDBNull(67) ? (byte?)null : r.GetByte(67);
+                        resp.Ra1Assessment.CompOverall = r.IsDBNull(68) ? (decimal?)null : r.GetDecimal(68);
+                        resp.Ra1Assessment.OverallGrade = r.IsDBNull(69) ? (decimal?)null : r.GetDecimal(69);
+                    }
+
+                    // ── RA2 assessment (70-93) — A1b only ───────────────────
+                    // col 71 = ra2_agree_with_self (presence proxy)
+                    resp.Ra2Assessment.Exists = isA1b && hasRa && !r.IsDBNull(71);
+                    if (resp.Ra2Assessment.Exists)
+                    {
+                        DateTime? ra2Sub = r.IsDBNull(70) ? (DateTime?)null : r.GetDateTime(70);
+                        resp.Ra2Assessment.IsSkipped = r.IsDBNull(124) ? (bool?)false : r.GetBoolean(124);
+                        resp.Ra2Assessment.IsSubmitted = ra2Sub.HasValue;
+                        resp.Ra2Assessment.SubmittedAt = ra2Sub?.ToString("o");
+                        resp.Ra2Assessment.AgreeWithSelf = r.IsDBNull(71) ? (bool?)null : r.GetBoolean(71);
+                        resp.Ra2Assessment.DisagreeDetails = r.IsDBNull(72) ? null : r.GetString(72);
+                        resp.Ra2Assessment.IntegrityComments = r.IsDBNull(73) ? null : r.GetString(73);
+                        resp.Ra2Assessment.Remarks = r.IsDBNull(74) ? null : r.GetString(74);
+                        resp.Ra2Assessment.WorkTargets = r.IsDBNull(75) ? (byte?)null : r.GetByte(75);
+                        resp.Ra2Assessment.WorkQuality = r.IsDBNull(76) ? (byte?)null : r.GetByte(76);
+                        resp.Ra2Assessment.WorkExceptional = r.IsDBNull(77) ? (byte?)null : r.GetByte(77);
+                        resp.Ra2Assessment.WorkOverall = r.IsDBNull(78) ? (decimal?)null : r.GetDecimal(78);
+                        resp.Ra2Assessment.AttrAttitude = r.IsDBNull(79) ? (byte?)null : r.GetByte(79);
+                        resp.Ra2Assessment.AttrResponsibility = r.IsDBNull(80) ? (byte?)null : r.GetByte(80);
+                        resp.Ra2Assessment.AttrStability = r.IsDBNull(81) ? (byte?)null : r.GetByte(81);
+                        resp.Ra2Assessment.AttrCommunication = r.IsDBNull(82) ? (byte?)null : r.GetByte(82);
+                        resp.Ra2Assessment.AttrMoralCourage = r.IsDBNull(83) ? (byte?)null : r.GetByte(83);
+                        resp.Ra2Assessment.AttrLeadership = r.IsDBNull(84) ? (byte?)null : r.GetByte(84);
+                        resp.Ra2Assessment.AttrTimeliness = r.IsDBNull(85) ? (byte?)null : r.GetByte(85);
+                        resp.Ra2Assessment.AttrOverall = r.IsDBNull(86) ? (decimal?)null : r.GetDecimal(86);
+                        resp.Ra2Assessment.CompKnowledge = r.IsDBNull(87) ? (byte?)null : r.GetByte(87);
+                        resp.Ra2Assessment.CompPlanning = r.IsDBNull(88) ? (byte?)null : r.GetByte(88);
+                        resp.Ra2Assessment.CompDecision = r.IsDBNull(89) ? (byte?)null : r.GetByte(89);
+                        resp.Ra2Assessment.CompInitiative = r.IsDBNull(90) ? (byte?)null : r.GetByte(90);
+                        resp.Ra2Assessment.CompTeamwork = r.IsDBNull(91) ? (byte?)null : r.GetByte(91);
+                        resp.Ra2Assessment.CompOverall = r.IsDBNull(92) ? (decimal?)null : r.GetDecimal(92);
+                        resp.Ra2Assessment.OverallGrade = r.IsDBNull(93) ? (decimal?)null : r.GetDecimal(93);
+                    }
+
+                    // ── rva_* override grades (94-108) ──────────────────────
+                    resp.RvaOverrideGrades.WorkTargets = r.IsDBNull(94) ? (byte?)null : r.GetByte(94);
+                    resp.RvaOverrideGrades.WorkQuality = r.IsDBNull(95) ? (byte?)null : r.GetByte(95);
+                    resp.RvaOverrideGrades.WorkExceptional = r.IsDBNull(96) ? (byte?)null : r.GetByte(96);
+                    resp.RvaOverrideGrades.AttrAttitude = r.IsDBNull(97) ? (byte?)null : r.GetByte(97);
+                    resp.RvaOverrideGrades.AttrResponsibility = r.IsDBNull(98) ? (byte?)null : r.GetByte(98);
+                    resp.RvaOverrideGrades.AttrStability = r.IsDBNull(99) ? (byte?)null : r.GetByte(99);
+                    resp.RvaOverrideGrades.AttrCommunication = r.IsDBNull(100) ? (byte?)null : r.GetByte(100);
+                    resp.RvaOverrideGrades.AttrMoralCourage = r.IsDBNull(101) ? (byte?)null : r.GetByte(101);
+                    resp.RvaOverrideGrades.AttrLeadership = r.IsDBNull(102) ? (byte?)null : r.GetByte(102);
+                    resp.RvaOverrideGrades.AttrTimeliness = r.IsDBNull(103) ? (byte?)null : r.GetByte(103);
+                    resp.RvaOverrideGrades.CompKnowledge = r.IsDBNull(104) ? (byte?)null : r.GetByte(104);
+                    resp.RvaOverrideGrades.CompPlanning = r.IsDBNull(105) ? (byte?)null : r.GetByte(105);
+                    resp.RvaOverrideGrades.CompDecision = r.IsDBNull(106) ? (byte?)null : r.GetByte(106);
+                    resp.RvaOverrideGrades.CompInitiative = r.IsDBNull(107) ? (byte?)null : r.GetByte(107);
+                    resp.RvaOverrideGrades.CompTeamwork = r.IsDBNull(108) ? (byte?)null : r.GetByte(108);
+
+                    // ── Reviewing assessment (109-114) ───────────────────────
+                    bool hasRv = !r.IsDBNull(109);
+                    resp.ReviewingAssessment.Exists = hasRv;
+                    if (hasRv)
+                    {
+                        DateTime? rvSub = r.IsDBNull(114) ? (DateTime?)null : r.GetDateTime(114);
+                        resp.ReviewingAssessment.IsSkipped = r.IsDBNull(125) ? (bool?)false : r.GetBoolean(125);
+                        resp.ReviewingAssessment.IsSubmitted = rvSub.HasValue;
+                        resp.ReviewingAssessment.SubmittedAt = rvSub?.ToString("o");
+                        resp.ReviewingAssessment.AgreeWithRa = r.IsDBNull(110) ? (bool?)null : r.GetBoolean(110);
+                        resp.ReviewingAssessment.DisagreeDetails = r.IsDBNull(111) ? null : r.GetString(111);
+                        resp.ReviewingAssessment.Comments = r.IsDBNull(112) ? null : r.GetString(112);
+                        resp.ReviewingAssessment.OverallGrade = r.IsDBNull(113) ? (decimal?)null : r.GetDecimal(113);
+                    }
+
+                    // ── Accepting decision (115-122) ─────────────────────────
+                    bool hasAd = !r.IsDBNull(115);
+                    resp.Decision.Exists = hasAd;
+                    if (hasAd)
+                    {
+                        DateTime? decidedAt = r.IsDBNull(122) ? (DateTime?)null : r.GetDateTime(122);
+                        resp.Decision.IsDecided = decidedAt.HasValue;
+                        resp.Decision.DecidedAt = decidedAt?.ToString("o");
+                        resp.Decision.AgreeWithPrevious = r.IsDBNull(116) ? (bool?)null : r.GetBoolean(116);
+                        resp.Decision.DisagreeDetails = r.IsDBNull(117) ? null : r.GetString(117);
+                        resp.Decision.ConflictResolved = !r.IsDBNull(118) && r.GetBoolean(118);
+                        resp.Decision.FinalGrade = r.IsDBNull(119) ? (decimal?)null : r.GetDecimal(119);
+                        resp.Decision.FinalRemarks = r.IsDBNull(120) ? null : r.GetString(120);
+                        resp.Decision.IsApproved = r.IsDBNull(121) ? (bool?)null : r.GetBoolean(121);
+                    }
+
+                    return resp;
                 }
             }
         }

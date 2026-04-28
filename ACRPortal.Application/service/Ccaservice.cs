@@ -198,22 +198,23 @@ namespace ACRPortal.Application.service
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(acrId))
-                    return ApiResponse<CcaAcrDetailResponse>.Fail("AcrId is required", "BAD_REQUEST");
-
                 if (!Guid.TryParse(acrId, out Guid acrGuid))
-                    return ApiResponse<CcaAcrDetailResponse>.Fail("AcrId is not a valid ID", "BAD_REQUEST");
+                    return ApiResponse<CcaAcrDetailResponse>.Fail("AcrId is not a valid GUID", "BAD_REQUEST");
 
                 var detail = _repo.GetAcrDetail(acrGuid);
                 if (detail == null)
                     return ApiResponse<CcaAcrDetailResponse>.Fail("ACR not found", "NOT_FOUND");
 
-                // Attach CCA documents (medical report, etc.) — excludes OFFICER_PHOTO
+                // CCA section documents + officer photo
                 var allCcaDocs = _docs.GetDocuments(acrGuid, "CCA");
                 detail.Documents = allCcaDocs.FindAll(d => d.DocumentType != "OFFICER_PHOTO");
                 detail.OfficerPhoto = allCcaDocs.Find(d => d.DocumentType == "OFFICER_PHOTO");
 
-                return ApiResponse<CcaAcrDetailResponse>.Ok(detail);
+                // RoleDocuments is always empty for CCA — CCA docs live in Documents above.
+                // (kept for response shape parity with other authority detail APIs)
+                detail.RoleDocuments = new System.Collections.Generic.List<AcrDocumentItem>();
+
+                return ApiResponse<CcaAcrDetailResponse>.Ok(detail, "Success");
             }
             catch (Exception ex)
             {
