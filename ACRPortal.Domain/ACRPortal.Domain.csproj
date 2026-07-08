@@ -48,9 +48,17 @@
   <ItemGroup>
     <Compile Include="Class1.cs" />
     <Compile Include="dtos\Models\IdentityModels.cs" />
+    <Compile Include="dtos\WebToApp\Acceptingdtos.cs" />
+    <Compile Include="dtos\WebToApp\AdminDTOs.cs" />
     <Compile Include="dtos\WebToApp\ApiResponse.cs" />
-    <Compile Include="dtos\WebToApp\LoginResponse.cs" />
+    <Compile Include="dtos\WebToApp\AuthDTOs.cs" />
+    <Compile Include="dtos\WebToApp\Ccaacrdtos.cs" />
+    <Compile Include="dtos\WebToApp\Documentdtos.cs" />
     <Compile Include="dtos\WebToApp\LoginStep1Request.cs" />
+    <Compile Include="dtos\WebToApp\MastersDTOs.cs" />
+    <Compile Include="dtos\WebToApp\OfficerDTOs.cs" />
+    <Compile Include="dtos\WebToApp\ReportingDTOs.cs" />
+    <Compile Include="dtos\WebToApp\Reviewingdtos.cs" />
     <Compile Include="dtos\WebToApp\SignupRequest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\Security.cs" />
