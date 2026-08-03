@@ -41,7 +41,7 @@ All tables use `IDENTITY` — the DB auto-assigns every primary/business key. Ca
 CREATE TABLE [dbo].[tbDsg] (
     [dsgId]       INT          NOT NULL IDENTITY(1001,1),
     [dsg]         VARCHAR(20)  NOT NULL,
-    [dsgDesc]     VARCHAR(50)  NULL,
+    [dsgDesc]     VARCHAR(200) NULL,
     [dsgLevel]    INT          NOT NULL,
     [dsgIsActive] BIT          NOT NULL DEFAULT 1,
     [created_at]  DATETIME     NOT NULL DEFAULT GETDATE(),

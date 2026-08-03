@@ -16,6 +16,8 @@ namespace ACRPortal.Application.service
     public class AdminMastersService : IAdminMastersUseCase
     {
         private readonly IAdminMastersRepoPort _repo;
+        private const int DsgMaxLength = 20;
+        private const int DsgDescMaxLength = 200;
 
         public AdminMastersService(IAdminMastersRepoPort repo)
         {
@@ -49,6 +51,13 @@ namespace ACRPortal.Application.service
                 if (request.DsgLevel <= 0)
                     return ApiResponse<DsgIdResponse>.Fail("DsgLevel must be greater than 0", "BAD_REQUEST");
 
+                if (request.Dsg.Trim().Length > DsgMaxLength)
+                    return ApiResponse<DsgIdResponse>.Fail("Dsg code cannot exceed " + DsgMaxLength + " characters", "BAD_REQUEST");
+
+                string dsgDesc = request.DsgDesc?.Trim();
+                if (!string.IsNullOrEmpty(dsgDesc) && dsgDesc.Length > DsgDescMaxLength)
+                    return ApiResponse<DsgIdResponse>.Fail("Description cannot exceed " + DsgDescMaxLength + " characters", "BAD_REQUEST");
+
                 var validFormTypes = new[] { "A1a", "A1b", "A2" };
                 if (string.IsNullOrWhiteSpace(request.FormType) || !Array.Exists(validFormTypes, t => t == request.FormType))
                     return ApiResponse<DsgIdResponse>.Fail("FormType must be one of: A1a, A1b, A2", "BAD_REQUEST");
@@ -57,7 +66,7 @@ namespace ACRPortal.Application.service
                     return ApiResponse<DsgIdResponse>.Fail(
                         "Designation code '" + request.Dsg + "' already exists", "DUPLICATE_NAME");
 
-                int newId = _repo.CreateDsg(request.Dsg.Trim(), request.DsgDesc?.Trim(), request.DsgLevel, request.FormType);
+                int newId = _repo.CreateDsg(request.Dsg.Trim(), dsgDesc, request.DsgLevel, request.FormType);
                 return ApiResponse<DsgIdResponse>.Ok(new DsgIdResponse { DsgId = newId }, "Designation created successfully");
             }
             catch (Exception ex)
@@ -84,6 +93,12 @@ namespace ACRPortal.Application.service
 
                 if (hasLevel && request.DsgLevel.Value <= 0)
                     return ApiResponse<EmptyResponse>.Fail("DsgLevel must be greater than 0", "BAD_REQUEST");
+
+                if (hasCode && request.Dsg.Trim().Length > DsgMaxLength)
+                    return ApiResponse<EmptyResponse>.Fail("Dsg code cannot exceed " + DsgMaxLength + " characters", "BAD_REQUEST");
+
+                if (hasDesc && !string.IsNullOrEmpty(request.DsgDesc?.Trim()) && request.DsgDesc.Trim().Length > DsgDescMaxLength)
+                    return ApiResponse<EmptyResponse>.Fail("Description cannot exceed " + DsgDescMaxLength + " characters", "BAD_REQUEST");
 
                 if (hasFormType)
                 {

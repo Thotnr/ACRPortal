@@ -810,10 +810,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         </div>
                         <div class="col-md-4">
                             <div class="compliance-card">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="propertyDeclared">
-                                    <label class="form-check-label" for="propertyDeclared">Property Declared</label>
-                                </div>
+                                <label class="form-label" for="propertyDeclared">Property Declared</label>
+                                <select class="form-select" id="propertyDeclared">
+                                    <option value="NA" selected disabled>NA</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
                                 <p class="help-text">If declared, provide the declaration date below.</p>
                                 <div id="propertyDeclaredDateDiv" class="mt-3" style="display:none;">
                                     <label for="propertyDeclaredDate" class="form-label">Property Declared Date</label>
@@ -823,10 +825,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                         </div>
                         <div class="col-md-4">
                             <div class="compliance-card">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="medicalCompliance">
-                                    <label class="form-check-label" for="medicalCompliance">Medical Compliance</label>
-                                </div>
+                                <label class="form-label" for="medicalCompliance">Medical Compliance</label>
+                                <select class="form-select" id="medicalCompliance">
+                                    <option value="NA" selected disabled>NA</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
                                 <p class="help-text">If completed, capture the medical compliance date for the record.</p>
                                 <div id="medicalComplianceDateDiv" class="mt-3" style="display:none;">
                                     <label for="medicalComplianceDate" class="form-label">Medical Compliance Date</label>
@@ -1022,7 +1026,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         loadAcrList();
     });
 
-    $(document).on('input change', '#selfTab input, #selfTab textarea', function () {
+    $(document).on('input change', '#selfTab input, #selfTab textarea, #selfTab select', function () {
         isFormChanged = true;
         draftSaved = false;
         $('#submitBtn').addClass('d-none'); // hide submit again
@@ -1047,13 +1051,13 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             return false;
         }
 
-        if ($('#propertyDeclared').is(':checked') && !$('#propertyDeclaredDate').val()) {
+        if ($('#propertyDeclared').val() === 'Yes' && !$('#propertyDeclaredDate').val()) {
             alert('Property Declared Date is required');
             $('#propertyDeclaredDate').focus();
             return false;
         }
 
-        if ($('#medicalCompliance').is(':checked') && !$('#medicalComplianceDate').val()) {
+        if ($('#medicalCompliance').val() === 'Yes' && !$('#medicalComplianceDate').val()) {
             alert('Medical Compliance Date is required');
             $('#medicalComplianceDate').focus();
             return false;
@@ -1125,6 +1129,18 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
     function formatDate(d){
         if(!d) return '';
         return new Date(d).toLocaleDateString('en-GB');
+    }
+
+    function getFriendlyAcrErrorMessage(xhr, res) {
+        const genericMessage = 'There is some error. Please try again after some time later';
+        const statusCode = xhr && xhr.status;
+        const errorCode = res && res.ErrorCode ? res.ErrorCode.toString().toUpperCase() : '';
+
+        if (statusCode === 500 || errorCode === 'INTERNAL_ERROR') {
+            return genericMessage;
+        }
+
+        return (res && res.Message) || genericMessage;
     }
 
     let acrModal = new bootstrap.Modal(document.getElementById('acrDetailModal'));
@@ -1202,9 +1218,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     $('#shortfallReasons').val(s.ShortfallReasons || '');
                     $('#majorAchievements').val(s.MajorAchievements || '');
                     $('#auditorCompliance').prop('checked', s.AuditorCompliance || false);
-                    $('#propertyDeclared').prop('checked', s.PropertyDeclared || false);
+                    $('#propertyDeclared').val(getComplianceSelectValue(s, 'PropertyDeclared'));
                     $('#propertyDeclaredDate').val(s.PropertyDeclaredDate || '');
-                    $('#medicalCompliance').prop('checked', s.MedicalCompliance || false);
+                    $('#medicalCompliance').val(getComplianceSelectValue(s, 'MedicalCompliance'));
                     $('#medicalComplianceDate').val(s.MedicalComplianceDate || '');
 
                     if (s && s.Exists) {
@@ -1230,7 +1246,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     firstTab.show();
 
                     acrModal.show();
-                } else alert(res.Message);
+                } else {
+                    alert(getFriendlyAcrErrorMessage(null, res));
+                }
+            },
+            error: function(xhr) {
+                alert(getFriendlyAcrErrorMessage(xhr, xhr.responseJSON));
             }
         });
     }
@@ -1255,9 +1276,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             ShortfallReasons: $('#shortfallReasons').val(),
             MajorAchievements: $('#majorAchievements').val(),
             AuditorCompliance: $('#auditorCompliance').is(':checked'),
-            PropertyDeclared: $('#propertyDeclared').is(':checked'),
+            PropertyDeclared: $('#propertyDeclared').val() || 'NA',
             PropertyDeclaredDate: $('#propertyDeclaredDate').val(),
-            MedicalCompliance: $('#medicalCompliance').is(':checked'),
+            MedicalCompliance: $('#medicalCompliance').val() || 'NA',
             MedicalComplianceDate: $('#medicalComplianceDate').val()
         };
 
@@ -1408,9 +1429,31 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         ) || null;
     }
 
+    function normalizeComplianceValue(value) {
+        if (value === true) return 'Yes';
+        if (value === false) return 'No';
+
+        const normalized = (value || 'NA').toString().trim().toUpperCase();
+        if (normalized === 'YES' || normalized === 'TRUE' || normalized === '1') return 'Yes';
+        if (normalized === 'NO' || normalized === 'FALSE' || normalized === '0') return 'No';
+        return 'NA';
+    }
+
+    function getComplianceSelectValue(selfAppraisal, fieldName) {
+        if (!selfAppraisal || !selfAppraisal.Exists || selfAppraisal[fieldName] === null || selfAppraisal[fieldName] === undefined || selfAppraisal[fieldName] === '') {
+            return 'NA';
+        }
+
+        return normalizeComplianceValue(selfAppraisal[fieldName]);
+    }
+
+    function isComplianceYes(value) {
+        return normalizeComplianceValue(value) === 'Yes';
+    }
+
     // Show/Hide Property Declared date
     $('#propertyDeclared').change(function() {
-        if($(this).is(':checked')){
+        if($(this).val() === 'Yes'){
             $('#propertyDeclaredDateDiv').show();
         } else {
             $('#propertyDeclaredDateDiv').hide();
@@ -1420,17 +1463,18 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     // Optional: On modal open, set initial state
     function togglePropertyDeclaredDate(s) {
-        if(s.PropertyDeclared){
-            $('#propertyDeclared').prop('checked', true);
+        const propertyDeclaredValue = getComplianceSelectValue(s, 'PropertyDeclared');
+        if(propertyDeclaredValue === 'Yes'){
+            $('#propertyDeclared').val('Yes');
             $('#propertyDeclaredDateDiv').show();
         } else {
-            $('#propertyDeclared').prop('checked', false);
+            $('#propertyDeclared').val(propertyDeclaredValue);
             $('#propertyDeclaredDateDiv').hide();
         }
     }
 
     $('#medicalCompliance').change(function() {
-        if($(this).is(':checked')){
+        if($(this).val() === 'Yes'){
             $('#medicalComplianceDateDiv').show();
         } else {
             $('#medicalComplianceDateDiv').hide();
@@ -1440,11 +1484,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     // Optional: Set initial state when loading data
     function toggleMedicalComplianceDate(s) {
-        if(s.MedicalCompliance){
-            $('#medicalCompliance').prop('checked', true);
+        const medicalComplianceValue = getComplianceSelectValue(s, 'MedicalCompliance');
+        if(medicalComplianceValue === 'Yes'){
+            $('#medicalCompliance').val('Yes');
             $('#medicalComplianceDateDiv').show();
         } else {
-            $('#medicalCompliance').prop('checked', false);
+            $('#medicalCompliance').val(medicalComplianceValue);
             $('#medicalComplianceDateDiv').hide();
         }
     }

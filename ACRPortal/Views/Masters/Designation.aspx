@@ -368,12 +368,12 @@ entries
 
 <div class="form-group">
 <label>Designation</label>
-<input type="text" id="dsg" class="form-control" required>
+<input type="text" id="dsg" class="form-control" maxlength="20" required>
 </div>
 
 <div class="form-group">
 <label>Description</label>
-<input type="text" id="dsgDesc" class="form-control">
+<input type="text" id="dsgDesc" class="form-control" maxlength="200">
 </div>
 
 <div class="form-group">
