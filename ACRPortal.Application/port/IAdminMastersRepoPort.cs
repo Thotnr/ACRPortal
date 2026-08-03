@@ -30,7 +30,7 @@ namespace ACRPortal.Application.port
         bool IsCircleNameExists(string circle);
         bool IsCircleNameExistsExcluding(string circle, int excludeCircleId);
         void CreateCircle(int zoneId, int circleId, string circle);
-        void UpdateCircle(int circleId, string circle);
+        void UpdateCircle(int zoneId, int circleId, string circle);
         List<CircleItem> GetCircles(int? zoneId);
 
         bool IsDivisionIdExists(int divisionId);

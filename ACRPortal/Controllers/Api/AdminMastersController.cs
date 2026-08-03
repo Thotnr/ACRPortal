@@ -209,7 +209,7 @@ namespace ACRPortal.Controllers
         }
 
         // PATCH /api/admin/masters/circles/{circleId}
-        // Body: { "Circle": "Hisar Circle" }
+        // Body: { "ZoneId": 100, "Circle": "Hisar Circle" }
         // Circle_ID (route param) is the locator — cannot be changed.
         [HttpPatch]
         [Route("circles/{circleId:int}")]

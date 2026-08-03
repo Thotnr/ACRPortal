@@ -281,15 +281,17 @@ namespace ACRPortal.Infrastructure.Adapter
                 new SqlParameter("@circle", circle));
         }
 
-        public void UpdateCircle(int circleId, string circle)
+        public void UpdateCircle(int zoneId, int circleId, string circle)
         {
             // Locate by business key Circle_ID — never touch CID (identity PK)
             const string sql = @"
                 UPDATE dbo.Circle
-                SET    Circle    = @circle
+                SET    Zone_ID   = @zoneId,
+                       Circle    = @circle
                 WHERE  Circle_ID = @circleId";
 
             ExecuteNonQuery(sql,
+                new SqlParameter("@zoneId", zoneId),
                 new SqlParameter("@circle", circle),
                 new SqlParameter("@circleId", circleId));
         }

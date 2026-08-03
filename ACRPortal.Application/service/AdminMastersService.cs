@@ -313,18 +313,22 @@ namespace ACRPortal.Application.service
         {
             try
             {
-                if (request == null || string.IsNullOrWhiteSpace(request.Circle))
-                    return ApiResponse<EmptyResponse>.Fail("Circle name is required", "BAD_REQUEST");
+                if (request == null || request.ZoneId <= 0 || string.IsNullOrWhiteSpace(request.Circle))
+                    return ApiResponse<EmptyResponse>.Fail("ZoneId and Circle name are required", "BAD_REQUEST");
 
                 if (!_repo.IsCircleIdExists(circleId))
                     return ApiResponse<EmptyResponse>.Fail(
                         "Circle with Circle_ID " + circleId + " not found", "NOT_FOUND");
 
+                if (!_repo.IsZoneIdExists(request.ZoneId))
+                    return ApiResponse<EmptyResponse>.Fail(
+                        "ZoneId " + request.ZoneId + " not found", "INVALID_ZONE");
+
                 if (_repo.IsCircleNameExistsExcluding(request.Circle.Trim(), circleId))
                     return ApiResponse<EmptyResponse>.Fail(
                         "Circle name '" + request.Circle + "' already exists", "DUPLICATE_NAME");
 
-                _repo.UpdateCircle(circleId, request.Circle.Trim());
+                _repo.UpdateCircle(request.ZoneId, circleId, request.Circle.Trim());
                 return ApiResponse<EmptyResponse>.Ok(null, "Circle updated successfully");
             }
             catch (Exception ex)

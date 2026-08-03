@@ -515,7 +515,10 @@ var method="";
 
 if(isEditMode){
 
-payload={ Circle:circleName };
+payload={
+ZoneId:parseInt(zoneId),
+Circle:circleName
+};
 
 url= BASE_URL + "api/admin/masters/circles/"+circleId;
 method="PATCH";
@@ -552,6 +555,20 @@ alert(res.Message);
 closeModal();
 loadCircles();
 
+}else{
+
+alert(res.Message || "Circle update failed");
+
+}
+
+},
+
+error:function(xhr){
+
+if(xhr.responseJSON && xhr.responseJSON.Message){
+alert(xhr.responseJSON.Message);
+}else{
+alert("Server error occurred");
 }
 
 }

@@ -112,6 +112,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
 
     public class UpdateCircleRequest
     {
+        public int ZoneId { get; set; }
         public string Circle { get; set; }
     }
 
