@@ -125,6 +125,23 @@ namespace ACRPortal.Controllers.Api
             catch (Exception ex) { return Fail(ex.Message); }
         }
 
+        [HttpGet]
+        [Route("acr/{acrId}")]
+        public HttpResponseMessage GetAcrDetail(string acrId)
+        {
+            try
+            {
+                var result = _admin.GetAcrDetail(acrId);
+                var status = result.Success ? HttpStatusCode.OK
+                    : result.ErrorCode == "BAD_REQUEST" ? HttpStatusCode.BadRequest
+                    : result.ErrorCode == "NOT_FOUND" ? HttpStatusCode.NotFound
+                    : HttpStatusCode.InternalServerError;
+
+                return Request.CreateResponse(status, result);
+            }
+            catch (Exception ex) { return Fail(ex.Message); }
+        }
+
         private HttpResponseMessage Fail(string message, string errorCode = "INTERNAL_ERROR",
             HttpStatusCode code = HttpStatusCode.InternalServerError)
             => Request.CreateResponse(code, ApiResponse<EmptyResponse>.Fail(message, errorCode));

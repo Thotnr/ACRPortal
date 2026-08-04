@@ -623,10 +623,27 @@ namespace ACRPortal.Infrastructure.Adapter
                     
                     sa.is_skipped,
                     ra.is_skipped,
-                    rv.is_skipped
+                    rv.is_skipped,
+
+                    cca.user_id,
+                    cca.login_id,
+                    cca.display_name,
+                    ra1u.login_id,
+                    ra1u.display_name,
+                    ra2u.login_id,
+                    ra2u.display_name,
+                    rvau.login_id,
+                    rvau.display_name,
+                    aau.login_id,
+                    aau.display_name
 
                 FROM dbo.acr_cycles ac
                 JOIN dbo.users u ON u.user_id = ac.officer_user_id
+                LEFT JOIN dbo.users cca ON cca.user_id = ac.cca_user_id
+                LEFT JOIN dbo.users ra1u ON ra1u.user_id = ac.reporting_user_id
+                LEFT JOIN dbo.users ra2u ON ra2u.user_id = ac.ra2_user_id
+                LEFT JOIN dbo.users rvau ON rvau.user_id = ac.reviewing_user_id
+                LEFT JOIN dbo.users aau ON aau.user_id = ac.accepting_user_id
                 LEFT JOIN dbo.tbDsg d ON d.dsgDesc = ac.designation
                 LEFT JOIN dbo.self_appraisals       sa ON sa.acr_id = ac.acr_id
                 LEFT JOIN dbo.reporting_assessments ra ON ra.acr_id = ac.acr_id
@@ -678,6 +695,17 @@ namespace ACRPortal.Infrastructure.Adapter
                         AcceptingAuthorityUserId = r.GetGuid(26).ToString(),
                         CreatedAt = r.IsDBNull(27) ? null : r.GetDateTime(27).ToString("o"),
                         UpdatedAt = r.IsDBNull(28) ? null : r.GetDateTime(28).ToString("o"),
+                        CcaUserId = r.IsDBNull(126) ? null : r.GetGuid(126).ToString(),
+                        CcaLoginId = r.IsDBNull(127) ? null : r.GetString(127),
+                        CcaName = r.IsDBNull(128) ? null : r.GetString(128),
+                        ReportingAuthorityLoginId = r.IsDBNull(129) ? null : r.GetString(129),
+                        ReportingAuthorityName = r.IsDBNull(130) ? null : r.GetString(130),
+                        ReportingAuthority2LoginId = r.IsDBNull(131) ? null : r.GetString(131),
+                        ReportingAuthority2Name = r.IsDBNull(132) ? null : r.GetString(132),
+                        ReviewingAuthorityLoginId = r.IsDBNull(133) ? null : r.GetString(133),
+                        ReviewingAuthorityName = r.IsDBNull(134) ? null : r.GetString(134),
+                        AcceptingAuthorityLoginId = r.IsDBNull(135) ? null : r.GetString(135),
+                        AcceptingAuthorityName = r.IsDBNull(136) ? null : r.GetString(136),
                     };
 
                     // ── Self-appraisal (29-44) ──────────────────────────────

@@ -11,5 +11,6 @@ namespace ACRPortal.Application.usecase
         ApiResponse<EmptyResponse> UpdateUserStatus(string userId, string userStatus);
 
         ApiResponse<PagedResult<AcrListItem>> GetAcrList(int pageNumber, int pageSize, string Status, string Officer_name);
+        ApiResponse<CcaAcrDetailResponse> GetAcrDetail(string acrId);
     }
 }

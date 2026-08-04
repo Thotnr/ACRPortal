@@ -121,6 +121,19 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string OfficerName { get; set; }
         public string Dsg { get; set; }
 
+        // Creator / authorities
+        public string CcaUserId { get; set; }
+        public string CcaLoginId { get; set; }
+        public string CcaName { get; set; }
+        public string ReportingAuthorityLoginId { get; set; }
+        public string ReportingAuthorityName { get; set; }
+        public string ReportingAuthority2LoginId { get; set; }
+        public string ReportingAuthority2Name { get; set; }
+        public string ReviewingAuthorityLoginId { get; set; }
+        public string ReviewingAuthorityName { get; set; }
+        public string AcceptingAuthorityLoginId { get; set; }
+        public string AcceptingAuthorityName { get; set; }
+
         // Posting
         public string Department { get; set; }
         public string Location { get; set; }

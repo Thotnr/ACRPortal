@@ -9,11 +9,15 @@ namespace ACRPortal.Application.service
     public class AdminService : IAdminUseCase
     {
         private readonly IAdminRepoPort _repo;
+        private readonly ICcaRepoPort _ccaRepo;
+        private readonly IDocumentRepoPort _docs;
         private readonly Security _security;
 
-        public AdminService(IAdminRepoPort repo)
+        public AdminService(IAdminRepoPort repo, ICcaRepoPort ccaRepo, IDocumentRepoPort docs)
         {
             _repo = repo;
+            _ccaRepo = ccaRepo;
+            _docs = docs;
             _security = new Security();
         }
 
@@ -406,6 +410,36 @@ namespace ACRPortal.Application.service
             catch (Exception ex)
             {
                 return ApiResponse<PagedResult<AcrListItem>>.Fail(ex.Message, "INTERNAL_ERROR");
+            }
+        }
+
+        public ApiResponse<CcaAcrDetailResponse> GetAcrDetail(string acrId)
+        {
+            try
+            {
+                Guid acrGuid;
+                if (!Guid.TryParse(acrId, out acrGuid))
+                    return ApiResponse<CcaAcrDetailResponse>.Fail("AcrId is not a valid GUID", "BAD_REQUEST");
+
+                var detail = _ccaRepo.GetAcrDetail(acrGuid);
+                if (detail == null)
+                    return ApiResponse<CcaAcrDetailResponse>.Fail("ACR not found", "NOT_FOUND");
+
+                var allDocs = _docs.GetDocuments(acrGuid);
+                detail.Documents = allDocs.FindAll(d =>
+                    string.Equals(d.Section, "CCA", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(d.DocumentType, "OFFICER_PHOTO", StringComparison.OrdinalIgnoreCase));
+                detail.OfficerPhoto = allDocs.Find(d =>
+                    string.Equals(d.Section, "CCA", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(d.DocumentType, "OFFICER_PHOTO", StringComparison.OrdinalIgnoreCase));
+                detail.RoleDocuments = allDocs.FindAll(d =>
+                    !string.Equals(d.Section, "CCA", StringComparison.OrdinalIgnoreCase));
+
+                return ApiResponse<CcaAcrDetailResponse>.Ok(detail, "Success");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<CcaAcrDetailResponse>.Fail(ex.Message, "INTERNAL_ERROR");
             }
         }
     }
