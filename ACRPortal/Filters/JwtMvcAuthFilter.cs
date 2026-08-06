@@ -25,8 +25,8 @@ namespace ACRPortal.Filters
         private readonly Security _security = new Security();
 
         private const string CookieName   = "jwt_token";
-        private const string LoginPath    = "/Login/UserAuth";
-        private const string DeniedPath   = "/Unauthorized";
+        private const string LoginPath    = "~/Login/UserAuth";
+        private const string DeniedPath   = "~/Unauthorized";
 
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
@@ -97,7 +97,7 @@ namespace ACRPortal.Filters
             string requestPath = filterContext.HttpContext.Request.Path;
             if (!RouteAccessPolicy.IsAllowed(systemRole, requestPath))
             {
-                filterContext.Result = new RedirectResult(DeniedPath);
+                filterContext.Result = new RedirectResult(VirtualPathUtility.ToAbsolute(DeniedPath));
                 return;
             }
 
@@ -130,7 +130,7 @@ namespace ACRPortal.Filters
 
         private static void RedirectToLogin(ActionExecutingContext filterContext)
         {
-            filterContext.Result = new RedirectResult(LoginPath);
+            filterContext.Result = new RedirectResult(VirtualPathUtility.ToAbsolute(LoginPath));
         }
 
         private static void ExpireCookie(HttpResponseBase response, string cookieName)

@@ -52,12 +52,24 @@ namespace ACRPortal.Application.service
                     ? "SUPPORTING_DOC"
                     : request.DocumentType.Trim().ToUpper();
 
-                string documentId = _repo.AddDocument(
-                    acrGuid,
-                    section,
-                    request.FileUrl.Trim(),
-                    request.FileName?.Trim(),
-                    docType);
+                bool replaceExisting =
+                    docType == "PASSPORT_PHOTO" ||
+                    docType == "MEDICAL_REPORT" ||
+                    docType == "SELF_ACR_REPORT";
+
+                string documentId = replaceExisting
+                    ? _repo.ReplaceDocumentByType(
+                        acrGuid,
+                        section,
+                        docType,
+                        request.FileUrl.Trim(),
+                        request.FileName?.Trim())
+                    : _repo.AddDocument(
+                        acrGuid,
+                        section,
+                        request.FileUrl.Trim(),
+                        request.FileName?.Trim(),
+                        docType);
 
                 return ApiResponse<AddDocumentResponse>.Ok(
                     new AddDocumentResponse { DocumentId = documentId },

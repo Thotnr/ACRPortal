@@ -266,7 +266,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     academic_qualification, technical_qualification, departmental_exam_passed,
                     property_return_date, last_medical_exam_date,
                     career_posting_summary,
-                    status, created_at, updated_at
+                    status, created_at, updated_at, submitted_at
                 )
                 OUTPUT INSERTED.acr_id
                 VALUES (
@@ -279,7 +279,8 @@ namespace ACRPortal.Infrastructure.Adapter
                     @academicQual, @technicalQual, @deptExam,
                     @propReturnDate, @lastMedDate,
                     @summary,
-                    @status, GETDATE(), GETDATE()
+                    @status, GETDATE(), GETDATE(),
+                    CASE WHEN @status = 'DRAFT' THEN NULL ELSE GETDATE() END
                 )";
 
             using (var con = new SqlConnection(_conn))
@@ -295,6 +296,7 @@ namespace ACRPortal.Infrastructure.Adapter
 
                 cmd.Parameters.Add("@status", SqlDbType.VarChar).Value = status;
                 con.Open();
+                EnsureAcrSubmittedAtColumn(con);
                 return cmd.ExecuteScalar().ToString();
             }
         }
@@ -383,6 +385,7 @@ namespace ACRPortal.Infrastructure.Adapter
             {
                 cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
                 con.Open();
+                EnsureAutoAdvanceColumns(con);
                 using (var r = cmd.ExecuteReader())
                 {
                     if (!r.Read()) { errorCode = "NOT_FOUND"; return false; }
@@ -412,6 +415,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
                 cmd.Parameters.Add("@ccaUserId", SqlDbType.UniqueIdentifier).Value = ccaUserId;
                 con.Open();
+                EnsureAcrSubmittedAtColumn(con);
                 if (Convert.ToInt32(cmd.ExecuteScalar()) > 0) { errorCode = null; return true; }
             }
 
@@ -656,6 +660,7 @@ namespace ACRPortal.Infrastructure.Adapter
             {
                 cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
                 con.Open();
+                EnsureAutoAdvanceColumns(con);
                 using (var r = cmd.ExecuteReader())
                 {
                     if (!r.Read()) return null;
@@ -1039,6 +1044,48 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.AddRange(parameters);
                 con.Open();
                 return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private static void EnsureAcrSubmittedAtColumn(SqlConnection con)
+        {
+            const string sql = @"
+                IF COL_LENGTH('dbo.acr_cycles', 'submitted_at') IS NULL
+                    EXEC('ALTER TABLE dbo.acr_cycles ADD [submitted_at] DATETIME NULL');
+
+                EXEC('
+                    UPDATE dbo.acr_cycles
+                    SET    submitted_at = created_at
+                    WHERE  submitted_at IS NULL
+                      AND  status <> ''DRAFT''
+                ');";
+
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static void EnsureAutoAdvanceColumns(SqlConnection con)
+        {
+            EnsureAcrSubmittedAtColumn(con);
+
+            const string sql = @"
+                IF COL_LENGTH('dbo.self_appraisals', 'is_skipped') IS NULL
+                    EXEC('ALTER TABLE dbo.self_appraisals ADD [is_skipped] BIT NOT NULL CONSTRAINT DF_self_appraisals_is_skipped DEFAULT 0');
+
+                IF COL_LENGTH('dbo.reporting_assessments', 'is_skipped') IS NULL
+                    EXEC('ALTER TABLE dbo.reporting_assessments ADD [is_skipped] BIT NOT NULL CONSTRAINT DF_reporting_assessments_is_skipped DEFAULT 0');
+
+                IF COL_LENGTH('dbo.reviewing_assessments', 'is_skipped') IS NULL
+                    EXEC('ALTER TABLE dbo.reviewing_assessments ADD [is_skipped] BIT NOT NULL CONSTRAINT DF_reviewing_assessments_is_skipped DEFAULT 0');
+
+                IF COL_LENGTH('dbo.accepting_decisions', 'is_skipped') IS NULL
+                    EXEC('ALTER TABLE dbo.accepting_decisions ADD [is_skipped] BIT NOT NULL CONSTRAINT DF_accepting_decisions_is_skipped DEFAULT 0');";
+
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.ExecuteNonQuery();
             }
         }
     }

@@ -1001,11 +1001,6 @@ body.admin-acr-modal-open {
                                 <input type="date" class="form-control" id="periodTo">
                             </div>
                         </div>
-
-                        <div class="form-group">
-                            <label>Place / Office of Posting <span class="text-required">*</span></label>
-                            <select class="form-control" id="placePosting"></select>
-                        </div>
                     </div>
 
                     <div class="cca-form-section">
@@ -1022,6 +1017,13 @@ body.admin-acr-modal-open {
                                 <select class="form-control" id="designation" onchange="onDesignationChange()">
                                     <option value="">Loading...</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-12">
+                                <label>Place / Office of Posting <span class="text-required">*</span></label>
+                                <select class="form-control" id="placePosting"></select>
                             </div>
                         </div>
 
@@ -1138,7 +1140,11 @@ var BASE_URL = '<%= Url.Content("~/") %>';
 var formType = "";
 var designationsList = [];
 var employeesList = [];
+var zoneList = [];
+var circleList = [];
+var divisionList = [];
 var subDivisionList = [];
+var placePostingMode = "";
 
 var isDraft = false;
 var currentAcrId = null;
@@ -1180,6 +1186,9 @@ $(document).ready(function () {
 
     loadCurrentUser(token)
         .then(function () { return loadDesignations(); })
+        .then(function () { return loadZonesForDropdown(); })
+        .then(function () { return loadCirclesForDropdown(); })
+        .then(function () { return loadDivisionsForDropdown(); })
         .then(function () { return loadSubDivisionsForDropdown(); })
         .then(function () { return loadEmployees(); })
         .then(function () { return loadOfficers(); })
@@ -1325,6 +1334,8 @@ function bindDesignationDropdown() {
     ddl.append('<option value="">Select</option>');
 
     designationsList.forEach(function (d) {
+        if (!isAllowedPostingDesignation(d.Dsg)) return;
+
         ddl.append(
             '<option value="' + d.DsgId + '" data-formtype="' + (d.FormType || '') + '" data-dsg="' + (d.Dsg || '') + '">' +
             (d.Dsg || '') + ' - ' + (d.DsgDesc || '') +
@@ -1364,6 +1375,7 @@ function setDesignationValue(data) {
 function onDesignationChange() {
     var selected = $("#designation option:selected");
     var newFormType = selected.data("formtype");
+    bindPlacePostingDropdown(getPostingModeForDesignation(selected.data("dsg")));
 
     if (!newFormType) {
         formType = "";
@@ -1427,6 +1439,7 @@ function openAppraisalModal() {
     $("#btnSaveDraft").show();
 
     $("#reportingAuthority2Row").remove();
+    bindPlacePostingDropdown("");
     bindAuthorityDropdowns();
     $("#authoritySuggestionStatus").html("");
     setFormReadonly(false);
@@ -1949,6 +1962,79 @@ function bindEmployeeDropdown(id, list) {
     });
 }
 
+function isAllowedPostingDesignation(dsg) {
+    var code = (dsg || "").toString().trim().toUpperCase();
+    return code === "CE" ||
+        code === "CFO" ||
+        code === "XEN" ||
+        code === "AO" ||
+        code === "SE" ||
+        code === "SDO" ||
+        code === "AE";
+}
+
+function getPostingModeForDesignation(dsg) {
+    var code = (dsg || "").toString().trim().toUpperCase();
+
+    if (code === "CE" || code === "CFO") return "ZONE";
+    if (code === "XEN" || code === "AO") return "DIVISION";
+    if (code === "SE") return "CIRCLE";
+    if (code === "SDO" || code === "AE") return "SUBDIVISION";
+
+    return "";
+}
+
+function loadZonesForDropdown() {
+    return new Promise(function (resolve) {
+        $.ajax({
+            url: BASE_URL + "api/admin/masters/zones",
+            method: "GET",
+            headers: { "Authorization": "Bearer " + getToken() },
+            success: function (res) {
+                if (res.Success) {
+                    zoneList = res.Data.Zones || [];
+                }
+                resolve();
+            },
+            error: function () { resolve(); }
+        });
+    });
+}
+
+function loadCirclesForDropdown() {
+    return new Promise(function (resolve) {
+        $.ajax({
+            url: BASE_URL + "api/admin/masters/circles",
+            method: "GET",
+            headers: { "Authorization": "Bearer " + getToken() },
+            success: function (res) {
+                if (res.Success) {
+                    circleList = res.Data.Circles || [];
+                }
+                resolve();
+            },
+            error: function () { resolve(); }
+        });
+    });
+}
+
+function loadDivisionsForDropdown() {
+    return new Promise(function (resolve) {
+        $.ajax({
+            url: BASE_URL + "api/admin/masters/divisions",
+            method: "GET",
+            headers: { "Authorization": "Bearer " + getToken() },
+            success: function (res) {
+                if (res.Success) {
+                    divisionList = res.Data.Divisions || [];
+                }
+                resolve();
+            },
+            error: function () { resolve(); }
+        });
+    });
+}
+
 function loadSubDivisionsForDropdown() {
     return new Promise(function (resolve) {
         $.ajax({
@@ -1958,7 +2044,6 @@ function loadSubDivisionsForDropdown() {
             success: function (res) {
                 if (res.Success) {
                     subDivisionList = res.Data.SubDivisions || [];
-                    bindSubDivisionDropdown();
                 }
                 resolve();
             },
@@ -1967,30 +2052,78 @@ function loadSubDivisionsForDropdown() {
     });
 }
 
-function bindSubDivisionDropdown() {
+function bindPlacePostingDropdown(mode, preservedText) {
     var ddl = $("#placePosting");
+    var previousMode = placePostingMode;
+    var currentText = preservedText || "";
+
+    if (!currentText && previousMode === mode && ddl.hasClass("select2-hidden-accessible")) {
+        var selectedData = ddl.select2("data") || [];
+        currentText = selectedData.length ? (selectedData[0].text || "") : "";
+    }
 
     if (ddl.hasClass("select2-hidden-accessible")) {
         ddl.select2("destroy");
     }
 
     ddl.empty();
-    ddl.append('<option value="">Select SubDivision</option>');
+    placePostingMode = mode || "";
 
-    subDivisionList.forEach(function (s) {
-        ddl.append(
-            '<option value="' + s.SubDivisionId + '">' +
-            (s.SubDivision || '') +
-            '</option>'
-        );
+    var placeholder = "Select designation first";
+    var list = [];
+
+    if (placePostingMode === "ZONE") {
+        placeholder = "Search Zone";
+        list = zoneList.map(function (z) {
+            return { value: z.ZoneId, text: z.ZoneName || "" };
+        });
+    } else if (placePostingMode === "CIRCLE") {
+        placeholder = "Search Circle";
+        list = circleList.map(function (c) {
+            return { value: c.CircleId, text: c.Circle || "" };
+        });
+    } else if (placePostingMode === "DIVISION") {
+        placeholder = "Search Division";
+        list = divisionList.map(function (d) {
+            return { value: d.DivisionId, text: d.Division || "" };
+        });
+    } else if (placePostingMode === "SUBDIVISION") {
+        placeholder = "Search SubDivision";
+        list = subDivisionList.map(function (s) {
+            return { value: s.SubDivisionId, text: s.SubDivision || "" };
+        });
+    }
+
+    ddl.append('<option value=""></option>');
+
+    list.forEach(function (item) {
+        ddl.append('<option value="' + item.value + '">' + item.text + '</option>');
     });
 
     ddl.select2({
         width: '100%',
-        placeholder: "Search SubDivision",
+        placeholder: placeholder,
         allowClear: true,
         dropdownParent: $('#appraisalModal')
     });
+
+    ddl.prop("disabled", !placePostingMode);
+
+    if (currentText) {
+        setSelect2ByText("#placePosting", currentText);
+    } else {
+        ddl.val(null).trigger("change");
+    }
+}
+
+function getDesignationById(dsgId) {
+    var id = dsgId ? dsgId.toString() : "";
+    for (var i = 0; i < designationsList.length; i++) {
+        if ((designationsList[i].DsgId || "").toString() === id) {
+            return designationsList[i];
+        }
+    }
+    return null;
 }
 
 function formatDate(dateValue) {
@@ -2348,6 +2481,8 @@ function loadOfficers() {
 
                     $.each(list, function (i, o) {
                         if (!o.DsgId) return;
+                        var officerDesignation = getDesignationById(o.DsgId);
+                        if (!officerDesignation || !isAllowedPostingDesignation(officerDesignation.Dsg)) return;
 
                         ddl.append(
                             '<option value="' + o.UserId + '" data-formtype="' + (o.FormType || '') + '" data-dsgid="' + o.DsgId + '">' +
@@ -2484,6 +2619,7 @@ function bindAcrDetail(data) {
 
     $("#officerName").val(data.OfficerUserId || "").trigger("change");
     setDesignationValue(data);
+    bindPlacePostingDropdown(placePostingMode, data.Location || "");
     setSelect2ByText("#placePosting", data.Location || "");
 
     setTimeout(function () {

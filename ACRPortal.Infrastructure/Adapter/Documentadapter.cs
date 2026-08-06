@@ -206,7 +206,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 DELETE FROM dbo.acr_documents
                 WHERE  document_id = @docId
                   AND  acr_id      = @acrId
-                  AND  section     = @section";
+                  AND  UPPER(section) = UPPER(@section)";
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
@@ -231,8 +231,8 @@ namespace ACRPortal.Infrastructure.Adapter
             const string sql = @"
                 DELETE FROM dbo.acr_documents
                 WHERE  acr_id        = @acrId
-                  AND  section       = @section
-                  AND  document_type = @docType;
+                  AND  UPPER(section)       = UPPER(@section)
+                  AND  UPPER(document_type) = UPPER(@docType);
 
                 DECLARE @newId UNIQUEIDENTIFIER = NEWID();
 

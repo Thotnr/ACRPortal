@@ -978,6 +978,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         SELF_ACR_REPORT: null,
         PASSPORT_PHOTO: null
     };
+    let currentDocumentOptions = {};
     const MEDICAL_DOCUMENT_TYPE = "MEDICAL_REPORT";
     const SELF_ACR_REPORT_DOCUMENT_TYPE = "SELF_ACR_REPORT";
     const PASSPORT_PHOTO_DOCUMENT_TYPE = "PASSPORT_PHOTO";
@@ -1131,6 +1132,14 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         return new Date(d).toLocaleDateString('en-GB');
     }
 
+    function tryParseJson(text) {
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            return null;
+        }
+    }
+
     function getFriendlyAcrErrorMessage(xhr, res) {
         const genericMessage = 'There is some error. Please try again after some time later';
         const statusCode = xhr && xhr.status;
@@ -1240,7 +1249,10 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     toggleMedicalComplianceDate(s);
 
                     resetDocumentSection();
-                    loadDocuments(isPendingOfficer);
+                    loadDocuments({
+                        editable: isPendingOfficer,
+                        medicalRequired: window.isDocMandatory
+                    });
                     // --- Always activate the first tab (ACR Info) ---
                     const firstTab = new bootstrap.Tab(document.querySelector('#view-tab'));
                     firstTab.show();
@@ -1294,8 +1306,15 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                 isFormChanged = false;
                 $('#submitBtn').removeClass('d-none');
             },
-            error: function() {
-                alert('Error saving draft. Please try again.');
+            error: function(xhr) {
+                let msg = 'Error saving draft. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.Message) {
+                    msg = xhr.responseJSON.Message;
+                } else if (xhr.responseText) {
+                    var parsed = tryParseJson(xhr.responseText);
+                    if (parsed && parsed.Message) msg = parsed.Message;
+                }
+                alert(msg);
                 draftSaved = false;
             }
         });
@@ -1377,7 +1396,11 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             });
     }
     // ---------------- Document ----------------
-    function loadDocuments(keepVisibleWithoutDoc) {
+    function loadDocuments(options) {
+        if (options) {
+            currentDocumentOptions = options;
+        }
+        options = currentDocumentOptions || {};
         if (!selectedAcrId) return;
         $.ajax({
             url: BASE_URL + `api/acr/${selectedAcrId}/docs`,
@@ -1386,18 +1409,18 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             success: function (res) {
                 if (!res.Success) {
                     resetDocumentSection();
-                    toggleDocumentSections(keepVisibleWithoutDoc);
+                    toggleDocumentSections(options);
                     return;
                 }
 
                 bindDocumentFromResponse(res, MEDICAL_DOCUMENT_TYPE);
                 bindDocumentFromResponse(res, SELF_ACR_REPORT_DOCUMENT_TYPE);
                 bindDocumentFromResponse(res, PASSPORT_PHOTO_DOCUMENT_TYPE);
-                toggleDocumentSections(keepVisibleWithoutDoc);
+                toggleDocumentSections(options);
             },
             error: function () {
                 resetDocumentSection();
-                toggleDocumentSections(keepVisibleWithoutDoc);
+                toggleDocumentSections(options);
             }
         });
     }
@@ -1647,7 +1670,7 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
 
     function showUploadedState(doc, documentType) {
         const elements = getDocumentElements(documentType);
-        $(elements.uploadBox).addClass('d-none');
+        $(elements.uploadBox).removeClass('d-none');
         $(elements.uploadedBox).removeClass('d-none');
 
         $(elements.uploadedFileName).text(doc.FileName || '');
@@ -1778,9 +1801,10 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         }
     }
 
-    function toggleDocumentSections(keepVisibleWithoutDoc) {
+    function toggleDocumentSections(options) {
+        options = options || {};
         const hasMedicalDoc = !!currentUploadedDocuments[MEDICAL_DOCUMENT_TYPE];
-        const medicalSectionVisible = !!keepVisibleWithoutDoc || hasMedicalDoc;
+        const medicalSectionVisible = !!options.editable || !!options.medicalRequired || hasMedicalDoc;
         $(getDocumentElements(MEDICAL_DOCUMENT_TYPE).section)[medicalSectionVisible ? 'show' : 'hide']();
         $(getDocumentElements(SELF_ACR_REPORT_DOCUMENT_TYPE).section).show();
         $(getDocumentElements(PASSPORT_PHOTO_DOCUMENT_TYPE).section).show();

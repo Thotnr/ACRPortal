@@ -342,6 +342,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@acrId", SqlDbType.UniqueIdentifier).Value = acrId;
                 cmd.Parameters.Add("@uid", SqlDbType.UniqueIdentifier).Value = officerUserId;
                 con.Open();
+                EnsureSelfAppraisalSchema(con);
                 using (var r = cmd.ExecuteReader())
                 {
                     if (!r.Read()) return null;
@@ -657,6 +658,7 @@ namespace ACRPortal.Infrastructure.Adapter
                 cmd.Parameters.Add("@medComplianceDate", SqlDbType.Date).Value = (object)medComplianceDate ?? DBNull.Value;
 
                 con.Open();
+                EnsureSelfAppraisalSchema(con);
                 cmd.ExecuteNonQuery();
             }
 
@@ -672,6 +674,7 @@ namespace ACRPortal.Infrastructure.Adapter
             using (var con = new SqlConnection(_conn))
             {
                 con.Open();
+                EnsureSelfAppraisalSchema(con);
                 using (var tx = con.BeginTransaction())
                 {
                     // 1) Verify ACR ownership + state
@@ -750,6 +753,199 @@ namespace ACRPortal.Infrastructure.Adapter
                     errorCode = null;
                     return true;
                 }
+            }
+        }
+
+        private static void EnsureSelfAppraisalSchema(SqlConnection con)
+        {
+            const string sql = @"
+                IF OBJECT_ID('dbo.self_appraisals', 'U') IS NULL
+                    RETURN;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'duties_description')
+                    ALTER TABLE dbo.self_appraisals ADD [duties_description] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'targets_set')
+                    ALTER TABLE dbo.self_appraisals ADD [targets_set] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'targets_achieved')
+                    ALTER TABLE dbo.self_appraisals ADD [targets_achieved] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'shortfall_reasons')
+                    ALTER TABLE dbo.self_appraisals ADD [shortfall_reasons] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'major_achievements')
+                    ALTER TABLE dbo.self_appraisals ADD [major_achievements] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'membership_bodies')
+                    ALTER TABLE dbo.self_appraisals ADD [membership_bodies] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'training_details')
+                    ALTER TABLE dbo.self_appraisals ADD [training_details] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'awards_honours')
+                    ALTER TABLE dbo.self_appraisals ADD [awards_honours] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'property_declared_date')
+                    ALTER TABLE dbo.self_appraisals ADD [property_declared_date] DATE NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'medical_compliance_date')
+                    ALTER TABLE dbo.self_appraisals ADD [medical_compliance_date] DATE NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'auditor_compliance')
+                    ALTER TABLE dbo.self_appraisals ADD [auditor_compliance] BIT NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'is_skipped')
+                    ALTER TABLE dbo.self_appraisals ADD [is_skipped] BIT NOT NULL CONSTRAINT DF_self_appraisals_is_skipped DEFAULT 0;
+
+                DECLARE @needsComplianceTypeChange BIT = 0;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON t.user_type_id = c.user_type_id
+                    WHERE c.object_id = OBJECT_ID('dbo.self_appraisals')
+                      AND c.name IN ('property_declared', 'medical_compliance')
+                      AND t.name <> 'varchar'
+                )
+                    SET @needsComplianceTypeChange = 1;
+
+                IF @needsComplianceTypeChange = 1
+                   AND EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'idx_self_appraisals_acr_cover')
+                    DROP INDEX idx_self_appraisals_acr_cover ON dbo.self_appraisals;
+
+                DECLARE @sql NVARCHAR(MAX) = N'';
+
+                SELECT @sql = @sql + N'ALTER TABLE dbo.self_appraisals DROP CONSTRAINT [' + dc.name + N'];'
+                FROM sys.default_constraints dc
+                JOIN sys.columns c
+                  ON c.object_id = dc.parent_object_id
+                 AND c.column_id = dc.parent_column_id
+                WHERE dc.parent_object_id = OBJECT_ID('dbo.self_appraisals')
+                  AND c.name IN ('property_declared', 'medical_compliance', 'auditor_compliance');
+
+                IF LEN(@sql) > 0
+                    EXEC sp_executesql @sql;
+
+                IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'CK_self_appraisals_property_declared')
+                    ALTER TABLE dbo.self_appraisals DROP CONSTRAINT CK_self_appraisals_property_declared;
+
+                IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'CK_self_appraisals_medical_compliance')
+                    ALTER TABLE dbo.self_appraisals DROP CONSTRAINT CK_self_appraisals_medical_compliance;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'property_declared')
+                    ALTER TABLE dbo.self_appraisals ADD [property_declared] VARCHAR(3) NOT NULL CONSTRAINT DF_self_appraisals_property_declared DEFAULT ('No');
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON t.user_type_id = c.user_type_id
+                    WHERE c.object_id = OBJECT_ID('dbo.self_appraisals')
+                      AND c.name = 'property_declared'
+                      AND t.name <> 'varchar'
+                )
+                    ALTER TABLE dbo.self_appraisals ALTER COLUMN property_declared VARCHAR(5) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'medical_compliance')
+                    ALTER TABLE dbo.self_appraisals ADD [medical_compliance] VARCHAR(3) NOT NULL CONSTRAINT DF_self_appraisals_medical_compliance DEFAULT ('No');
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON t.user_type_id = c.user_type_id
+                    WHERE c.object_id = OBJECT_ID('dbo.self_appraisals')
+                      AND c.name = 'medical_compliance'
+                      AND t.name <> 'varchar'
+                )
+                    ALTER TABLE dbo.self_appraisals ALTER COLUMN medical_compliance VARCHAR(5) NULL;
+
+                UPDATE dbo.self_appraisals
+                SET property_declared =
+                    CASE UPPER(LTRIM(RTRIM(ISNULL(property_declared, ''))))
+                        WHEN '1' THEN 'Yes'
+                        WHEN '0' THEN 'No'
+                        WHEN 'TRUE' THEN 'Yes'
+                        WHEN 'FALSE' THEN 'No'
+                        WHEN 'Y' THEN 'Yes'
+                        WHEN 'N' THEN 'No'
+                        WHEN 'YES' THEN 'Yes'
+                        WHEN 'NO' THEN 'No'
+                        WHEN 'NA' THEN 'NA'
+                        WHEN 'N/A' THEN 'NA'
+                        ELSE 'No'
+                    END,
+                    medical_compliance =
+                    CASE UPPER(LTRIM(RTRIM(ISNULL(medical_compliance, ''))))
+                        WHEN '1' THEN 'Yes'
+                        WHEN '0' THEN 'No'
+                        WHEN 'TRUE' THEN 'Yes'
+                        WHEN 'FALSE' THEN 'No'
+                        WHEN 'Y' THEN 'Yes'
+                        WHEN 'N' THEN 'No'
+                        WHEN 'YES' THEN 'Yes'
+                        WHEN 'NO' THEN 'No'
+                        WHEN 'NA' THEN 'NA'
+                        WHEN 'N/A' THEN 'NA'
+                        ELSE 'No'
+                    END;
+
+                ALTER TABLE dbo.self_appraisals ALTER COLUMN property_declared VARCHAR(3) NOT NULL;
+                ALTER TABLE dbo.self_appraisals ALTER COLUMN medical_compliance VARCHAR(3) NOT NULL;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON t.user_type_id = c.user_type_id
+                    WHERE c.object_id = OBJECT_ID('dbo.self_appraisals')
+                      AND c.name = 'auditor_compliance'
+                      AND t.name <> 'bit'
+                )
+                BEGIN
+                    UPDATE dbo.self_appraisals
+                    SET auditor_compliance =
+                        CASE UPPER(LTRIM(RTRIM(ISNULL(CONVERT(VARCHAR(20), auditor_compliance), ''))))
+                            WHEN '1' THEN '1'
+                            WHEN 'TRUE' THEN '1'
+                            WHEN 'Y' THEN '1'
+                            WHEN 'YES' THEN '1'
+                            WHEN '0' THEN '0'
+                            WHEN 'FALSE' THEN '0'
+                            WHEN 'N' THEN '0'
+                            WHEN 'NO' THEN '0'
+                            ELSE NULL
+                        END;
+
+                    ALTER TABLE dbo.self_appraisals ALTER COLUMN auditor_compliance BIT NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM sys.default_constraints WHERE parent_object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'DF_self_appraisals_property_declared')
+                    ALTER TABLE dbo.self_appraisals ADD CONSTRAINT DF_self_appraisals_property_declared DEFAULT ('No') FOR property_declared;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.default_constraints WHERE parent_object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'DF_self_appraisals_medical_compliance')
+                    ALTER TABLE dbo.self_appraisals ADD CONSTRAINT DF_self_appraisals_medical_compliance DEFAULT ('No') FOR medical_compliance;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'CK_self_appraisals_property_declared')
+                    ALTER TABLE dbo.self_appraisals ADD CONSTRAINT CK_self_appraisals_property_declared CHECK (property_declared IN ('Yes', 'No', 'NA'));
+
+                IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'CK_self_appraisals_medical_compliance')
+                    ALTER TABLE dbo.self_appraisals ADD CONSTRAINT CK_self_appraisals_medical_compliance CHECK (medical_compliance IN ('Yes', 'No', 'NA'));
+
+                IF @needsComplianceTypeChange = 1
+                   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.self_appraisals') AND name = 'idx_self_appraisals_acr_cover')
+                    CREATE NONCLUSTERED INDEX idx_self_appraisals_acr_cover
+                        ON dbo.self_appraisals (acr_id)
+                        INCLUDE (
+                            appraisal_id, submitted_at,
+                            leave_details, duties_description,
+                            targets_set, targets_achieved, shortfall_reasons,
+                            major_achievements, membership_bodies, training_details,
+                            awards_honours, auditor_compliance,
+                            property_declared, property_declared_date,
+                            medical_compliance, medical_compliance_date,
+                            is_skipped
+                        );";
+
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.ExecuteNonQuery();
             }
         }
     }
