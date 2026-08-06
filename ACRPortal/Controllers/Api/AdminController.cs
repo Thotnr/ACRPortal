@@ -1,9 +1,13 @@
 ﻿using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Threading;
 using System.Web.Http;
 using System;
 using ACRPortal.Application.usecase;
 using ACRPortal.Domain.DTOs.WebToApp;
+using ACRPortal.Helpers;
 
 namespace ACRPortal.Controllers.Api
 {
@@ -11,10 +15,12 @@ namespace ACRPortal.Controllers.Api
     public class AdminController : ApiController
     {
         private readonly IAdminUseCase _admin;
+        private readonly IAcrMisUseCase _mis;
 
-        public AdminController(IAdminUseCase admin)
+        public AdminController(IAdminUseCase admin, IAcrMisUseCase mis)
         {
             _admin = admin;
+            _mis = mis;
         }
 
         // ------------------------------------------------------------------ //
@@ -145,5 +151,143 @@ namespace ACRPortal.Controllers.Api
         private HttpResponseMessage Fail(string message, string errorCode = "INTERNAL_ERROR",
             HttpStatusCode code = HttpStatusCode.InternalServerError)
             => Request.CreateResponse(code, ApiResponse<EmptyResponse>.Fail(message, errorCode));
+
+        [HttpGet]
+        [Route("acr-mis")]
+        public HttpResponseMessage GetAcrMis(
+            [FromUri] int? acrYear = null,
+            [FromUri] string formType = null,
+            [FromUri] string location = null,
+            [FromUri] string employeeUserId = null,
+            [FromUri] string status = null,
+            [FromUri] string search = null,
+            [FromUri] int pageNumber = 1,
+            [FromUri] int pageSize = 10)
+        {
+            if (!IsAdminCaller())
+                return Request.CreateResponse(HttpStatusCode.Forbidden,
+                    ApiResponse<EmptyResponse>.Fail("Only Admin users can access ACR MIS data.", "FORBIDDEN"));
+
+            var request = new AcrMisFilterRequest
+            {
+                AcrYear = acrYear,
+                FormType = formType,
+                Location = location,
+                EmployeeUserId = employeeUserId,
+                Status = status,
+                Search = search,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
+            var result = _mis.GetReport(request);
+            return Request.CreateResponse(result.Success ? HttpStatusCode.OK : MapStatus(result.ErrorCode), result);
+        }
+
+        [HttpGet]
+        [Route("acr-mis/filters")]
+        public HttpResponseMessage GetAcrMisFilters()
+        {
+            if (!IsAdminCaller())
+                return Request.CreateResponse(HttpStatusCode.Forbidden,
+                    ApiResponse<EmptyResponse>.Fail("Only Admin users can access ACR MIS filters.", "FORBIDDEN"));
+
+            var result = _mis.GetFilters();
+            return Request.CreateResponse(result.Success ? HttpStatusCode.OK : MapStatus(result.ErrorCode), result);
+        }
+
+        [HttpGet]
+        [Route("acr-mis/excel")]
+        public HttpResponseMessage DownloadAcrMisExcel(
+            [FromUri] int? acrYear = null,
+            [FromUri] string formType = null,
+            [FromUri] string location = null,
+            [FromUri] string employeeUserId = null,
+            [FromUri] string status = null,
+            [FromUri] string search = null,
+            [FromUri] string tab = null)
+        {
+            if (!IsAdminCaller())
+                return Request.CreateResponse(HttpStatusCode.Forbidden,
+                    ApiResponse<EmptyResponse>.Fail("Only Admin users can download ACR MIS Excel.", "FORBIDDEN"));
+
+            var request = new AcrMisFilterRequest
+            {
+                AcrYear = acrYear,
+                FormType = formType,
+                Location = location,
+                EmployeeUserId = employeeUserId,
+                Status = status,
+                Search = search,
+                PageNumber = 1,
+                PageSize = 100000
+            };
+
+            var result = _mis.GetReport(request);
+            if (!result.Success)
+                return Request.CreateResponse(MapStatus(result.ErrorCode), result);
+
+            byte[] excel = MisExcelBuilder.Build(result.Data, tab);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(excel)
+            };
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+            {
+                FileName = MisExcelBuilder.GetFileNamePrefix(tab) + "_" + DateTime.Now.ToString("yyyyMMdd_HHmm") + ".xlsx"
+            };
+            return response;
+        }
+
+        [HttpGet]
+        [Route("acr-mis/pdf")]
+        public HttpResponseMessage DownloadAcrMisPdf(
+            [FromUri] int? acrYear = null,
+            [FromUri] string formType = null,
+            [FromUri] string location = null,
+            [FromUri] string employeeUserId = null,
+            [FromUri] string status = null,
+            [FromUri] string search = null)
+        {
+            if (!IsAdminCaller())
+                return Request.CreateResponse(HttpStatusCode.Forbidden,
+                    ApiResponse<EmptyResponse>.Fail("Only Admin users can download ACR MIS PDF.", "FORBIDDEN"));
+
+            var request = new AcrMisFilterRequest
+            {
+                AcrYear = acrYear,
+                FormType = formType,
+                Location = location,
+                EmployeeUserId = employeeUserId,
+                Status = status,
+                Search = search,
+                PageNumber = 1,
+                PageSize = 100000
+            };
+
+            var result = _mis.GetReport(request);
+            if (!result.Success)
+                return Request.CreateResponse(MapStatus(result.ErrorCode), result);
+
+            byte[] pdf = SimpleMisPdfBuilder.Build(result.Data);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(pdf)
+            };
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+            response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+            {
+                FileName = "ACR_MIS_Report_" + DateTime.Now.ToString("yyyyMMdd_HHmm") + ".pdf"
+            };
+            return response;
+        }
+
+        private static bool IsAdminCaller()
+        {
+            var principal = Thread.CurrentPrincipal as ClaimsPrincipal;
+            var role = principal == null ? null : principal.FindFirst(ClaimTypes.Role);
+            return role != null && string.Equals(role.Value, "ADMIN", StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

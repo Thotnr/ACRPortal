@@ -37,6 +37,10 @@ namespace ACRPortal
             container.RegisterType<IAdminRepoPort, AdminAdapter>();
             container.RegisterType<IAdminUseCase, AdminService>();
 
+            // Admin ACR MIS report
+            container.RegisterType<IAcrMisRepoPort, AcrMisAdapter>();
+            container.RegisterType<IAcrMisUseCase, AcrMisService>();
+
             // CCA (create/manage ACR cycles)
             container.RegisterType<ICcaUseCase, CcaService>();
             container.RegisterType<ICcaRepoPort, CcaAdapter>();

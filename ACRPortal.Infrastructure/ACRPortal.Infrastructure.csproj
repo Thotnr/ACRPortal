@@ -50,6 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Adapter\Acceptingadapter.cs" />
+    <Compile Include="Adapter\AcrMisAdapter.cs" />
     <Compile Include="Adapter\AdminAdapter.cs" />
     <Compile Include="Adapter\AdminMastersAdapter.cs" />
     <Compile Include="Adapter\AuthAdapter.cs" />

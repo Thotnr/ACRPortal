@@ -467,6 +467,264 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         background: rgba(248, 250, 252, 0.7);
     }
 
+    .admin-mis-section {
+        display: none;
+        margin-top: 24px;
+    }
+
+    .mis-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 12px;
+        padding: 18px;
+        border: 1px solid var(--dashboard-line);
+        border-radius: 18px;
+        background: rgba(248, 250, 252, 0.92);
+        margin-bottom: 18px;
+    }
+
+    .mis-filter {
+        min-width: 160px;
+        flex: 1 1 160px;
+    }
+
+    .mis-filter label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--dashboard-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .mis-filter .form-control {
+        min-height: 40px;
+        border-radius: 10px;
+    }
+
+    .mis-card-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .mis-summary-card {
+        padding: 16px;
+        border: 1px solid var(--dashboard-line);
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .mis-summary-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--dashboard-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .mis-summary-value {
+        margin-top: 8px;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--dashboard-ink);
+    }
+
+    .mis-role-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .mis-role-card {
+        border: 1px solid var(--dashboard-line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.94);
+        padding: 16px;
+    }
+
+    .mis-role-title {
+        margin: 0 0 12px;
+        font-size: 15px;
+        font-weight: 700;
+    }
+
+    .mis-role-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .mis-role-metric {
+        padding: 10px;
+        border-radius: 10px;
+        background: rgba(241, 245, 249, 0.85);
+    }
+
+    .mis-role-metric span {
+        display: block;
+        font-size: 11px;
+        color: var(--dashboard-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .mis-role-metric strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 20px;
+        color: var(--dashboard-ink);
+    }
+
+    .mis-chart-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .mis-chart-card {
+        border: 1px solid var(--dashboard-line);
+        border-radius: 14px;
+        background: #fff;
+        padding: 16px;
+        min-height: 260px;
+    }
+
+    .mis-chart-title {
+        margin: 0 0 14px;
+        font-size: 15px;
+        font-weight: 700;
+    }
+
+    .mis-bar-row {
+        display: grid;
+        grid-template-columns: minmax(96px, 132px) 1fr 44px;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 12px;
+    }
+
+    .mis-bar-track {
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.18);
+        overflow: hidden;
+    }
+
+    .mis-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #1d4ed8, #06b6d4);
+    }
+
+    .mis-table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--dashboard-line);
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .mis-table {
+        width: 100%;
+        min-width: 1560px;
+        margin: 0;
+        border-collapse: collapse;
+    }
+
+    .mis-table th {
+        background: #102542;
+        color: #fff;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+
+    .mis-table th,
+    .mis-table td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--dashboard-line);
+        vertical-align: top;
+        font-size: 12px;
+    }
+
+    .mis-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(29, 78, 216, 0.1);
+        color: #1d4ed8;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .mis-badge.warn {
+        background: rgba(245, 158, 11, 0.12);
+        color: #b45309;
+    }
+
+    .mis-badge.ok {
+        background: rgba(16, 185, 129, 0.12);
+        color: #047857;
+    }
+
+    .mis-badge.danger {
+        background: rgba(239, 68, 68, 0.12);
+        color: #b91c1c;
+    }
+
+    .mis-pager {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 14px;
+        color: var(--dashboard-muted);
+        font-size: 13px;
+    }
+
+    .mis-loading {
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .mis-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--dashboard-line);
+    }
+
+    .mis-tab-btn {
+        border: 0;
+        border-radius: 12px 12px 0 0;
+        background: rgba(241, 245, 249, 0.9);
+        color: var(--dashboard-muted);
+        font-weight: 700;
+        padding: 12px 16px;
+        cursor: pointer;
+    }
+
+    .mis-tab-btn.active {
+        background: #102542;
+        color: #fff;
+    }
+
+    .mis-tab-panel {
+        display: none;
+    }
+
+    .mis-tab-panel.active {
+        display: block;
+    }
+
     @media (max-width: 991.98px) {
         .dashboard-hero {
             padding: 26px 24px;
@@ -509,6 +767,12 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         }
 
         .status-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .mis-card-grid,
+        .mis-role-grid,
+        .mis-chart-grid {
             grid-template-columns: 1fr;
         }
 
@@ -686,10 +950,147 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             </div>
         </div>
     </div>
+
+    <div class="admin-mis-section" id="adminMisSection">
+        <div class="dashboard-panel">
+            <div class="panel-head">
+                <div>
+                    <h4 class="panel-title">Admin ACR MIS Report</h4>
+                    <p class="panel-subtitle">Role-wise lifecycle view across CCA, Officer, Reporting, Reviewing, Accepting, and final decisions.</p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="downloadMisExcel()">
+                        <i class="fas fa-file-excel"></i> Download MIS Report
+                    </button>
+                </div>
+            </div>
+
+            <div class="mis-tabs" role="tablist" aria-label="Admin MIS tabs">
+                <button type="button" class="mis-tab-btn active" data-mis-tab="summary" onclick="switchMisTab('summary')">Summary</button>
+                <button type="button" class="mis-tab-btn" data-mis-tab="role" onclick="switchMisTab('role')">Role-wise MIS</button>
+                <button type="button" class="mis-tab-btn" data-mis-tab="details" onclick="switchMisTab('details')">Application Details</button>
+            </div>
+
+            <div class="mis-tab-panel active" id="misTabSummary">
+                <div class="mis-toolbar">
+                    <div class="mis-filter"><label for="misSummaryYear">ACR Year</label><select id="misSummaryYear" class="form-control mis-year"></select></div>
+                    <div class="mis-filter"><label for="misSummaryFormType">Form Type</label><select id="misSummaryFormType" class="form-control mis-form"></select></div>
+                    <div class="mis-filter"><label for="misSummaryLocation">Location</label><select id="misSummaryLocation" class="form-control mis-location"></select></div>
+                    <div class="mis-filter"><label for="misSummaryEmployee">Employee</label><select id="misSummaryEmployee" class="form-control mis-employee"></select></div>
+                    <div class="mis-filter"><label for="misSummaryStatus">Current Status</label><select id="misSummaryStatus" class="form-control mis-status"></select></div>
+                    <div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="applyMisFilters('summary')"><i class="fas fa-filter"></i> Apply</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetMisFilters('summary')">Reset</button>
+                    </div>
+                </div>
+                <div id="misSummaryLoading" class="dashboard-empty">Summary is loading.</div>
+                <div id="misSummaryContent" style="display:none;">
+                    <div class="mis-card-grid" id="misSummaryCards"></div>
+                    <div class="mis-chart-grid mb-4">
+                        <div class="mis-chart-card"><h5 class="mis-chart-title">Current Status Distribution</h5><div id="misStatusChart"></div></div>
+                        <div class="mis-chart-card"><h5 class="mis-chart-title">Approved vs Rejected</h5><div id="misDecisionChart"></div></div>
+                        <div class="mis-chart-card"><h5 class="mis-chart-title">Pending Aging</h5><div id="misAgingChart"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mis-tab-panel" id="misTabRole">
+                <div class="mis-toolbar">
+                    <div class="mis-filter"><label for="misRoleYear">ACR Year</label><select id="misRoleYear" class="form-control mis-year"></select></div>
+                    <div class="mis-filter"><label for="misRoleFormType">Form Type</label><select id="misRoleFormType" class="form-control mis-form"></select></div>
+                    <div class="mis-filter"><label for="misRoleLocation">Location</label><select id="misRoleLocation" class="form-control mis-location"></select></div>
+                    <div class="mis-filter"><label for="misRoleEmployee">Employee / Manager</label><select id="misRoleEmployee" class="form-control mis-employee"></select></div>
+                    <div class="mis-filter"><label for="misRoleStatus">Current Status</label><select id="misRoleStatus" class="form-control mis-status"></select></div>
+                    <div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="applyMisFilters('role')"><i class="fas fa-filter"></i> Apply</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetMisFilters('role')">Reset</button>
+                    </div>
+                </div>
+                <div id="misRoleLoading" class="dashboard-empty">Role-wise MIS is loading.</div>
+                <div id="misRoleContent" style="display:none;">
+                    <div class="row">
+                        <div class="col-xl-8 mb-4"><div class="mis-role-grid" id="misRoleCards"></div></div>
+                        <div class="col-xl-4 mb-4"><div class="mis-chart-card"><h5 class="mis-chart-title">Role-wise Pending Applications</h5><div id="misPendingChart"></div></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mis-tab-panel" id="misTabDetails">
+                <div class="mis-toolbar">
+                    <div class="mis-filter"><label for="misDetailsYear">ACR Year</label><select id="misDetailsYear" class="form-control mis-year"></select></div>
+                    <div class="mis-filter"><label for="misDetailsFormType">Form Type</label><select id="misDetailsFormType" class="form-control mis-form"></select></div>
+                    <div class="mis-filter"><label for="misDetailsLocation">Location</label><select id="misDetailsLocation" class="form-control mis-location"></select></div>
+                    <div class="mis-filter"><label for="misDetailsEmployee">Employee</label><select id="misDetailsEmployee" class="form-control mis-employee"></select></div>
+                    <div class="mis-filter"><label for="misDetailsStatus">Current Status</label><select id="misDetailsStatus" class="form-control mis-status"></select></div>
+                    <div class="mis-filter"><label for="misDetailsSearch">Search ACR / Employee</label><input type="text" id="misDetailsSearch" class="form-control" placeholder="ACR ID or employee name"></div>
+                    <div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="applyMisFilters('details')"><i class="fas fa-filter"></i> Apply</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetMisFilters('details')">Reset</button>
+                    </div>
+                </div>
+                <div id="misDetailsLoading" class="dashboard-empty">Application details are loading.</div>
+                <div id="misDetailsContent" style="display:none;">
+
+                <div class="panel-head">
+                    <div>
+                        <h4 class="panel-title">Detailed application-wise MIS</h4>
+                        <p class="panel-subtitle">One row per ACR application with current pending owner and stage age.</p>
+                    </div>
+                    <div class="panel-badge" id="misGridTotal"><i class="fas fa-table"></i> 0 records</div>
+                </div>
+
+                <div class="mis-table-wrap">
+                    <table class="mis-table">
+                        <thead>
+                            <tr>
+                                <th>ACR ID</th>
+                                <th>Employee</th>
+                                <th>Designation</th>
+                                <th>Form</th>
+                                <th>Year</th>
+                                <th>Location</th>
+                                <th>CCA</th>
+                                <th>RM1</th>
+                                <th>RM2</th>
+                                <th>Reviewing</th>
+                                <th>Accepting</th>
+                                <th>Status</th>
+                                <th>CCA Submitted</th>
+                                <th>Officer Submitted</th>
+                                <th>RM1 Submitted</th>
+                                <th>RM2 Submitted</th>
+                                <th>Reviewing Submitted</th>
+                                <th>Decision Date</th>
+                                <th>Decision</th>
+                                <th>Pending With</th>
+                                <th>Age</th>
+                                <th>Skipped</th>
+                            </tr>
+                        </thead>
+                        <tbody id="misDetailBody"></tbody>
+                    </table>
+                </div>
+                <div class="mis-pager">
+                    <span id="misPageInfo">Page 1</span>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="misPrevBtn" onclick="goMisPage(-1)">Previous</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="misNextBtn" onclick="goMisPage(1)">Next</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     var BASE_URL = '<%= Url.Content("~/") %>';
+    var misCurrentPage = 1;
+    var misPageSize = 10;
+    var misTotalPages = 1;
+    var misInitialized = false;
+    var activeMisTab = "summary";
+    var misCache = {};
 
     $(document).ready(function () {
         var token = localStorage.getItem("token");
@@ -698,6 +1099,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
         } else {
             loadCurrentUser(token);
             loadDashboardSummary(token);
+            if (localStorage.getItem("role") === "ADMIN") {
+                initializeMis(token);
+            }
         }
     });
 
@@ -723,6 +1127,9 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
                     }
                     if ($("#userRole").length) {
                         $("#userRole").text(user.SystemRole);
+                    }
+                    if (user.SystemRole === "ADMIN") {
+                        initializeMis(token);
                     }
                 }
                 else {
@@ -931,6 +1338,357 @@ MasterPageFile="~/Views/Shared/Site.Master" %>
             color: "#475569",
             description: "Tracked in the summary response."
         };
+    }
+
+    function loadMisFilters(token) {
+        $.ajax({
+            url: BASE_URL + "api/admin/acr-mis/filters",
+            method: "GET",
+            headers: { "Authorization": "Bearer " + token },
+            success: function (res) {
+                if (!res.Success) return;
+                var data = res.Data || {};
+                fillSelect(".mis-year", data.AcrYears || [], "All Years", function (x) { return x; }, function (x) { return x; });
+                fillSelect(".mis-form", data.FormTypes || [], "All Forms", function (x) { return x; }, function (x) { return x; });
+                fillSelect(".mis-location", data.Locations || [], "All Locations", function (x) { return x; }, function (x) { return x; });
+                fillSelect(".mis-status", data.Statuses || [], "All Statuses", function (x) { return x; }, function (x) { return x; });
+                fillSelect(".mis-employee", data.Employees || [], "All Employees",
+                    function (x) { return x.UserId; },
+                    function (x) { return (x.DisplayName || x.LoginId || "Employee") + (x.LoginId ? " (" + x.LoginId + ")" : ""); });
+            }
+        });
+    }
+
+    function initializeMis(token) {
+        if (misInitialized) return;
+        misInitialized = true;
+        $("#adminMisSection").show();
+        loadMisFilters(token);
+        loadMisReport(token);
+    }
+
+    function fillSelect(selector, items, emptyText, valueFn, textFn) {
+        var html = '<option value="">' + emptyText + '</option>';
+        for (var i = 0; i < items.length; i++) {
+            html += '<option value="' + escapeHtml(valueFn(items[i])) + '">' + escapeHtml(textFn(items[i])) + '</option>';
+        }
+        $(selector).html(html);
+    }
+
+    function switchMisTab(tab) {
+        activeMisTab = tab;
+        $(".mis-tab-btn").removeClass("active");
+        $('.mis-tab-btn[data-mis-tab="' + tab + '"]').addClass("active");
+        $(".mis-tab-panel").removeClass("active");
+        $("#misTab" + capitalizeMisTab(tab)).addClass("active");
+
+        if (!misCache[getMisCacheKey(tab)]) {
+            if (tab === "details") misCurrentPage = 1;
+            loadMisReport(localStorage.getItem("token"), tab);
+        }
+    }
+
+    function applyMisFilters(tab) {
+        tab = tab || activeMisTab;
+        if (tab === "details") misCurrentPage = 1;
+        loadMisReport(localStorage.getItem("token"), tab, true);
+    }
+
+    function resetMisFilters(tab) {
+        tab = tab || activeMisTab;
+        getTabPanel(tab).find("select").val("");
+        getTabPanel(tab).find("input").val("");
+        applyMisFilters(tab);
+    }
+
+    function goMisPage(delta) {
+        var target = misCurrentPage + delta;
+        if (target < 1 || target > misTotalPages) return;
+        misCurrentPage = target;
+        loadMisReport(localStorage.getItem("token"), "details", true);
+    }
+
+    function getMisQuery(includePaging, tab) {
+        tab = tab || activeMisTab;
+        var ids = getTabIds(tab);
+        var params = [];
+        appendQuery(params, "acrYear", $("#" + ids.year).val());
+        appendQuery(params, "formType", $("#" + ids.form).val());
+        appendQuery(params, "location", $("#" + ids.location).val());
+        appendQuery(params, "employeeUserId", $("#" + ids.employee).val());
+        appendQuery(params, "status", $("#" + ids.status).val());
+        if (ids.search) appendQuery(params, "search", $("#" + ids.search).val());
+        if (includePaging) {
+            appendQuery(params, "pageNumber", tab === "details" ? misCurrentPage : 1);
+            appendQuery(params, "pageSize", misPageSize);
+        }
+        return params.length ? "?" + params.join("&") : "";
+    }
+
+    function appendQuery(params, key, value) {
+        if (value !== null && value !== undefined && value !== "") {
+            params.push(encodeURIComponent(key) + "=" + encodeURIComponent(value));
+        }
+    }
+
+    function loadMisReport(token, tab, forceReload) {
+        if (!token) return;
+        tab = tab || activeMisTab;
+        var cacheKey = getMisCacheKey(tab);
+        if (!forceReload && misCache[cacheKey]) {
+            renderMisReport(misCache[cacheKey], tab);
+            return;
+        }
+
+        setMisLoading(tab, true, null);
+        $.ajax({
+            url: BASE_URL + "api/admin/acr-mis" + getMisQuery(true, tab),
+            method: "GET",
+            headers: { "Authorization": "Bearer " + token },
+            success: function (res) {
+                if (res.Success) {
+                    misCache[cacheKey] = res.Data || {};
+                    renderMisReport(misCache[cacheKey], tab);
+                    setMisLoading(tab, false, null);
+                } else {
+                    setMisLoading(tab, true, res.Message || "MIS report could not be loaded.");
+                }
+            },
+            error: function (xhr) {
+                var message = xhr.status === 403 ? "Only Admin users can access MIS data." : "MIS report could not be loaded.";
+                setMisLoading(tab, true, message);
+            }
+        });
+    }
+
+    function renderMisReport(data, tab) {
+        tab = tab || activeMisTab;
+        var charts = data.Charts || {};
+        if (tab === "summary") {
+            renderMisSummary(data.Summary || {});
+            renderBarChart("#misStatusChart", charts.StatusDistribution || []);
+            renderBarChart("#misDecisionChart", charts.ApprovedVsRejected || []);
+            renderBarChart("#misAgingChart", charts.PendingAging || []);
+        } else if (tab === "role") {
+            renderMisRoles(data.RoleWise || []);
+            renderBarChart("#misPendingChart", charts.RoleWisePending || []);
+        } else {
+            renderMisDetails(data.Details || {});
+        }
+    }
+
+    function setMisLoading(tab, isLoading, message) {
+        var prefix = capitalizeMisTab(tab);
+        var loading = $("#mis" + prefix + "Loading");
+        var content = $("#mis" + prefix + "Content");
+        if (isLoading) {
+            loading.show().text(message || "MIS data is loading.");
+            content.hide().removeClass("mis-loading");
+        } else {
+            loading.hide();
+            content.show().removeClass("mis-loading");
+        }
+    }
+
+    function getMisCacheKey(tab) {
+        return tab + "|" + getMisQuery(true, tab);
+    }
+
+    function getTabPanel(tab) {
+        return $("#misTab" + capitalizeMisTab(tab));
+    }
+
+    function getTabIds(tab) {
+        if (tab === "role") {
+            return { year: "misRoleYear", form: "misRoleFormType", location: "misRoleLocation", employee: "misRoleEmployee", status: "misRoleStatus" };
+        }
+        if (tab === "details") {
+            return { year: "misDetailsYear", form: "misDetailsFormType", location: "misDetailsLocation", employee: "misDetailsEmployee", status: "misDetailsStatus", search: "misDetailsSearch" };
+        }
+        return { year: "misSummaryYear", form: "misSummaryFormType", location: "misSummaryLocation", employee: "misSummaryEmployee", status: "misSummaryStatus" };
+    }
+
+    function capitalizeMisTab(tab) {
+        if (tab === "role") return "Role";
+        if (tab === "details") return "Details";
+        return "Summary";
+    }
+
+    function renderMisSummary(summary) {
+        var cards = [
+            ["Total ACR", summary.TotalAcr || 0],
+            ["Draft", summary.Draft || 0],
+            ["In Workflow", summary.InWorkflow || 0],
+            ["Approved", summary.Approved || 0],
+            ["Rejected", summary.Rejected || 0],
+            ["Auto Forwarded", summary.AutoForwarded || 0]
+        ];
+        var html = "";
+        for (var i = 0; i < cards.length; i++) {
+            html += '<div class="mis-summary-card"><div class="mis-summary-label">' + escapeHtml(cards[i][0]) + '</div><div class="mis-summary-value">' + cards[i][1] + '</div></div>';
+        }
+        $("#misSummaryCards").html(html);
+    }
+
+    function renderMisRoles(roles) {
+        if (!roles.length) {
+            $("#misRoleCards").html('<div class="dashboard-empty">No role-wise MIS data found.</div>');
+            return;
+        }
+
+        var html = "";
+        for (var i = 0; i < roles.length; i++) {
+            var role = roles[i];
+            var metrics = getRoleMetrics(role);
+            html += '<div class="mis-role-card">';
+            html += '<h5 class="mis-role-title">' + escapeHtml(role.RoleName || role.RoleKey) + '</h5>';
+            html += '<div class="mis-role-metrics">';
+            for (var j = 0; j < metrics.length; j++) {
+                html += '<div class="mis-role-metric"><span>' + escapeHtml(metrics[j][0]) + '</span><strong>' + metrics[j][1] + '</strong></div>';
+            }
+            html += '</div></div>';
+        }
+        $("#misRoleCards").html(html);
+    }
+
+    function getRoleMetrics(role) {
+        if (role.RoleKey === "CCA") {
+            return [["Created", role.Created || 0], ["Draft", role.Draft || 0], ["Submitted", role.Submitted || 0]];
+        }
+        if (role.RoleKey === "ACCEPTING") {
+            return [["Received", role.Received || 0], ["Approved", role.Approved || 0], ["Pending", role.Pending || 0], ["Rejected", role.Rejected || 0]];
+        }
+        if (role.RoleKey === "OFFICER") {
+            return [["Received", role.Received || 0], ["Submitted", role.Submitted || 0], ["Pending", role.Pending || 0], ["Auto Fwd", role.AutoForwarded || 0]];
+        }
+        return [["Received", role.Received || 0], ["Completed", role.Completed || 0], ["Pending", role.Pending || 0], ["Auto Fwd", role.AutoForwarded || 0]];
+    }
+
+    function renderBarChart(selector, items) {
+        if (!items.length) {
+            $(selector).html('<div class="dashboard-empty">No chart data.</div>');
+            return;
+        }
+        var max = 0;
+        for (var i = 0; i < items.length; i++) max = Math.max(max, items[i].Value || 0);
+        var html = "";
+        for (var j = 0; j < items.length; j++) {
+            var value = items[j].Value || 0;
+            var width = max ? Math.max(4, Math.round((value / max) * 100)) : 0;
+            html += '<div class="mis-bar-row">';
+            html += '<div title="' + escapeHtml(items[j].Label) + '">' + escapeHtml(shortText(items[j].Label, 20)) + '</div>';
+            html += '<div class="mis-bar-track"><div class="mis-bar-fill" style="width:' + width + '%"></div></div>';
+            html += '<strong>' + value + '</strong>';
+            html += '</div>';
+        }
+        $(selector).html(html);
+    }
+
+    function renderMisDetails(details) {
+        var items = details.Items || [];
+        misCurrentPage = details.PageNumber || 1;
+        misTotalPages = details.TotalPages || 1;
+        $("#misGridTotal").html('<i class="fas fa-table"></i> ' + (details.TotalCount || 0) + ' records');
+        $("#misPageInfo").text("Page " + misCurrentPage + " of " + misTotalPages);
+        $("#misPrevBtn").prop("disabled", misCurrentPage <= 1);
+        $("#misNextBtn").prop("disabled", misCurrentPage >= misTotalPages);
+
+        if (!items.length) {
+            $("#misDetailBody").html('<tr><td colspan="22"><div class="dashboard-empty">No applications matched the selected filters.</div></td></tr>');
+            return;
+        }
+
+        var html = "";
+        for (var i = 0; i < items.length; i++) {
+            var x = items[i];
+            html += '<tr>';
+            html += '<td>' + escapeHtml(shortText(x.AcrId, 8)) + '</td>';
+            html += '<td><strong>' + escapeHtml(x.EmployeeName || "-") + '</strong><br><span class="text-muted">' + escapeHtml(x.EmployeeLoginId || "") + '</span></td>';
+            html += '<td>' + escapeHtml(x.Designation || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.FormType || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.AcrYear || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.Location || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.CcaName || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.ReportingManager1Name || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.ReportingManager2Name || "N/A") + '</td>';
+            html += '<td>' + escapeHtml(x.ReviewingManagerName || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.AcceptingManagerName || "-") + '</td>';
+            html += '<td>' + statusBadge(x.CurrentStatus) + '</td>';
+            html += '<td>' + escapeHtml(x.CcaSubmittedDate || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.OfficerSubmittedDate || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.Rm1SubmittedDate || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.Rm2SubmittedDate || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.ReviewingSubmittedDate || "-") + '</td>';
+            html += '<td>' + escapeHtml(x.AcceptingDecisionDate || "-") + '</td>';
+            html += '<td>' + decisionBadge(x.FinalDecision) + '</td>';
+            html += '<td>' + escapeHtml(x.CurrentPendingWith || "-") + '</td>';
+            html += '<td><span class="mis-badge warn">' + escapeHtml(x.CurrentStageAgeBucket || "-") + '</span><br>' + (x.CurrentStageAgeDays || 0) + ' day(s)</td>';
+            html += '<td>' + (x.IsAutoForwarded ? '<span class="mis-badge warn">' + escapeHtml(x.AutoForwardedStages || "Yes") + '</span>' : '<span class="mis-badge ok">No</span>') + '</td>';
+            html += '</tr>';
+        }
+        $("#misDetailBody").html(html);
+    }
+
+    function statusBadge(status) {
+        var meta = getStatusMeta(status || "");
+        return '<span class="mis-badge" style="background:' + meta.color + '22;color:' + meta.color + '">' + escapeHtml(meta.label) + '</span>';
+    }
+
+    function decisionBadge(decision) {
+        if (decision === "Approved") return '<span class="mis-badge ok">Approved</span>';
+        if (decision === "Rejected") return '<span class="mis-badge danger">Rejected</span>';
+        return '<span class="mis-badge warn">Pending</span>';
+    }
+
+    function downloadMisExcel() {
+        var token = localStorage.getItem("token");
+        if (!token) return;
+        var tab = activeMisTab;
+        var query = getMisQuery(false, tab);
+        query += (query ? "&" : "?") + "tab=" + encodeURIComponent(tab);
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", BASE_URL + "api/admin/acr-mis/excel" + query, true);
+        xhr.setRequestHeader("Authorization", "Bearer " + token);
+        xhr.responseType = "blob";
+        xhr.onload = function () {
+            if (xhr.status !== 200) {
+                alert(xhr.status === 403 ? "Only Admin users can download the MIS Report." : "Unable to download MIS Report.");
+                return;
+            }
+            var blob = new Blob([xhr.response], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = misTabFileName(tab);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        };
+        xhr.onerror = function () { alert("Unable to download MIS Report."); };
+        xhr.send();
+    }
+
+    function misTabFileName(tab) {
+        if (tab === "role") return "ACR_MIS_RoleWise.xlsx";
+        if (tab === "details") return "ACR_MIS_ApplicationDetails.xlsx";
+        return "ACR_MIS_Summary.xlsx";
+    }
+
+    function shortText(value, length) {
+        value = value === null || value === undefined ? "" : String(value);
+        if (value.length <= length) return value;
+        return value.substring(0, Math.max(0, length - 3)) + "...";
+    }
+
+    function escapeHtml(value) {
+        value = value === null || value === undefined ? "" : String(value);
+        return value
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     function showDashboardFallback(message) {

@@ -45,6 +45,7 @@
     <Compile Include="port\IAcceptingrepoport.cs" />
     <Compile Include="port\IAdminMastersRepoPort.cs" />
     <Compile Include="port\IAdminRepoPort.cs" />
+    <Compile Include="port\IAcrMisRepoPort.cs" />
     <Compile Include="port\IAuthRepoPort.cs" />
     <Compile Include="port\Iccarepoport.cs" />
     <Compile Include="port\IDashboardRepoPort.cs" />
@@ -57,6 +58,7 @@
     <Compile Include="service\Acceptingservice.cs" />
     <Compile Include="service\AdminMastersService.cs" />
     <Compile Include="service\AdminService.cs" />
+    <Compile Include="service\AcrMisService.cs" />
     <Compile Include="service\AuthService.cs" />
     <Compile Include="service\Ccaservice.cs" />
     <Compile Include="service\DashboardService.cs" />
@@ -72,6 +74,7 @@
     <Compile Include="service\UserService.cs" />
     <Compile Include="usecase\IAdminMastersUseCase.cs" />
     <Compile Include="usecase\IAdminUseCase.cs" />
+    <Compile Include="usecase\IAcrMisUseCase.cs" />
     <Compile Include="usecase\IAuthUseCase.cs" />
     <Compile Include="usecase\Iccausecase.cs" />
     <Compile Include="usecase\IOfficerUseCase.cs" />
