@@ -35,11 +35,12 @@ namespace ACRPortal.Controllers.Api
             [FromUri] int? zoneId = null,
             [FromUri] int? divisionId = null,
             [FromUri] int pageNumber = 1,
-            [FromUri] int pageSize = 10)
+            [FromUri] int pageSize = 10,
+            [FromUri] string search = null)
         {
             var result = _admin.GetAllUsers(
                 role, status, dsgId, zoneId, divisionId,
-                pageNumber, pageSize);
+                pageNumber, pageSize, search);
 
             return Request.CreateResponse(MapStatus(result.ErrorCode), result);
         }

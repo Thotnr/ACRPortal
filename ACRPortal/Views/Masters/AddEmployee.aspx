@@ -342,7 +342,7 @@ color:#1d4ed8;
 
 <div class="col-md-2">
 <div class="input-group">
-<input type="text" id="employeeSearchBox" class="form-control" placeholder="Search office name">
+<input type="text" id="employeeSearchBox" class="form-control" placeholder="Search by name or login ID">
 <div class="input-group-append">
 <button type="button" id="resetEmployeeSearchBtn" class="btn btn-outline-secondary" title="Reset search">Reset</button>
 </div>
@@ -742,7 +742,7 @@ var url= BASE_URL + "api/admin/users?pageNumber=" + currentPage + "&pageSize=" +
 if(zoneId) url+="&zoneId="+zoneId;
 if(dsgId) url+="&dsgId="+dsgId;
 if(divisionId) url+="&divisionId="+divisionId;
-if(currentSearchTerm) url+="&Office_name="+encodeURIComponent(currentSearchTerm);
+if(currentSearchTerm) url+="&search="+encodeURIComponent(currentSearchTerm);
 
 $.ajax({
 

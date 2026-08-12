@@ -105,7 +105,7 @@ namespace ACRPortal.Application.service
         // ------------------------------------------------------------------ //
         //  Get All Users                                                       //
         // ------------------------------------------------------------------ //
-        public ApiResponse<PagedResult<UserListItem>> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId, int pageNumber, int pageSize)
+        public ApiResponse<PagedResult<UserListItem>> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId, int pageNumber, int pageSize, string search = null)
         {
             try
             {
@@ -120,7 +120,7 @@ namespace ACRPortal.Application.service
                 if (pageNumber <= 0) pageNumber = 1;
                 if (pageSize <= 0 || pageSize > 100) pageSize = 10;
 
-                var result = _repo.GetAllUsers(role, status, dsgId, zoneId, divisionId, pageNumber, pageSize);
+                var result = _repo.GetAllUsers(role, status, dsgId, zoneId, divisionId, pageNumber, pageSize, search);
 
                 return ApiResponse<PagedResult<UserListItem>>.Ok(result);
             }

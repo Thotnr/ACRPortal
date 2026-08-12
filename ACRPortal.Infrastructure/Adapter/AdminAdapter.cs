@@ -362,7 +362,7 @@ namespace ACRPortal.Infrastructure.Adapter
 
         public PagedResult<UserListItem> GetAllUsers(
     string role, string status, int? dsgId, int? zoneId, int? divisionId,
-    int pageNumber, int pageSize)
+    int pageNumber, int pageSize, string search = null)
         {
             var where = new List<string>();
             var parms = new List<SqlParameter>();
@@ -399,6 +399,12 @@ namespace ACRPortal.Infrastructure.Adapter
             {
                 where.Add("u.division_id = @divisionId");
                 parms.Add(new SqlParameter("@divisionId", divisionId.Value));
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                where.Add("(u.login_id LIKE @search OR u.display_name LIKE @search)");
+                parms.Add(new SqlParameter("@search", "%" + search.Trim() + "%"));
             }
 
             string whereClause = where.Count > 0 ? "WHERE " + string.Join(" AND ", where) : "";

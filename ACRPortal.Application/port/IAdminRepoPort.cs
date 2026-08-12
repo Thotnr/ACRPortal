@@ -97,7 +97,7 @@ namespace ACRPortal.Application.port
         void UnlockUser(Guid userId);
 
         // ---- Reads -------------------------------------------------------
-        PagedResult<UserListItem> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId, int pageNumber, int pageSize);
+        PagedResult<UserListItem> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId, int pageNumber, int pageSize, string search = null);
         UserDetailResponse GetUserById(Guid userId);
 
         PagedResult<AcrListItem> GetAllAcrs(int pageNumber, int pageSize, string Status, string Officer_name);
