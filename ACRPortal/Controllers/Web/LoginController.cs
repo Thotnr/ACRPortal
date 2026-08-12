@@ -11,11 +11,5 @@ namespace ACRPortal.Controllers
         {
             return View("~/Views/Auth/Login.cshtml");
         }
-
-        // Route: /Login/reset-password
-        public ActionResult ResetPassword()
-        {
-            return View("~/Views/Auth/reset-password.cshtml");
-        }
     }
 }

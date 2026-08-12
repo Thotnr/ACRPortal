@@ -10,6 +10,7 @@ namespace ACRPortal.Application.usecase
         ApiResponse<MeResponse> GetMe(string plainUserId);
         ApiResponse<EmptyResponse> ChangePassword(string plainUserId, string currentPassword, string newPassword);
         ApiResponse<EmptyResponse> ForgotPassword(string loginId);
-        ApiResponse<EmptyResponse> ResetPassword(string loginId, string resetToken, string newPassword);
+        ApiResponse<ResetOtpVerifiedResponse> VerifyResetOtp(string loginId, string otp);
+        ApiResponse<EmptyResponse> ResetPassword(string loginId, string resetToken, string newPassword, string confirmPassword);
     }
 }

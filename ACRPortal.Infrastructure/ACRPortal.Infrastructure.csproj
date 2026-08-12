@@ -61,6 +61,7 @@
     <Compile Include="Adapter\ReportingAdapter.cs" />
     <Compile Include="Adapter\Reviewingadapter.cs" />
     <Compile Include="Adapter\UserAdapter.cs" />
+    <Compile Include="Sms\InstaAlertsSmsSender.cs" />
     <Compile Include="Class1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

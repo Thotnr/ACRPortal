@@ -31,10 +31,22 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string LoginId { get; set; }
     }
 
+    public class VerifyResetOtpRequest
+    {
+        public string LoginId { get; set; }
+        public string Otp { get; set; }
+    }
+
+    public class ResetOtpVerifiedResponse
+    {
+        public string ResetToken { get; set; }
+    }
+
     public class ResetPasswordRequest
     {
         public string LoginId { get; set; }
         public string ResetToken { get; set; }
         public string NewPassword { get; set; }
+        public string ConfirmPassword { get; set; }
     }
 }

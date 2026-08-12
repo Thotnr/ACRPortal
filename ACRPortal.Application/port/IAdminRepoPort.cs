@@ -90,6 +90,12 @@ namespace ACRPortal.Application.port
 
         void UpdateUserStatus(Guid userId, string userStatus);
 
+        /// <summary>
+        /// Resets failed_login_count to 0 — the only way to lift the lockout
+        /// applied by AuthService after MaxFailedLoginAttempts.
+        /// </summary>
+        void UnlockUser(Guid userId);
+
         // ---- Reads -------------------------------------------------------
         PagedResult<UserListItem> GetAllUsers(string role, string status, int? dsgId, int? zoneId, int? divisionId, int pageNumber, int pageSize);
         UserDetailResponse GetUserById(Guid userId);

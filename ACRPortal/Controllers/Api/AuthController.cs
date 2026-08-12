@@ -165,6 +165,26 @@ namespace ACRPortal.Controllers
             }
         }
 
+        // POST /api/auth/forgot-password/verify-otp
+        [NoAuth]
+        [HttpPost]
+        [Route("forgot-password/verify-otp")]
+        public HttpResponseMessage VerifyResetOtp([FromBody] VerifyResetOtpRequest request)
+        {
+            try
+            {
+                if (request == null)
+                    return Fail<ResetOtpVerifiedResponse>(HttpStatusCode.BadRequest, "LoginId and OTP are required", "BAD_REQUEST");
+
+                var result = _auth.VerifyResetOtp(request.LoginId, request.Otp);
+                return Respond(StatusVerifyResetOtp(result.ErrorCode, result.Success), result);
+            }
+            catch (Exception ex)
+            {
+                return Fail<ResetOtpVerifiedResponse>(HttpStatusCode.InternalServerError, ex.Message, "INTERNAL_ERROR");
+            }
+        }
+
         // POST /api/auth/reset-password
         [NoAuth]
         [HttpPost]
@@ -176,7 +196,7 @@ namespace ACRPortal.Controllers
                 if (request == null)
                     return Fail(HttpStatusCode.BadRequest, "All fields are required", "BAD_REQUEST");
 
-                var result = _auth.ResetPassword(request.LoginId, request.ResetToken, request.NewPassword);
+                var result = _auth.ResetPassword(request.LoginId, request.ResetToken, request.NewPassword, request.ConfirmPassword);
                 return Respond(StatusResetPassword(result.ErrorCode, result.Success), result);
             }
             catch (Exception ex)
@@ -193,6 +213,9 @@ namespace ACRPortal.Controllers
             if (code == "BAD_REQUEST") return HttpStatusCode.BadRequest;
             if (code == "AUTH_FAILED") return HttpStatusCode.Unauthorized;
             if (code == "ACCOUNT_INACTIVE") return HttpStatusCode.Forbidden;
+            if (code == "ACCOUNT_LOCKED") return HttpStatusCode.Forbidden;
+            if (code == "PHONE_NOT_FOUND") return HttpStatusCode.BadRequest;
+            if (code == "SMS_FAILED") return HttpStatusCode.InternalServerError;
             if (code == "RATE_LIMIT") return (HttpStatusCode)429;
             if (code == "INTERNAL_ERROR") return HttpStatusCode.InternalServerError;
             return ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
@@ -224,9 +247,18 @@ namespace ACRPortal.Controllers
             return ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
         }
 
+        private static HttpStatusCode StatusVerifyResetOtp(string code, bool ok)
+        {
+            if (code == "BAD_REQUEST") return HttpStatusCode.BadRequest;
+            if (code == "OTP_INVALID") return HttpStatusCode.Unauthorized;
+            if (code == "INTERNAL_ERROR") return HttpStatusCode.InternalServerError;
+            return ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
+        }
+
         private static HttpStatusCode StatusResetPassword(string code, bool ok)
         {
             if (code == "BAD_REQUEST") return HttpStatusCode.BadRequest;
+            if (code == "PASSWORD_MISMATCH") return HttpStatusCode.BadRequest;
             if (code == "TOKEN_INVALID") return HttpStatusCode.BadRequest;
             if (code == "INTERNAL_ERROR") return HttpStatusCode.InternalServerError;
             return ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest;

@@ -47,6 +47,7 @@
     <Compile Include="port\IAdminRepoPort.cs" />
     <Compile Include="port\IAcrMisRepoPort.cs" />
     <Compile Include="port\IAuthRepoPort.cs" />
+    <Compile Include="port\ISmsSender.cs" />
     <Compile Include="port\Iccarepoport.cs" />
     <Compile Include="port\IDashboardRepoPort.cs" />
     <Compile Include="port\Idocumentrepoport.cs" />

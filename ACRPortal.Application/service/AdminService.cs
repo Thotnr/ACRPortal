@@ -277,6 +277,30 @@ namespace ACRPortal.Application.service
             }
         }
 
+        // ------------------------------------------------------------------ //
+        //  Unlock User (clears the failed-login-attempt lockout)              //
+        // ------------------------------------------------------------------ //
+        public ApiResponse<EmptyResponse> UnlockUser(string userId)
+        {
+            try
+            {
+                Guid guid;
+                if (!Guid.TryParse(userId, out guid))
+                    return ApiResponse<EmptyResponse>.Fail("Invalid userId format", "BAD_REQUEST");
+
+                if (!_repo.IsUserExists(guid))
+                    return ApiResponse<EmptyResponse>.Fail("User not found", "USER_NOT_FOUND");
+
+                _repo.UnlockUser(guid);
+
+                return ApiResponse<EmptyResponse>.Ok(new EmptyResponse(), "User unlocked successfully");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<EmptyResponse>.Fail("An unexpected error occurred: " + ex.Message, "INTERNAL_ERROR");
+            }
+        }
+
         // ================================================================== //
         //  Private — Geography Validation                                     //
         // ================================================================== //

@@ -350,6 +350,12 @@ namespace ACRPortal.Infrastructure.Adapter
                 new SqlParameter("@userId", userId));
         }
 
+        public void UnlockUser(Guid userId)
+        {
+            const string sql = "UPDATE dbo.users SET failed_login_count = 0, updated_at = GETDATE() WHERE user_id = @userId";
+            ExecuteNonQuery(sql, new SqlParameter("@userId", userId));
+        }
+
         // ================================================================== //
         //  List users                                                         //
         // ================================================================== //
@@ -407,7 +413,8 @@ namespace ACRPortal.Infrastructure.Adapter
                u.created_at,
                u.manager_id,
                ei.identity_value AS email_enc,
-               pi.identity_value AS phone_enc
+               pi.identity_value AS phone_enc,
+               u.failed_login_count
         FROM   dbo.users u
         LEFT   JOIN dbo.user_identities ei ON ei.user_id = u.user_id
                                            AND ei.identity_type = 'EMAIL'
@@ -447,6 +454,7 @@ namespace ACRPortal.Infrastructure.Adapter
                     {
                         string emailEnc = r.IsDBNull(13) ? null : r.GetString(13);
                         string phoneEnc = r.IsDBNull(14) ? null : r.GetString(14);
+                        int failedLoginCount = r.IsDBNull(15) ? 0 : r.GetInt32(15);
 
                         resp.Items.Add(new UserListItem
                         {
@@ -465,6 +473,7 @@ namespace ACRPortal.Infrastructure.Adapter
                             ManagerId = r.IsDBNull(12) ? null : r.GetString(12),
                             Email = emailEnc == null ? null : _security.DecryptWithAes(emailEnc),
                             Phone = phoneEnc == null ? null : _security.DecryptWithAes(phoneEnc),
+                            IsLocked = failedLoginCount >= AuthConstants.MaxFailedLoginAttempts,
                         });
                     }
                 }
@@ -486,7 +495,8 @@ namespace ACRPortal.Infrastructure.Adapter
                        u.dsg_id, u.state_id, u.zone_id, u.circle_id, u.division_id, u.sub_division_id,
                        ei.identity_value AS email_enc,
                        pi.identity_value AS phone_enc,
-                       u.manager_id
+                       u.manager_id,
+                       u.failed_login_count
                 FROM   dbo.users u
                 LEFT   JOIN dbo.user_identities ei ON ei.user_id = u.user_id
                                                    AND ei.identity_type = 'EMAIL'
@@ -525,6 +535,7 @@ namespace ACRPortal.Infrastructure.Adapter
                         Email = emailEnc == null ? null : _security.DecryptWithAes(emailEnc),
                         Phone = phoneEnc == null ? null : _security.DecryptWithAes(phoneEnc),
                         ManagerId = r.IsDBNull(14) ? null : r.GetString(14),
+                        IsLocked = (r.IsDBNull(15) ? 0 : r.GetInt32(15)) >= AuthConstants.MaxFailedLoginAttempts,
                     };
                 }
             }

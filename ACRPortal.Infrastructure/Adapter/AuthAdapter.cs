@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Configuration;
 using ACRPortal.Application.port;
 using ACRPortal.Domain.DTOs.Models;
+using ACRPortal.Domain.Security;
 
 namespace ACRPortal.Infrastructure.Adapter
 {
@@ -11,6 +12,28 @@ namespace ACRPortal.Infrastructure.Adapter
     {
         private readonly string _connStr = ConfigurationManager
             .ConnectionStrings["ACRPortalContext"].ConnectionString;
+        private readonly Security _security = new Security();
+
+        public string GetPhoneForLoginId(string loginId)
+        {
+            const string sql = @"
+                SELECT pi.identity_value
+                FROM   dbo.users u
+                JOIN   dbo.user_identities pi ON pi.user_id = u.user_id
+                                              AND pi.identity_type = 'PHONE'
+                                              AND pi.is_primary = 1
+                WHERE  u.login_id = @login";
+
+            using (var conn = new SqlConnection(_connStr))
+            using (var cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.Add("@login", SqlDbType.VarChar).Value = loginId;
+                conn.Open();
+                object result = cmd.ExecuteScalar();
+                if (result == null || result == DBNull.Value) return null;
+                return _security.DecryptWithAes((string)result);
+            }
+        }
 
         // ------------------------------------------------------------------ //
         //  Login Step 1                                                        //
@@ -20,7 +43,7 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             const string sql = @"
                 SELECT user_id, login_id, password_hash, display_name,
-                       user_status, system_role
+                       user_status, system_role, failed_login_count
                 FROM   dbo.users
                 WHERE  login_id = @login";
 
@@ -50,7 +73,7 @@ namespace ACRPortal.Infrastructure.Adapter
             ExecNonQuery(sql, "@val", SqlDbType.VarChar, identityHash);
         }
 
-        public int CountRecentOtpAttempts(string identityHash, int withinSeconds)
+        public int CountRecentOtpAttempts(string identityHash, string purpose, int withinSeconds)
         {
             // Entire window comparison done in SQL with GETDATE() — no C# DateTime involved.
             // This avoids UTC vs IST mismatch between C# (DateTime.UtcNow) and SQL (GETDATE()=local).
@@ -58,32 +81,35 @@ namespace ACRPortal.Infrastructure.Adapter
                 SELECT COUNT(1)
                 FROM   dbo.otp_challenges
                 WHERE  identity_value = @val
+                  AND  purpose        = @purpose
                   AND  created_at    > DATEADD(SECOND, -@seconds, GETDATE())";
 
             using (var conn = new SqlConnection(_connStr))
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add("@val", SqlDbType.VarChar).Value = identityHash;
+                cmd.Parameters.Add("@purpose", SqlDbType.VarChar).Value = purpose;
                 cmd.Parameters.Add("@seconds", SqlDbType.Int).Value = withinSeconds;
                 conn.Open();
                 return (int)cmd.ExecuteScalar();
             }
         }
 
-        public void SaveOtpChallenge(string identityHash, string otpHashed, string ip, string agent)
+        public void SaveOtpChallenge(string identityHash, string otpHashed, string purpose, string ip, string agent)
         {
             const string sql = @"
                 INSERT INTO dbo.otp_challenges
                     (otp_id, identity_type, identity_value, purpose,
                      otp_hash, expires_at, ip_address, user_agent)
                 VALUES
-                    (NEWID(), 'LOGIN', @val, 'LOGIN',
+                    (NEWID(), 'LOGIN', @val, @purpose,
                      @hash, DATEADD(MINUTE, 5, GETDATE()), @ip, @ua)";
 
             using (var conn = new SqlConnection(_connStr))
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add("@val", SqlDbType.VarChar).Value = identityHash;
+                cmd.Parameters.Add("@purpose", SqlDbType.VarChar).Value = purpose;
                 cmd.Parameters.Add("@hash", SqlDbType.VarChar).Value = otpHashed;
                 cmd.Parameters.Add("@ip", SqlDbType.VarChar).Value = (object)ip ?? DBNull.Value;
                 cmd.Parameters.Add("@ua", SqlDbType.NVarChar).Value = (object)agent ?? DBNull.Value;
@@ -97,13 +123,14 @@ namespace ACRPortal.Infrastructure.Adapter
         // ------------------------------------------------------------------ //
 
         // ip/agent not used in query — kept out of signature (only identity + hash needed)
-        public OtpChallenge GetOtp(string identityHash, string otpHashed)
+        public OtpChallenge GetOtp(string identityHash, string otpHashed, string purpose)
         {
             const string sql = @"
                 SELECT otp_id, expires_at
                 FROM   dbo.otp_challenges
                 WHERE  identity_value = @val
                   AND  otp_hash       = @hash
+                  AND  purpose        = @purpose
                   AND  status         = 'ISSUED'
                   AND  expires_at    > GETDATE()";
 
@@ -112,6 +139,7 @@ namespace ACRPortal.Infrastructure.Adapter
             {
                 cmd.Parameters.Add("@val", SqlDbType.VarChar).Value = identityHash;
                 cmd.Parameters.Add("@hash", SqlDbType.VarChar).Value = otpHashed;
+                cmd.Parameters.Add("@purpose", SqlDbType.VarChar).Value = purpose;
                 conn.Open();
                 using (var dr = cmd.ExecuteReader())
                 {
@@ -237,7 +265,7 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             const string sql = @"
                 SELECT user_id, login_id, password_hash, display_name,
-                       user_status, system_role
+                       user_status, system_role, failed_login_count
                 FROM   dbo.users
                 WHERE  user_id = @uid";
 
@@ -282,12 +310,14 @@ namespace ACRPortal.Infrastructure.Adapter
 
         public void SaveResetToken(string loginId, string resetTokenHash)
         {
-            // Expiry is 30 minutes from now, computed in SQL so timezone is consistent with
-            // the GETDATE() comparison in GetUserByResetToken.
+            // This token is now only ever issued after the user has already proven
+            // ownership via OTP, so it's a short verified-session window (10 min),
+            // not a long-lived emailed link. Expiry computed in SQL so timezone is
+            // consistent with the GETDATE() comparison in GetUserByResetToken.
             const string sql = @"
                 UPDATE dbo.users
                 SET    reset_token        = @token,
-                       reset_token_expiry = DATEADD(MINUTE, 30, GETDATE()),
+                       reset_token_expiry = DATEADD(MINUTE, 10, GETDATE()),
                        updated_at        = GETDATE()
                 WHERE  login_id = @login";
 
@@ -309,7 +339,7 @@ namespace ACRPortal.Infrastructure.Adapter
         {
             const string sql = @"
                 SELECT user_id, login_id, password_hash, display_name,
-                       user_status, system_role
+                       user_status, system_role, failed_login_count
                 FROM   dbo.users
                 WHERE  login_id           = @login
                   AND  reset_token        = @token
@@ -352,8 +382,37 @@ namespace ACRPortal.Infrastructure.Adapter
             PasswordHash = dr.GetString(2),
             DisplayName = dr.IsDBNull(3) ? null : dr.GetString(3),
             UserStatus = dr.GetString(4),
-            SystemRole = dr.GetString(5)
+            SystemRole = dr.GetString(5),
+            FailedLoginCount = dr.GetInt32(6)
         };
+
+        public void IncrementFailedLoginCount(string loginId)
+        {
+            const string sql = @"
+                UPDATE dbo.users
+                SET    failed_login_count = failed_login_count + 1,
+                       updated_at        = GETDATE()
+                WHERE  login_id = @login";
+
+            using (var conn = new SqlConnection(_connStr))
+            using (var cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.Add("@login", SqlDbType.VarChar).Value = loginId;
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public void ResetFailedLoginCount(Guid userId)
+        {
+            const string sql = @"
+                UPDATE dbo.users
+                SET    failed_login_count = 0,
+                       updated_at        = GETDATE()
+                WHERE  user_id = @uid";
+
+            ExecNonQuery(sql, "@uid", SqlDbType.UniqueIdentifier, userId);
+        }
 
         // Single-param non-query helper (.NET 4.5 compatible — no ValueTuple)
         private void ExecNonQuery(string sql, string p1Name, SqlDbType p1Type, object p1Val)

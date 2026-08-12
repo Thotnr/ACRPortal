@@ -89,6 +89,7 @@ namespace ACRPortal.Domain.DTOs.WebToApp
         public string Phone { get; set; }          // nullable, decrypted
         public string ManagerId { get; set; }     // manager's login_id, nullable
         public string CreatedAt { get; set; }     // ISO 8601
+        public bool IsLocked { get; set; }        // true once failed_login_count hits the threshold
     }
 
 
@@ -115,6 +116,8 @@ namespace ACRPortal.Domain.DTOs.WebToApp
 
         // Manager
         public string ManagerId { get; set; }     // manager's login_id, nullable
+
+        public bool IsLocked { get; set; }        // true once failed_login_count hits the threshold
     }
 
     // ------------------------------------------------------------------ //

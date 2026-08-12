@@ -7,12 +7,17 @@ namespace ACRPortal.Application.port
     {
         // Login Step 1
         User GetUserByLoginId(string loginId);
+        string GetPhoneForLoginId(string loginId);
         void MarkExpiredOtpEntries(string identityHash);
-        int CountRecentOtpAttempts(string identityHash, int withinSeconds);
-        void SaveOtpChallenge(string identityHash, string otpHashed, string ip, string agent);
+        int CountRecentOtpAttempts(string identityHash, string purpose, int withinSeconds);
+        void SaveOtpChallenge(string identityHash, string otpHashed, string purpose, string ip, string agent);
+
+        // Account lockout (failed password / failed OTP attempts)
+        void IncrementFailedLoginCount(string loginId);
+        void ResetFailedLoginCount(Guid userId);
 
         // Login Step 2
-        OtpChallenge GetOtp(string identityHash, string otpHashed);
+        OtpChallenge GetOtp(string identityHash, string otpHashed, string purpose);
         void MarkOtpAsVerified(Guid otpId);
         Session CreateSession(Guid userId, string ip, string agent);
         void DeactivateOldSessions(Guid userId);

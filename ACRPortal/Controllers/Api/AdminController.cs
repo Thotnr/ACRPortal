@@ -83,6 +83,17 @@ namespace ACRPortal.Controllers.Api
             return Request.CreateResponse(MapStatus(result.ErrorCode), result);
         }
 
+        // ------------------------------------------------------------------ //
+        //  PATCH api/admin/users/{userId}/unlock                              //
+        // ------------------------------------------------------------------ //
+        [HttpPatch]
+        [Route("users/{userId}/unlock")]
+        public HttpResponseMessage UnlockUser(string userId)
+        {
+            var result = _admin.UnlockUser(userId);
+            return Request.CreateResponse(MapStatus(result.ErrorCode), result);
+        }
+
         // ================================================================== //
         //  Helpers                                                            //
         // ================================================================== //

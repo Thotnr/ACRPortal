@@ -283,6 +283,7 @@ font-weight:600;
 <p class="hero-copy">Access officer appraisal, authority review stages, dashboard insights, and master administration from a modern login flow that matches the refreshed portal interface.</p>
 <ul class="hero-points">
 <li><i class="fas fa-key"></i><span>Use your HRMS login and password to request an OTP for secure authentication.</span></li>
+<li><i class="fas fa-id-badge"></i><span>Use your HRMS id as username and get default password from the IT wing for secure authentication.</span></li>
 <li><i class="fas fa-mobile-alt"></i><span>Verify the OTP sent to your registered contact channel to complete sign-in.</span></li>
 <li><i class="fas fa-unlock-alt"></i><span>Forgot your password? Start the reset flow directly from the same workspace.</span></li>
 </ul>
@@ -331,17 +332,53 @@ font-weight:600;
 
 </div>
 
-<!-- FORGOT PASSWORD -->
+<!-- FORGOT PASSWORD - STEP 1: REQUEST OTP -->
 
 <div id="forgotSection" class="hidden">
 
-<p class="small text-muted">Enter your Login ID to reset password.</p>
+<p class="small text-muted">Enter your Login ID to receive an OTP on your registered mobile number.</p>
 
 <div class="form-group">
 <input type="text" id="forgotUser" class="form-control" placeholder="Enter Login ID">
 </div>
 
-<button class="btn btn-primary btn-block" onclick="sendReset()">Send Reset Link</button>
+<button class="btn btn-primary btn-block" onclick="sendForgotOtp()">Send OTP</button>
+
+<button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
+
+</div>
+
+<!-- FORGOT PASSWORD - STEP 2: VERIFY OTP -->
+
+<div id="forgotOtpSection" class="hidden">
+
+<p class="text-muted small">Enter the OTP sent to your registered mobile number.</p>
+
+<div class="form-group">
+<input type="text" id="forgotOtpCode" class="form-control" placeholder="Enter OTP" maxlength="6">
+</div>
+
+<button class="btn btn-success btn-block" onclick="verifyForgotOtp()">Verify OTP</button>
+
+<button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
+
+</div>
+
+<!-- FORGOT PASSWORD - STEP 3: NEW / CONFIRM PASSWORD -->
+
+<div id="forgotResetSection" class="hidden">
+
+<p class="text-muted small">Set a new password for your account.</p>
+
+<div class="form-group">
+<input type="password" id="forgotNewPassword" class="form-control" placeholder="New Password">
+</div>
+
+<div class="form-group">
+<input type="password" id="forgotConfirmPassword" class="form-control" placeholder="Confirm New Password">
+</div>
+
+<button class="btn btn-success btn-block" onclick="submitNewPassword()">Reset Password</button>
 
 <button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
 
@@ -558,6 +595,8 @@ if(e.which==13) doStep2();
 
 /* FORGOT PASSWORD UI */
 
+var forgotResetToken = null;
+
 function showForgot(){
 
 $("#authStep1").addClass("hidden");
@@ -568,13 +607,25 @@ $("#headerTitle").text("Reset Password");
 
 function backToLogin(){
 
+forgotResetToken = null;
+
+$("#forgotUser").val("");
+$("#forgotOtpCode").val("");
+$("#forgotNewPassword").val("");
+$("#forgotConfirmPassword").val("");
+
 $("#forgotSection").addClass("hidden");
+$("#forgotOtpSection").addClass("hidden");
+$("#forgotResetSection").addClass("hidden");
 $("#authStep1").removeClass("hidden");
 $("#headerTitle").text("Login");
+showError("");
 
 }
 
-function sendReset(){
+/* FORGOT - STEP 1: REQUEST OTP */
+
+function sendForgotOtp(){
 
 showError("");
 
@@ -607,7 +658,146 @@ var res = tryParseJson(xhr.responseText);
 if(res && res.Success){
 
 toastr.success(res.Message);
-$("#forgotUser").val("");
+
+$("#forgotSection").addClass("hidden");
+$("#forgotOtpSection").removeClass("hidden");
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
+
+}
+
+}
+
+});
+
+}
+
+/* FORGOT - STEP 2: VERIFY OTP */
+
+function verifyForgotOtp(){
+
+showError("");
+
+var loginId = $.trim($("#forgotUser").val());
+var otp = $.trim($("#forgotOtpCode").val());
+
+if(!otp){
+showError("Enter OTP");
+toastr.error("Enter OTP");
+return;
+}
+
+setLoading(true);
+
+$.ajax({
+
+url: apiBaseUrl + "forgot-password/verify-otp",
+method: "POST",
+contentType: "application/json",
+
+data: JSON.stringify({
+LoginId: loginId,
+Otp: otp
+}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res = tryParseJson(xhr.responseText);
+
+if(res && res.Success){
+
+forgotResetToken = res.Data.ResetToken;
+
+toastr.success(res.Message);
+
+$("#forgotOtpSection").addClass("hidden");
+$("#forgotResetSection").removeClass("hidden");
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
+
+}
+
+}
+
+});
+
+}
+
+/* FORGOT - STEP 3: NEW / CONFIRM PASSWORD */
+
+function submitNewPassword(){
+
+showError("");
+
+var loginId = $.trim($("#forgotUser").val());
+var newPassword = $("#forgotNewPassword").val();
+var confirmPassword = $("#forgotConfirmPassword").val();
+
+if(!newPassword || !confirmPassword){
+showError("All fields are required");
+toastr.error("All fields are required");
+return;
+}
+
+if(newPassword !== confirmPassword){
+showError("New password and confirm password should be same");
+toastr.error("New password and confirm password should be same");
+return;
+}
+
+if(!forgotResetToken){
+showError("Session expired. Please start again.");
+toastr.error("Session expired. Please start again.");
+return;
+}
+
+setLoading(true);
+
+$.ajax({
+
+url: apiBaseUrl + "reset-password",
+method: "POST",
+contentType: "application/json",
+
+data: JSON.stringify({
+LoginId: loginId,
+ResetToken: forgotResetToken,
+NewPassword: newPassword,
+ConfirmPassword: confirmPassword
+}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res = tryParseJson(xhr.responseText);
+
+if(res && res.Success){
+
+toastr.success(res.Message);
+backToLogin();
 
 }
 else if(res && res.Message){

@@ -4,6 +4,7 @@ using ACRPortal.Application.usecase;
 using ACRPortal.Application.service;
 using ACRPortal.Application.port;
 using ACRPortal.Infrastructure.Adapter;
+using ACRPortal.Infrastructure.Sms;
 
 namespace ACRPortal
 {
@@ -28,6 +29,7 @@ namespace ACRPortal
             // Auth (login, logout, me, change-password, forgot/reset)
             container.RegisterType<IAuthRepoPort, AuthAdapter>();
             container.RegisterType<IAuthUseCase, AuthService>();
+            container.RegisterType<ISmsSender, InstaAlertsSmsSender>();
 
             // Admin masters (designation, state, zone, circle, division, subdivision)
             container.RegisterType<IAdminMastersRepoPort, AdminMastersAdapter>();

@@ -1,4 +1,5 @@
 ﻿using System;
+using ACRPortal.Domain.Security;
 
 namespace ACRPortal.Domain.DTOs.Models
 {
@@ -11,6 +12,8 @@ namespace ACRPortal.Domain.DTOs.Models
         public string SystemRole { get; set; }
         public string UserStatus { get; set; }       // raw: PENDING / ACTIVE / INACTIVE
         public bool IsActive { get { return UserStatus == "ACTIVE"; } }  // computed, read-only
+        public int FailedLoginCount { get; set; }
+        public bool IsLocked { get { return FailedLoginCount >= AuthConstants.MaxFailedLoginAttempts; } }
     }
 
     public class UserIdentity
