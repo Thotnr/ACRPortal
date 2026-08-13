@@ -49,7 +49,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Adapter\Acceptingadapter.cs" />
+    <Compile Include="Adapter\AcrMisAdapter.cs" />
+    <Compile Include="Adapter\AdminAdapter.cs" />
+    <Compile Include="Adapter\AdminMastersAdapter.cs" />
+    <Compile Include="Adapter\AuthAdapter.cs" />
+    <Compile Include="Adapter\Ccaadapter.cs" />
+    <Compile Include="Adapter\DashboardAdaper.cs" />
+    <Compile Include="Adapter\Documentadapter.cs" />
+    <Compile Include="Adapter\OfficerAdapter.cs" />
+    <Compile Include="Adapter\ReportingAdapter.cs" />
+    <Compile Include="Adapter\Reviewingadapter.cs" />
     <Compile Include="Adapter\UserAdapter.cs" />
+    <Compile Include="Sms\InstaAlertsSmsSender.cs" />
     <Compile Include="Class1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

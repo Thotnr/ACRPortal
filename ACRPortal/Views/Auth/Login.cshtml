@@ -1,299 +1,601 @@
 ﻿@{ Layout = null; }
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ACR Portal | Secure Login</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<title>ACR Portal | Login</title>
 
-    <style>
+<link rel="stylesheet" href="@Url.Content("~/assets/js/lib/bootstrap-4-5-2.min.css")">
+<link rel="stylesheet" href="@Url.Content("~/assets/js/lib/toastr.min.css")">
 
-        /* body {
-            margin: 0;
-            height: 100vh;
-            background-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        } */
-        body {
-            margin: 0;
-            height: 100vh;
-            background-image: url('/assets/image/haryana_power.jpg');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-        /* Header */
+<style>
 
-        .header {
-            background: white;
-            height: 70px;
-            display: flex;
-            align-items: center;
-            padding: 0 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
+body{
+margin:0;
+min-height:100vh;
+background:
+linear-gradient(135deg, rgba(10,24,44,0.82), rgba(29,78,216,0.72)),
+url('@Url.Content("~/assets/image/haryana_power.jpg")');
+background-size:cover;
+background-position:center;
+background-repeat:no-repeat;
+font-family:'Segoe UI',sans-serif;
+}
 
-        .logo {
-            height: 40px;
-        }
+/* HEADER */
 
-        /* Center Container */
+.header{
+background:rgba(255,255,255,0.9);
+backdrop-filter:blur(12px);
+height:78px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 28px;
+box-shadow:0 14px 30px rgba(15,23,42,0.12);
+}
 
-        .main-container {
-            height: calc(100vh - 70px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+.logo{
+height:46px;
+display:block;
+filter:drop-shadow(0 8px 18px rgba(29,78,216,0.12));
+}
 
-        /* Login Card */
+.brand-copy{
+display:flex;
+flex-direction:column;
+}
 
-        .auth-container {
-            width: 400px;
-            background: white;
-            padding: 35px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
+.brand-title{
+font-size:18px;
+font-weight:700;
+line-height:1.1;
+color:#102542;
+}
 
-        .hidden {
-            display: none;
-        }
+.brand-subtitle{
+font-size:12px;
+font-weight:600;
+letter-spacing:.05em;
+text-transform:uppercase;
+color:#64748b;
+}
 
-        .btn-custom {
-            background-color: #004a99;
-            color: white;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            border: none;
-        }
+/* MAIN */
 
-        .btn-custom:hover {
-            background-color: #0056b3;
-            color: white;
-            box-shadow: 0 6px 15px rgba(0, 74, 153, 0.4);
-        }
+.main-container{
+min-height:calc(100vh - 78px);
+display:flex;
+align-items:center;
+justify-content:center;
+padding:32px 20px;
+}
 
-        .btn-custom:active {
-            background-color: #003d85;
-            color: white;
-        }
+.auth-shell{
+width:min(1120px, 100%);
+display:grid;
+grid-template-columns:minmax(0, 560px) minmax(380px, 460px);
+gap:28px;
+align-items:stretch;
+justify-content:center;
+}
 
-        .forgot-link {
-            font-size: 13px;
-            cursor: pointer;
-            color: #007bff;
-        }
+.auth-hero{
+position:relative;
+overflow:hidden;
+border-radius:30px;
+padding:36px;
+background:
+radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 28%),
+linear-gradient(135deg, rgba(16,37,66,0.9) 0%, rgba(29,78,216,0.82) 58%, rgba(6,182,212,0.76) 100%);
+box-shadow:0 30px 60px rgba(10,24,44,0.3);
+color:#fff;
+}
 
-            .forgot-link:hover {
-                text-decoration: underline;
-            }
-    </style>
+.auth-hero:after{
+content:"";
+position:absolute;
+right:-50px;
+top:-70px;
+width:220px;
+height:220px;
+border-radius:50%;
+border:1px solid rgba(255,255,255,0.16);
+background:rgba(255,255,255,0.06);
+}
+
+.hero-copy{
+max-width:520px;
+margin:0;
+font-size:17px;
+font-weight:600;
+line-height:1.8;
+color:rgba(255,255,255,0.84);
+}
+
+.hero-points{
+margin:28px 0 0;
+padding:0;
+list-style:none;
+display:grid;
+gap:14px;
+}
+
+.hero-points li{
+display:flex;
+align-items:flex-start;
+gap:12px;
+padding:14px 16px;
+border-radius:18px;
+background:rgba(255,255,255,0.08);
+border:1px solid rgba(255,255,255,0.1);
+}
+
+.hero-points i{
+margin-top:3px;
+}
+
+.hero-points span{
+line-height:1.6;
+}
+
+/* LOGIN CARD */
+
+.auth-container{
+width:100%;
+max-width:460px;
+justify-self:center;
+background:rgba(255,255,255,0.96);
+padding:34px 32px;
+border-radius:28px;
+box-shadow:0 24px 50px rgba(10,24,44,0.24);
+border:1px solid rgba(255,255,255,0.78);
+backdrop-filter:blur(12px);
+}
+
+.auth-title{
+font-size:30px;
+font-weight:700;
+line-height:1.15;
+color:#102542;
+}
+
+.auth-subtitle{
+margin:10px 0 0;
+font-size:14px;
+line-height:1.7;
+color:#667085;
+}
+
+.hidden{
+display:none;
+}
+
+#errMsg{
+min-height:20px;
+}
+
+.forgot-link{
+font-size:13px;
+cursor:pointer;
+color:#1d4ed8;
+font-weight:600;
+}
+
+.forgot-link:hover{
+text-decoration:underline;
+}
+
+.form-control{
+min-height:50px;
+border-radius:16px;
+border:1px solid rgba(15,23,42,0.12);
+padding:12px 14px;
+}
+
+.form-control:focus{
+border-color:#93c5fd;
+box-shadow:0 0 0 .2rem rgba(37,99,235,.12);
+}
+
+.btn-custom{
+background:linear-gradient(135deg, #15314b, #2563eb);
+color:white;
+border:none;
+border-radius:16px;
+font-weight:700;
+padding:13px 16px;
+box-shadow:0 16px 28px rgba(37,99,235,0.22);
+}
+
+.btn-custom:hover{
+background:linear-gradient(135deg, #102542, #1d4ed8);
+color:#fff;
+}
+
+.btn-success.btn-block,
+.btn-primary.btn-block{
+border-radius:16px;
+font-weight:700;
+padding:13px 16px;
+}
+
+.btn-link.btn-block{
+font-weight:600;
+}
+
+@@media (max-width: 991.98px){
+    .auth-shell{
+        grid-template-columns:1fr;
+    }
+
+    .auth-container{
+        justify-self:stretch;
+        max-width:none;
+    }
+}
+
+@@media (max-width: 767.98px){
+    .header{
+        height:auto;
+        padding:16px;
+    }
+
+    .brand-subtitle{
+        display:none;
+    }
+
+    .main-container{
+        padding:20px 14px;
+    }
+
+    .auth-hero,
+    .auth-container{
+        border-radius:24px;
+        padding:24px 22px;
+    }
+}
+
+</style>
 </head>
 
 <body>
 
-    <!-- HEADER -->
+<!-- HEADER -->
 
-    <div class="header">
-        <img src="~/assets/image/dhbvn_logo.png" class="logo">
-    </div>
+<div class="header">
+<div class="d-flex align-items-center" style="gap:14px;">
+<img src="@Url.Content("~/assets/image/dhbvn_logo.png")" class="logo">
+<div class="brand-copy">
+<span class="brand-title">ACR Portal</span>
+<span class="brand-subtitle">Performance Workflow System</span>
+</div>
+</div>
+</div>
 
+<!-- MAIN LOGIN -->
 
-    <!-- MAIN LOGIN AREA -->
+<div class="main-container">
 
-    <div class="main-container">
+<div class="auth-shell">
 
-        <div class="auth-container">
+<div class="auth-hero">
+<p class="hero-copy">Access officer appraisal, authority review stages, dashboard insights, and master administration from a modern login flow that matches the refreshed portal interface.</p>
+<ul class="hero-points">
+<li><i class="fas fa-key"></i><span>Use your HRMS login and password to request an OTP for secure authentication.</span></li>
+<li><i class="fas fa-id-badge"></i><span>Use your HRMS id as username and get default password from the IT wing for secure authentication.</span></li>
+<li><i class="fas fa-mobile-alt"></i><span>Verify the OTP sent to your registered contact channel to complete sign-in.</span></li>
+<li><i class="fas fa-unlock-alt"></i><span>Forgot your password? Start the reset flow directly from the same workspace.</span></li>
+</ul>
+</div>
 
-            <h4 class="text-center mb-4" id="headerTitle">Login</h4>
+<div class="auth-container">
 
+<div class="mb-4">
+<h4 class="auth-title" id="headerTitle">Login</h4>
+<p class="auth-subtitle">Enter your credentials to continue to the ACR Portal.</p>
+</div>
 
-            <!-- STEP 1 -->
+<!-- STEP 1 -->
 
-            <div id="authStep1">
+<div id="authStep1">
 
-                <div class="form-group">
-                    <input type="text" id="loginId" class="form-control" placeholder="Enter Login ID" value="rahul_99">
-                </div>
+<div class="form-group">
+<input type="text" id="loginId" class="form-control" placeholder="Enter Login ID">
+</div>
 
-                <div class="form-group">
-                    <input type="password" id="pwd" class="form-control" placeholder="Enter Password" value="welcome@123">
-                </div>
+<div class="form-group">
+<input type="password" id="pwd" class="form-control" placeholder="Enter Password">
+</div>
 
-                <div class="text-right mb-3">
-                    <span class="forgot-link" onclick="showForgot()">Forgot Password?</span>
-                </div>
+<div class="text-right mb-3">
+<span class="forgot-link" onclick="showForgot()">Forgot Password?</span>
+</div>
 
-                <button class="btn btn-custom btn-block" onclick="doStep1()">Get OTP</button>
+<button class="btn btn-custom btn-block" onclick="doStep1()">Get OTP</button>
 
-            </div>
+</div>
 
+<!-- STEP 2 -->
 
-            <!-- STEP 2 -->
+<div id="authStep2" class="hidden">
 
-            <div id="authStep2" class="hidden">
+<p class="text-muted small">Enter the OTP sent to your registered mobile/email.</p>
 
-                <p class="text-muted small">Enter the 5-digit OTP sent to your registered mobile/email.</p>
+<div class="form-group">
+<input type="text" id="otpCode" class="form-control" placeholder="Enter OTP" maxlength="6">
+</div>
 
-                <div class="form-group">
-                    <input type="text" id="otpCode" class="form-control" placeholder="Enter OTP">
-                </div>
+<button class="btn btn-success btn-block" onclick="doStep2()">Verify & Login</button>
 
-                <button class="btn btn-success btn-block" onclick="doStep2()">Verify & Login</button>
+<button class="btn btn-link btn-block" onclick="resetToStep1()">Back</button>
 
-            </div>
+</div>
 
+<!-- FORGOT PASSWORD - STEP 1: REQUEST OTP -->
 
-            <!-- SUCCESS -->
+<div id="forgotSection" class="hidden">
 
-            <div id="authSuccess" class="hidden text-center">
+<p class="small text-muted">Enter your Login ID to receive an OTP on your registered mobile number.</p>
 
-                <div class="display-4 text-success">✔</div>
+<div class="form-group">
+<input type="text" id="forgotUser" class="form-control" placeholder="Enter Login ID">
+</div>
 
-                <h5>Login Successful!</h5>
+<button class="btn btn-primary btn-block" onclick="sendForgotOtp()">Send OTP</button>
 
-                <hr>
+<button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
 
-                <p class="small text-left">Your Session Token:</p>
+</div>
 
-<textarea id="tokenOut" class="form-control mb-3" rows="4" readonly></textarea>
+<!-- FORGOT PASSWORD - STEP 2: VERIFY OTP -->
 
-                <button class="btn btn-secondary btn-sm" onclick="location.reload()">Back to Login</button>
+<div id="forgotOtpSection" class="hidden">
 
-            </div>
+<p class="text-muted small">Enter the OTP sent to your registered mobile number.</p>
 
+<div class="form-group">
+<input type="text" id="forgotOtpCode" class="form-control" placeholder="Enter OTP" maxlength="6">
+</div>
 
-            <!-- FORGOT PASSWORD -->
+<button class="btn btn-success btn-block" onclick="verifyForgotOtp()">Verify OTP</button>
 
-            <div id="forgotSection" class="hidden">
+<button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
 
-                <p class="small text-muted">Enter your Login ID to reset password.</p>
+</div>
 
-                <div class="form-group">
-                    <input type="text" id="forgotUser" class="form-control" placeholder="Enter Login ID">
-                </div>
+<!-- FORGOT PASSWORD - STEP 3: NEW / CONFIRM PASSWORD -->
 
-                <button class="btn btn-primary btn-block" onclick="sendReset()">Send Reset Link</button>
+<div id="forgotResetSection" class="hidden">
 
-                <button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
+<p class="text-muted small">Set a new password for your account.</p>
 
-            </div>
+<div class="form-group">
+<input type="password" id="forgotNewPassword" class="form-control" placeholder="New Password">
+</div>
 
+<div class="form-group">
+<input type="password" id="forgotConfirmPassword" class="form-control" placeholder="Confirm New Password">
+</div>
 
-            <div id="errMsg" class="text-danger small mt-3 text-center"></div>
+<button class="btn btn-success btn-block" onclick="submitNewPassword()">Reset Password</button>
 
-        </div>
+<button class="btn btn-link btn-block" onclick="backToLogin()">Back to Login</button>
 
-    </div>
+</div>
 
+<!-- LOADING -->
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<div id="loadingMsg" class="hidden text-center mt-3">
+<div class="spinner-border spinner-border-sm text-primary"></div>
+<span class="ml-2 small">Please wait...</span>
+</div>
 
-    <script>
+<div id="errMsg" class="text-danger small mt-3 text-center"></div>
 
-var apiBaseUrl = '@Url.Content("~/api/")';
+</div>
+</div>
+</div>
 
+<script src="@Url.Content("~/assets/js/lib/jquery-3.7.1.min.js")"></script>
+<script src="@Url.Content("~/assets/js/lib/toastr.min.js")"></script>
 
-function showError(msg){
-$("#errMsg").text(msg || "");
+<script>
+
+/* TOASTR */
+
+toastr.options={
+positionClass:"toast-top-right",
+timeOut:"5000",
+progressBar:true
+};
+
+var apiBaseUrl='@Url.Content("~/api/auth/")';
+
+/* LOADING */
+
+function setLoading(on){
+
+if(on){
+$("#loadingMsg").removeClass("hidden");
+$("button").prop("disabled",true);
+}
+else{
+$("#loadingMsg").addClass("hidden");
+$("button").prop("disabled",false);
 }
 
+}
 
-/* ---------------------------
-   LOGIN STEP 1 (UNCHANGED)
---------------------------- */
+/* ERROR */
+
+function showError(msg){
+$("#errMsg").text(msg||"");
+}
+
+/* SAFE JSON PARSER */
+
+function tryParseJson(text){
+try{ return JSON.parse(text);}
+catch(e){ return null;}
+}
+
+/* RESET */
+
+function resetToStep1(){
+
+$("#authStep2").addClass("hidden");
+$("#authStep1").removeClass("hidden");
+
+}
+
+/* LOGIN STEP 1 */
 
 function doStep1(){
 
 showError("");
 
-const payload={
-LoginId:$("#loginId").val(),
-Password:$("#pwd").val()
-};
+var loginId=$.trim($("#loginId").val());
+var password=$("#pwd").val();
+
+if(!loginId || !password){
+
+showError("Please enter Login ID and Password.");
+toastr.error("Please enter Login ID and Password");
+return;
+
+}
+
+setLoading(true);
 
 $.ajax({
-url:apiBaseUrl+"user/login/step1",
-method:"POST",
-contentType:"application/json; charset=utf-8",
-data:JSON.stringify(payload),
 
-success:function(res){
+url:apiBaseUrl+"login/step1",
+method:"POST",
+contentType:"application/json",
+data:JSON.stringify({LoginId:loginId,Password:password}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res=tryParseJson(xhr.responseText);
 
 if(res && res.Success){
+
+toastr.success("OTP sent successfully");
 
 $("#authStep1").addClass("hidden");
 $("#authStep2").removeClass("hidden");
-$("#headerTitle").text("OTP Verification");
 
-}else{
+}
+else if(res && res.Message){
 
-showError((res && res.Message)?res.Message:"Step 1 failed.");
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
 
 }
 
-},
-
-error:function(){
-showError("Step 1 failed. Check API base URL / IIS virtual directory.");
 }
 
 });
 
 }
 
-
-/* ---------------------------
-   LOGIN STEP 2 (UNCHANGED)
---------------------------- */
+/* LOGIN STEP 2 */
 
 function doStep2(){
-
+debugger;
 showError("");
 
-const payload={
-LoginId:$("#loginId").val(),
-Otp:$("#otpCode").val()
-};
+var loginId=$.trim($("#loginId").val());
+var otp=$.trim($("#otpCode").val());
+
+if(!otp){
+
+showError("Enter OTP");
+return;
+
+}
+
+setLoading(true);
 
 $.ajax({
-url:apiBaseUrl+"user/login/step2",
-method:"POST",
-contentType:"application/json; charset=utf-8",
-data:JSON.stringify(payload),
 
-success:function(res){
+url:apiBaseUrl+"login/step2",
+method:"POST",
+contentType:"application/json",
+data:JSON.stringify({LoginId:loginId,Otp:otp}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res=tryParseJson(xhr.responseText);
 
 if(res && res.Success){
 
-$("#authStep2").addClass("hidden");
-$("#authSuccess").removeClass("hidden");
-$("#headerTitle").text("Dashboard Access");
+var token = res.Data.Token;
+var userRole = res.Data.SystemRole;
+debugger;
+localStorage.setItem("token", token);
+localStorage.setItem("displayName", res.Data.DisplayName);
+localStorage.setItem("role", userRole);
+localStorage.setItem("tokenExpiry", res.Data.ExpiresAt);
 
-$("#tokenOut").val(res.Data && res.Data.Token ? res.Data.Token : "");
+document.cookie="jwt_token="+token+"; path=/; SameSite=Strict";
+toastr.success("Login successful");
 
-}else{
+// Redirect based on user role
+var redirectUrl = '@Url.Action("Dashboard","Home")'; // Default for ADMIN/CCA
 
-showError((res && res.Message)?res.Message:"Step 2 failed.");
+if(userRole === 'EMPLOYEE') {
+redirectUrl = '@Url.Action("Officer","Home")';
+}
+
+setTimeout(function(){
+window.location.href = redirectUrl;
+},500);
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
 
 }
 
-},
-
-error:function(){
-showError("Step 2 failed. Check API base URL / backend logs.");
 }
 
 });
 
 }
 
+/* ENTER KEY */
 
-/* ---------------------------
-   FORGOT PASSWORD UI
---------------------------- */
+$("#pwd").keypress(function(e){
+if(e.which==13) doStep1();
+});
+
+$("#otpCode").keypress(function(e){
+if(e.which==13) doStep2();
+});
+
+/* FORGOT PASSWORD UI */
+
+var forgotResetToken = null;
 
 function showForgot(){
 
@@ -305,19 +607,219 @@ $("#headerTitle").text("Reset Password");
 
 function backToLogin(){
 
+forgotResetToken = null;
+
+$("#forgotUser").val("");
+$("#forgotOtpCode").val("");
+$("#forgotNewPassword").val("");
+$("#forgotConfirmPassword").val("");
+
 $("#forgotSection").addClass("hidden");
+$("#forgotOtpSection").addClass("hidden");
+$("#forgotResetSection").addClass("hidden");
 $("#authStep1").removeClass("hidden");
-$("#headerTitle").text("Secure Portal Login");
+$("#headerTitle").text("Login");
+showError("");
 
 }
 
-function sendReset(){
+/* FORGOT - STEP 1: REQUEST OTP */
 
-alert("Password reset link sent (demo)");
+function sendForgotOtp(){
+
+showError("");
+
+var loginId = $.trim($("#forgotUser").val());
+
+if(!loginId){
+showError("Enter Login ID");
+toastr.error("Enter Login ID");
+return;
+}
+
+setLoading(true);
+
+$.ajax({
+
+url: apiBaseUrl + "forgot-password",
+method: "POST",
+contentType: "application/json",
+
+data: JSON.stringify({
+LoginId: loginId
+}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res = tryParseJson(xhr.responseText);
+
+if(res && res.Success){
+
+toastr.success(res.Message);
+
+$("#forgotSection").addClass("hidden");
+$("#forgotOtpSection").removeClass("hidden");
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
 
 }
 
-    </script>
+}
+
+});
+
+}
+
+/* FORGOT - STEP 2: VERIFY OTP */
+
+function verifyForgotOtp(){
+
+showError("");
+
+var loginId = $.trim($("#forgotUser").val());
+var otp = $.trim($("#forgotOtpCode").val());
+
+if(!otp){
+showError("Enter OTP");
+toastr.error("Enter OTP");
+return;
+}
+
+setLoading(true);
+
+$.ajax({
+
+url: apiBaseUrl + "forgot-password/verify-otp",
+method: "POST",
+contentType: "application/json",
+
+data: JSON.stringify({
+LoginId: loginId,
+Otp: otp
+}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res = tryParseJson(xhr.responseText);
+
+if(res && res.Success){
+
+forgotResetToken = res.Data.ResetToken;
+
+toastr.success(res.Message);
+
+$("#forgotOtpSection").addClass("hidden");
+$("#forgotResetSection").removeClass("hidden");
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
+
+}
+
+}
+
+});
+
+}
+
+/* FORGOT - STEP 3: NEW / CONFIRM PASSWORD */
+
+function submitNewPassword(){
+
+showError("");
+
+var loginId = $.trim($("#forgotUser").val());
+var newPassword = $("#forgotNewPassword").val();
+var confirmPassword = $("#forgotConfirmPassword").val();
+
+if(!newPassword || !confirmPassword){
+showError("All fields are required");
+toastr.error("All fields are required");
+return;
+}
+
+if(newPassword !== confirmPassword){
+showError("New password and confirm password should be same");
+toastr.error("New password and confirm password should be same");
+return;
+}
+
+if(!forgotResetToken){
+showError("Session expired. Please start again.");
+toastr.error("Session expired. Please start again.");
+return;
+}
+
+setLoading(true);
+
+$.ajax({
+
+url: apiBaseUrl + "reset-password",
+method: "POST",
+contentType: "application/json",
+
+data: JSON.stringify({
+LoginId: loginId,
+ResetToken: forgotResetToken,
+NewPassword: newPassword,
+ConfirmPassword: confirmPassword
+}),
+
+complete:function(xhr){
+
+setLoading(false);
+
+var res = tryParseJson(xhr.responseText);
+
+if(res && res.Success){
+
+toastr.success(res.Message);
+backToLogin();
+
+}
+else if(res && res.Message){
+
+showError(res.Message);
+toastr.error(res.Message);
+
+}
+else{
+
+showError("Server error");
+toastr.error("Server error");
+
+}
+
+}
+
+});
+
+}
+
+</script>
 
 </body>
 </html>

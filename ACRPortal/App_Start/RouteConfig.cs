@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+﻿using System.Web.Mvc;
 using System.Web.Routing;
 
 namespace ACRPortal
@@ -13,11 +9,76 @@ namespace ACRPortal
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
+            // Login
+            routes.MapRoute(
+                name: "Login",
+                url: "Login/{action}",
+                defaults: new { controller = "Login", action = "UserAuth" }
+            );
+
+            // Admin dashboard → DashboardController.Admin()
+            routes.MapRoute(
+                name: "AdminDashboard",
+                url: "Admin/Dashboard",
+                defaults: new { controller = "Dashboard", action = "Admin" }
+            );
+
+            // CCA dashboard → DashboardController.CCA()
+            routes.MapRoute(
+                name: "CCADashboard",
+                url: "CCA/Dashboard",
+                defaults: new { controller = "Dashboard", action = "CCA" }
+            );
+
+            routes.MapRoute(
+                name: "OfficerDashboard",
+                url: "Officer/Dashboard",
+                defaults: new { controller = "Dashboard", action = "Officer" }
+            );
+
+            routes.MapRoute(
+                name: "ReportingDashboard",
+                url: "Reporting/Dashboard",
+                defaults: new { controller = "Dashboard", action = "Reporting" }
+            );
+
+            routes.MapRoute(
+                name: "ReviewingDashboard",
+                url: "Reviewing/Dashboard",
+                defaults: new { controller = "Dashboard", action = "Reviewing" }
+            );
+
+            routes.MapRoute(
+                name: "AcceptingDashboard",
+                url: "Accepting/Dashboard",
+                defaults: new { controller = "Dashboard", action = "Accepting" }
+            );
+
+            routes.MapRoute(
+                name: "Masters",
+                url: "Masters/{action}",
+                defaults: new { controller = "Masters", action = "State" },
+                constraints: new { action = "Designation|State|Zone|Circle|Division|SubDivision|AddEmployee" }
+            );
+
+            routes.MapRoute(
+                name: "LegacyHomeMasters",
+                url: "Home/{action}",
+                defaults: new { controller = "Masters" },
+                constraints: new { action = "Designation|State|Zone|Circle|Division|SubDivision|AddEmployee" }
+            );
+
+            _ = routes.MapRoute(
+                name: "FileUpload",
+                url: "Web/Shared/FileUploadHandler",  // ✅ Fixed
+                defaults: new { controller = "Shared", action = "FileUploadHandler" }
+            );
+
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",
-                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }
-            );
+                defaults: new { controller = "Dashboard", action = "Index", id = UrlParameter.Optional }
+            );         
         }
     }
 }
