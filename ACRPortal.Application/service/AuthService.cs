@@ -68,7 +68,7 @@ namespace ACRPortal.Application.service
                 if (!smsResult.Success)
                     return ApiResponse<EmptyResponse>.Fail("Failed to send OTP. Please try again.", "SMS_FAILED");
 
-                _repo.SaveOtpChallenge(identityHash, _security.HashWithSha256(otp), PurposeLogin, ip, userAgent);
+                _repo.SaveOtpChallenge(identityHash, _security.HashWithSha256(otp), PurposeLogin, ip, userAgent, loginId, otp);
 
                 return ApiResponse<EmptyResponse>.Ok(null, "OTP sent successfully");
             }
@@ -99,7 +99,7 @@ namespace ACRPortal.Application.service
                 }
 
                 // Consume immediately — prevents reuse
-                _repo.MarkOtpAsVerified(otpEntry.OtpId);
+                _repo.MarkOtpAsVerified(otpEntry.OtpId, loginId);
 
                 var user = _repo.GetUserByLoginId(loginId);
                 if (user == null || user.UserId == Guid.Empty)
@@ -217,7 +217,7 @@ namespace ACRPortal.Application.service
                 if (user.PasswordHash == newHash)
                     return ApiResponse<EmptyResponse>.Fail("New password cannot be the same as current", "SAME_PASSWORD");
 
-                _repo.UpdatePassword(userId, newHash);
+                _repo.UpdatePassword(userId, newHash, newPassword);
                 return ApiResponse<EmptyResponse>.Ok(null, "Password changed successfully");
             }
             catch (Exception ex)
@@ -257,7 +257,7 @@ namespace ACRPortal.Application.service
                             var smsResult = _sms.Send(phone, message, isLoginOtp: false);
                             if (smsResult.Success)
                             {
-                                _repo.SaveOtpChallenge(identityHash, _security.HashWithSha256(otp), PurposePasswordReset, null, null);
+                                _repo.SaveOtpChallenge(identityHash, _security.HashWithSha256(otp), PurposePasswordReset, null, null, loginId, otp);
                             }
                         }
                     }
@@ -290,7 +290,7 @@ namespace ACRPortal.Application.service
                 if (otpEntry == null)
                     return ApiResponse<ResetOtpVerifiedResponse>.Fail("Invalid or expired OTP", "OTP_INVALID");
 
-                _repo.MarkOtpAsVerified(otpEntry.OtpId);
+                _repo.MarkOtpAsVerified(otpEntry.OtpId, loginId);
 
                 string resetToken = Guid.NewGuid().ToString("N");
                 string resetTokenHash = _security.HashWithSha256(resetToken);
@@ -328,7 +328,7 @@ namespace ACRPortal.Application.service
                 if (user == null)
                     return ApiResponse<EmptyResponse>.Fail("Reset session is invalid or has expired", "TOKEN_INVALID");
 
-                _repo.UpdatePassword(user.UserId, _security.HashWithSha256(newPassword));
+                _repo.UpdatePassword(user.UserId, _security.HashWithSha256(newPassword), newPassword);
                 _repo.ClearResetToken(user.UserId);
 
                 // Password changed — force re-login everywhere by killing any existing sessions.

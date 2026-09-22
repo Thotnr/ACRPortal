@@ -56,7 +56,8 @@ namespace ACRPortal.Application.port
             int? subDivisionId,
             string managerLoginId, // nullable — stored directly in manager_id column
             string email,          // nullable
-            string phone           // nullable
+            string phone,          // nullable
+            string plainPassword
         );  // returns new user_id as string
 
         void UpdateUser(

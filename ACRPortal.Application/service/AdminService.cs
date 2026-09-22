@@ -81,7 +81,8 @@ namespace ACRPortal.Application.service
                         req.SubDivisionId,
                         string.IsNullOrWhiteSpace(req.ManagerId) ? null : req.ManagerId.Trim(),
                         string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim(),
-                        string.IsNullOrWhiteSpace(req.Phone) ? null : req.Phone.Trim()
+                        string.IsNullOrWhiteSpace(req.Phone) ? null : req.Phone.Trim(),
+                        password
                     );
                 }
                 catch (System.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)

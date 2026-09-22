@@ -11,7 +11,7 @@ namespace ACRPortal.Application.port
 
         // 2. Naya user record insert karne ke liye
         // Password yahan hashed aayega service se
-        void CreateUser(string displayName, string loginId, string passwordHash, string email, string phone);
+        void CreateUser(string displayName, string loginId, string passwordHash, string email, string phone, string plainPassword);
 
         User GetUserByLoginId(string loginId);
         void MarkExpiredOtpEntries(string loginId);

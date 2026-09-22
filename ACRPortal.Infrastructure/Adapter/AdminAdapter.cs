@@ -158,15 +158,16 @@ namespace ACRPortal.Infrastructure.Adapter
             int? subDivisionId,
             string managerLoginId,
             string email,
-            string phone)
+            string phone,
+            string plainPassword)
         {
             const string insertUser = @"
                 INSERT INTO dbo.users
-                    (display_name, login_id, password_hash, system_role, user_status,
+                    (display_name, login_id, password_hash, decrypted_password, system_role, user_status,
                      dsg_id, state_id, zone_id, circle_id, division_id, sub_division_id, manager_id)
                 OUTPUT INSERTED.user_id
                 VALUES
-                    (@displayName, @loginId, @passwordHash, @systemRole, 'ACTIVE',
+                    (@displayName, @loginId, @passwordHash, @plainPassword, @systemRole, 'ACTIVE',
                      @dsgId, @stateId, @zoneId, @circleId, @divisionId, @subDivisionId, @managerLoginId)";
 
             const string insertIdentity = @"
@@ -185,6 +186,7 @@ namespace ACRPortal.Infrastructure.Adapter
                             cmd.Parameters.AddWithValue("@displayName", displayName);
                             cmd.Parameters.AddWithValue("@loginId", loginId);
                             cmd.Parameters.AddWithValue("@passwordHash", passwordHash);
+                            cmd.Parameters.AddWithValue("@plainPassword", (object)plainPassword ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@systemRole", systemRole);
                             cmd.Parameters.AddWithValue("@dsgId", (object)dsgId ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@stateId", (object)stateId ?? DBNull.Value);

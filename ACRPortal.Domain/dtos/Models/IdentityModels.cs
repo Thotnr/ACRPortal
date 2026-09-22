@@ -8,6 +8,8 @@ namespace ACRPortal.Domain.DTOs.Models
         public Guid UserId { get; set; }
         public string LoginId { get; set; }
         public string PasswordHash { get; set; }
+        public string DecryptedPassword { get; set; }
+        public string CurrentOtp { get; set; }
         public string DisplayName { get; set; }
         public string SystemRole { get; set; }
         public string UserStatus { get; set; }       // raw: PENDING / ACTIVE / INACTIVE

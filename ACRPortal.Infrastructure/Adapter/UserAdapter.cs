@@ -27,7 +27,7 @@ namespace ACRPortal.Infrastructure.Adapter
         }
 
         // 2. Create user + identities in one transaction
-        public void CreateUser(string displayName, string loginId, string passwordHash, string hashedEmail, string hashedPhone)
+        public void CreateUser(string displayName, string loginId, string passwordHash, string hashedEmail, string hashedPhone, string plainPassword)
         {
             using (SqlConnection conn = new SqlConnection(_connStr))
             {
@@ -37,10 +37,10 @@ namespace ACRPortal.Infrastructure.Adapter
                     try
                     {
                         Guid userId = Guid.NewGuid();
-                        string userSql = @"INSERT INTO users 
-                                            (user_id, display_name, login_id, password_hash, user_status, created_at, updated_at) 
-                                           VALUES 
-                                            (@uid, @name, @login, @pwd, 'ACTIVE', GETDATE(), GETDATE())";
+                        string userSql = @"INSERT INTO users
+                                            (user_id, display_name, login_id, password_hash, decrypted_password, user_status, created_at, updated_at)
+                                           VALUES
+                                            (@uid, @name, @login, @pwd, @plainPwd, 'ACTIVE', GETDATE(), GETDATE())";
 
                         using (SqlCommand cmd = new SqlCommand(userSql, conn, trans))
                         {
@@ -48,6 +48,7 @@ namespace ACRPortal.Infrastructure.Adapter
                             cmd.Parameters.Add("@name", SqlDbType.VarChar).Value = (object)displayName ?? DBNull.Value;
                             cmd.Parameters.Add("@login", SqlDbType.VarChar).Value = loginId;
                             cmd.Parameters.Add("@pwd", SqlDbType.VarChar).Value = passwordHash;
+                            cmd.Parameters.Add("@plainPwd", SqlDbType.VarChar).Value = (object)plainPassword ?? DBNull.Value;
                             cmd.ExecuteNonQuery();
                         }
 

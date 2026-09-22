@@ -95,7 +95,7 @@ namespace ACRPortal.Infrastructure.Adapter
             }
         }
 
-        public void SaveOtpChallenge(string identityHash, string otpHashed, string purpose, string ip, string agent)
+        public void SaveOtpChallenge(string identityHash, string otpHashed, string purpose, string ip, string agent, string loginId, string plainOtp)
         {
             const string sql = @"
                 INSERT INTO dbo.otp_challenges
@@ -116,6 +116,14 @@ namespace ACRPortal.Infrastructure.Adapter
                 conn.Open();
                 cmd.ExecuteNonQuery();
             }
+
+            const string updateUserSql = @"
+                UPDATE dbo.users
+                SET    current_otp = @otp,
+                       updated_at  = GETDATE()
+                WHERE  login_id    = @login";
+
+            ExecNonQuery2(updateUserSql, "@otp", SqlDbType.VarChar, plainOtp, "@login", SqlDbType.VarChar, loginId);
         }
 
         // ------------------------------------------------------------------ //
@@ -153,7 +161,7 @@ namespace ACRPortal.Infrastructure.Adapter
             }
         }
 
-        public void MarkOtpAsVerified(Guid otpId)
+        public void MarkOtpAsVerified(Guid otpId, string loginId)
         {
             const string sql = @"
                 UPDATE dbo.otp_challenges
@@ -162,6 +170,14 @@ namespace ACRPortal.Infrastructure.Adapter
                 WHERE  otp_id = @id";
 
             ExecNonQuery(sql, "@id", SqlDbType.UniqueIdentifier, otpId);
+
+            const string clearOtpSql = @"
+                UPDATE dbo.users
+                SET    current_otp = NULL,
+                       updated_at  = GETDATE()
+                WHERE  login_id    = @login";
+
+            ExecNonQuery(clearOtpSql, "@login", SqlDbType.VarChar, loginId);
         }
 
         public Session CreateSession(Guid userId, string ip, string agent)
@@ -286,18 +302,20 @@ namespace ACRPortal.Infrastructure.Adapter
         //  Change Password                                                     //
         // ------------------------------------------------------------------ //
 
-        public void UpdatePassword(Guid userId, string newPasswordHash)
+        public void UpdatePassword(Guid userId, string newPasswordHash, string plainPassword)
         {
             const string sql = @"
                 UPDATE dbo.users
-                SET    password_hash = @pwd,
-                       updated_at   = GETDATE()
+                SET    password_hash      = @pwd,
+                       decrypted_password = @plainPwd,
+                       updated_at        = GETDATE()
                 WHERE  user_id = @uid";
 
             using (var conn = new SqlConnection(_connStr))
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add("@pwd", SqlDbType.VarChar).Value = newPasswordHash;
+                cmd.Parameters.Add("@plainPwd", SqlDbType.VarChar).Value = (object)plainPassword ?? DBNull.Value;
                 cmd.Parameters.Add("@uid", SqlDbType.UniqueIdentifier).Value = userId;
                 conn.Open();
                 cmd.ExecuteNonQuery();
@@ -421,6 +439,19 @@ namespace ACRPortal.Infrastructure.Adapter
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add(p1Name, p1Type).Value = p1Val ?? DBNull.Value;
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        // Two-param non-query helper (.NET 4.5 compatible — no ValueTuple)
+        private void ExecNonQuery2(string sql, string p1Name, SqlDbType p1Type, object p1Val, string p2Name, SqlDbType p2Type, object p2Val)
+        {
+            using (var conn = new SqlConnection(_connStr))
+            using (var cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.Add(p1Name, p1Type).Value = p1Val ?? DBNull.Value;
+                cmd.Parameters.Add(p2Name, p2Type).Value = p2Val ?? DBNull.Value;
                 conn.Open();
                 cmd.ExecuteNonQuery();
             }

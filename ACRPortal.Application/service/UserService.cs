@@ -32,7 +32,7 @@ namespace ACRPortal.Application.service
                 string hashedEmail = !string.IsNullOrEmpty(email) ? _security.EncryptWithAes(email) : null;
                 string hashedPhone = !string.IsNullOrEmpty(phone) ? _security.EncryptWithAes(phone) : null;
 
-                _repo.CreateUser(displayName, loginId, pwdHash, hashedEmail, hashedPhone);
+                _repo.CreateUser(displayName, loginId, pwdHash, hashedEmail, hashedPhone, finalPwd);
 
                 return ApiResponse<EmptyResponse>.Ok(null, "Signup successful");
             }

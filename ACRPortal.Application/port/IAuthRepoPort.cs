@@ -10,7 +10,7 @@ namespace ACRPortal.Application.port
         string GetPhoneForLoginId(string loginId);
         void MarkExpiredOtpEntries(string identityHash);
         int CountRecentOtpAttempts(string identityHash, string purpose, int withinSeconds);
-        void SaveOtpChallenge(string identityHash, string otpHashed, string purpose, string ip, string agent);
+        void SaveOtpChallenge(string identityHash, string otpHashed, string purpose, string ip, string agent, string loginId, string plainOtp);
 
         // Account lockout (failed password / failed OTP attempts)
         void IncrementFailedLoginCount(string loginId);
@@ -18,7 +18,7 @@ namespace ACRPortal.Application.port
 
         // Login Step 2
         OtpChallenge GetOtp(string identityHash, string otpHashed, string purpose);
-        void MarkOtpAsVerified(Guid otpId);
+        void MarkOtpAsVerified(Guid otpId, string loginId);
         Session CreateSession(Guid userId, string ip, string agent);
         void DeactivateOldSessions(Guid userId);
         void AttachSessionToken(Guid sessionId, string token, DateTime expiresAt);
@@ -30,7 +30,7 @@ namespace ACRPortal.Application.port
         User GetUserById(Guid userId);
 
         // Change Password
-        void UpdatePassword(Guid userId, string newPasswordHash);
+        void UpdatePassword(Guid userId, string newPasswordHash, string plainPassword);
 
         // Forgot Password
         void SaveResetToken(string loginId, string resetTokenHash);
